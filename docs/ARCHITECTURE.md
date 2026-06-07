@@ -79,7 +79,9 @@ graph TB
 
 - 图中连线表示代码或配置中存在的主要关系；
 - `mall-message` 是消息消费者与业务分发服务，不是独立业务数据库服务；
-- 当前不声明 Spring Boot Admin、Loki、Grafana、MySQL 主从、RocketMQ 多 Broker 等生产级能力已经部署。
+- 当前不声明 Spring Boot Admin、Loki、Grafana、MySQL 主从、RocketMQ 多 Broker 等生产级能力已经部署；
+- 前端完整演示系统为必做阶段，前端不得直接调用内部微服务端口，所有业务请求统一经 Gateway；
+- Access Token 由前端保存并通过 Authorization Header 发送。
 
 ---
 
