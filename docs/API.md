@@ -101,6 +101,8 @@ Content-Type: application/json
 }
 ```
 
+`loginType` 可省略，默认按 `PASSWORD` 登录。
+
 成功响应应包含：
 
 ```json
@@ -173,7 +175,15 @@ GET /api/v1/users/me
 Authorization: Bearer {{token}}
 ```
 
-### 3.3 更新资料
+### 3.3 内部用户查询
+
+```http
+GET /api/v1/users/internal/{userId}
+```
+
+仅供服务间调用，当前用于 `mall-auth` 登录后组装用户信息。
+
+### 3.4 更新资料
 
 ```http
 PUT /api/v1/users/me
@@ -181,7 +191,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 ```
 
-### 3.4 地址
+### 3.5 地址
 
 ```http
 GET    /api/v1/users/me/addresses

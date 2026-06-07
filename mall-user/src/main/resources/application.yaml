@@ -4,12 +4,21 @@ server:
 spring:
   application:
     name: mall-user
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-redis.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-user.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:nacos:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
         shared-dataids: common-mysql.yaml,common-redis.yaml

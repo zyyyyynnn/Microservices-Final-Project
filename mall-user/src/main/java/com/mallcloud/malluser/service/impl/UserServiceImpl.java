@@ -65,6 +65,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public UserVO getCurrentUser() {
         Long userId = UserContext.requireUserId();
+        return getByUserId(userId);
+    }
+
+    @Override
+    public UserVO getByUserId(Long userId) {
         User user = getById(userId);
         if (user == null) {
             throw new BizException(20100, "用户不存在");
