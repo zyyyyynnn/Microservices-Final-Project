@@ -150,19 +150,29 @@ docker logs mall-seata --tail 50 2>&1 | Select-String 'store mode'
 curl "http://localhost:8848/nacos/v1/ns/instance/list?serviceName=seata-server&namespaceId=dev&groupName=SEATA_GROUP"
 
 # 数据库表确认
-docker exec mall-mysql mysql -uroot -proot -e "USE mall_seata; SHOW TABLES; SELECT COUNT(*) FROM distributed_lock;"
-# 预期：4 张 Server 表，distributed_lock 4 行
+docker exec mall-mysql mysql -uroot -proot -e "
+USE mall_seata;
+SHOW TABLES;
+SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
+"
+# 预期：4 张 Server 表。
+# distributed_lock 初始化后至少 4 行（AsyncCommitting/RetryCommitting/RetryRollbacking/TxTimeoutCheck）；
+# Seata Server 启动后自动增加 UndologDelete，运行期可能为 5 行。
 ```
 
 > Seata Server 表（`mall_seata` 库）与业务 AT 分支 undo_log（`mall_order`、`mall_inventory` 等业务库）是不同层级，不要混淆。
 
-已有 MySQL 数据目录时，Docker 不会自动重新执行 `db/init/`。停止 Seata 并确认 Server 事务表为空后，执行迁移脚本：
+已有 MySQL 数据目录时，Docker 不会自动重新执行 `db/init/`。迁移脚本内置自动安全检查，事务表非空时会中止执行：
 
 ```powershell
 Get-Content `
   .\db\migration\20260607-upgrade-seata-server-2.0.sql `
   -Raw -Encoding UTF8 |
   docker exec -i mall-mysql mysql -uroot -proot
+
+if ($LASTEXITCODE -ne 0) {
+    throw 'Seata Server Schema 迁移失败，数据库未通过安全检查。'
+}
 ```
 
 ---

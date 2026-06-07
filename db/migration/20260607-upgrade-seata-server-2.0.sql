@@ -3,27 +3,54 @@
 -- ============================================================
 -- 仅用于本地开发/课程演示环境。
 -- 执行前必须停止 Seata Server。
--- 执行前必须确认 global_table、branch_table、lock_table 均无事务数据。
--- 存在历史事务数据时禁止直接执行。
+-- 本脚本包含自动安全检查：若 Server 事务表存在数据，将中止执行。
 --
 -- 使用方式（PowerShell）：
 --   Get-Content .\db\migration\20260607-upgrade-seata-server-2.0.sql `
 --     -Raw -Encoding UTF8 |
 --     docker exec -i mall-mysql mysql -uroot -proot
+--
+--   if ($LASTEXITCODE -ne 0) {
+--       throw 'Seata Server Schema 迁移失败，数据库未通过安全检查。'
+--   }
 -- ============================================================
 
 USE `mall_seata`;
 
 -- ============================================================
--- 步骤 1：人工确认事务表为空（执行后检查输出是否全部为 0）
+-- 步骤 1：自动安全检查 — 事务表必须为空
 -- ============================================================
-SELECT COUNT(*) AS global_count FROM `global_table`;
-SELECT COUNT(*) AS branch_count FROM `branch_table`;
-SELECT COUNT(*) AS lock_count   FROM `lock_table`;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS `assert_seata_server_tables_empty`$$
+
+CREATE PROCEDURE `assert_seata_server_tables_empty`()
+BEGIN
+  DECLARE transaction_count BIGINT DEFAULT 0;
+
+  SELECT
+      (SELECT COUNT(*) FROM `global_table`)
+    + (SELECT COUNT(*) FROM `branch_table`)
+    + (SELECT COUNT(*) FROM `lock_table`)
+  INTO transaction_count;
+
+  IF transaction_count > 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT =
+        'Migration aborted: Seata Server transaction tables are not empty';
+  END IF;
+END$$
+
+DELIMITER ;
+
+CALL `assert_seata_server_tables_empty`();
+DROP PROCEDURE IF EXISTS `assert_seata_server_tables_empty`;
 
 -- ============================================================
 -- 步骤 2：删除旧表（含 vgroup_table，Seata 2.0.0 不需要）
 -- ============================================================
+
 DROP TABLE IF EXISTS `vgroup_table`;
 DROP TABLE IF EXISTS `distributed_lock`;
 DROP TABLE IF EXISTS `lock_table`;
@@ -100,4 +127,6 @@ INSERT INTO `distributed_lock` (lock_key, lock_value, expire) VALUES ('TxTimeout
 -- 步骤 4：验证结果
 -- ============================================================
 SHOW TABLES;
-SELECT COUNT(*) AS distributed_lock_count FROM `distributed_lock`;
+SELECT `lock_key`, `lock_value`, `expire`
+FROM `distributed_lock`
+ORDER BY `lock_key`;
