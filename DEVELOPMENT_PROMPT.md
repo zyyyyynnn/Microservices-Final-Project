@@ -60,7 +60,7 @@
 - Nacos YAML 中非法 `--` 注释已修复；
 - Seata Server 2.0.0 的 DB Store 和 Nacos 注册已验证；
 - Seata Server Schema 已统一为官方四表（global_table / branch_table / lock_table / distributed_lock）；
-- 已有环境迁移脚本已提供（`db/migration/20260607-upgrade-seata-server-2.0.sql`）；
+- 当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级；
 - Docker/K8s 的 Seata Server 已统一为 2.0.0；
 - 演示账号统一密码为 `123456`；
 - 当前推荐部署为 Docker 中间件 + IDE 启动服务；
