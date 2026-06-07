@@ -1,9 +1,9 @@
 # MallCloud 期末大作业最终报告
 
-> 文档状态：待填写
+> 文档状态：部分填写
 > 团队规模：5 人
 > 技术基线：Java 21 LTS、Spring Boot 3.2.4、Spring Cloud Alibaba 2023.0.1.0、Seata 2.0.0
-> 填写原则：只记录实际执行结果；未执行项标记为“未验证”。
+> 填写原则：只记录实际执行结果；未执行项标记为"未验证"。
 
 ---
 
@@ -13,8 +13,8 @@
 |---|---|
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
-| 代码分支/Commit | 待填写 |
-| 测试日期 | 待填写 |
+| 代码分支/Commit | feat/core-runtime-integration → main |
+| 测试日期 | 2026-06-07 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 本地 IDE 服务 |
 
@@ -59,14 +59,14 @@ mvn clean test -DskipTests=false
 
 | 功能 | 状态 | 验证方式 | 证据路径 |
 |---|---|---|---|
-| 用户登录 | 待验证 | Postman | |
-| 商品查询 | 待验证 | Postman | |
-| 购物车 | 待验证 | Postman + Redis | |
-| 创建订单 | 待验证 | Postman + DB | |
-| 库存锁定 | 待验证 | Feign 日志 + DB | |
-| 支付结果 | 待验证 | MQ 日志 + DB | |
-| 库存扣减 | 待验证 | DB | |
-| 订单查询 | 待验证 | Postman | |
+| 用户登录 | 已验证 | HTTP 接口 | 验收报告 |
+| 商品查询 | 已验证 | HTTP 接口 | 验收报告 |
+| 购物车 | 已验证 | HTTP 接口 + Redis | 验收报告 |
+| 创建订单 | 已验证 | HTTP 接口 + DB | 验收报告 |
+| 库存锁定 | 已验证 | Feign 调用 + DB | 验收报告 |
+| 支付结果 | 已验证 | MQ 消费 + DB | 验收报告 |
+| 库存扣减 | 已验证 | DB | 验收报告 |
+| 订单查询 | 已验证 | HTTP 接口 | 验收报告 |
 
 ---
 
@@ -74,13 +74,13 @@ mvn clean test -DskipTests=false
 
 | 能力 | 状态 | 证据 |
 |---|---|---|
-| Java 21 全模块构建 | 待验证 | |
-| Nacos 注册 | 待验证 | |
+| Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
+| Nacos 注册 | 已验证 | 9 个服务 healthy=true |
 | Nacos 配置热更新 | 待验证 | |
-| Gateway 路由与 JWT | 待验证 | |
-| OpenFeign | 待验证 | |
-| Seata 2.0.0 回滚 | 待验证 | |
-| RocketMQ 消费 | 待验证 | |
+| Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
+| OpenFeign | 已验证 | order→product、order→inventory |
+| Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
+| RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
 
@@ -190,16 +190,18 @@ docs/test/postman/summary/newman-20260609.md
 
 ### 8.2 Seata 2.0.0 回滚
 
-测试场景：库存锁定后模拟订单写入失败。
+测试场景：库存锁定后模拟订单写入失败（remark=SEATA_ROLLBACK_TEST 触发异常）。
 
 | 检查项 | 结果 |
 |---|---|
-| Seata Server 镜像 | |
-| XID 是否透传 | |
-| 订单是否创建 | |
-| locked 是否恢复 | |
-| available 是否恢复 | |
-| undo_log/事务日志 | |
+| Seata Server 镜像 | seataio/seata-server:2.0.0 |
+| XID 是否透传 | 是（@GlobalTransactional 生效） |
+| 订单是否创建 | 否（未落库） |
+| locked 是否恢复 | 是（与基线一致） |
+| available 是否恢复 | 是（与基线一致） |
+| undo_log/事务日志 | 回滚后自动清理 |
+
+故障注入已移除，工作区 clean。
 
 ### 8.3 重复消息
 

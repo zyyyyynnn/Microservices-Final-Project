@@ -33,6 +33,7 @@ Gateway 验证 JWT 后向下游透传：
 - `GET /api/v1/auth/captcha`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/users/register`
+- `POST /api/v1/pay/notify`
 - `/api/v1/search/**`
 - `/api/v1/products/**`
 - `/api/v1/categories/**`
@@ -138,6 +139,8 @@ Content-Type: application/json
   "refreshToken": "{{refreshToken}}"
 }
 ```
+
+Refresh Token 只能用于此接口。Access Token 作为 `refreshToken` 参数会被拒绝（code=20102 Token 类型错误）。
 
 ### 2.3 退出
 

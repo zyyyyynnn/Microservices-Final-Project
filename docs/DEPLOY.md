@@ -386,8 +386,29 @@ mvn -version
 
 - 种子数据已重新初始化；
 - 测试密码为 `123456`；
-- Auth 与 Gateway 使用相同 JWT 密钥；
+- Auth 与 Gateway 使用相同 JWT 密钥（默认值已统一）；
 - Header 格式正确。
+
+### 13.4 角色迁移
+
+已有环境需要添加认证角色字段时，执行迁移脚本：
+
+```powershell
+Get-Content `
+  .\db\migration\20260607-add-auth-role.sql `
+  -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
+```
+
+脚本幂等，可重复执行。验证：
+
+```powershell
+docker exec mall-mysql mysql -uroot -proot -e "
+SELECT user_id, identity_type, identifier, role
+FROM mall_auth.sys_user_auth
+ORDER BY user_id, identity_type;
+"
+```
 
 ---
 
