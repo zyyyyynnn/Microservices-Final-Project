@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author zhaoliu
  * @since 2026-03-01
  */
-@FeignClient(name = "mall-order")
+@FeignClient(name = "mall-order", fallbackFactory = OrderClientFallbackFactory.class)
 public interface OrderClient {
 
     @PostMapping("/internal/orders/{orderNo}/paid")

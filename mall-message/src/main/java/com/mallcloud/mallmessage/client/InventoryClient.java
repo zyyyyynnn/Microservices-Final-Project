@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author zhaoliu
  * @since 2026-03-01
  */
-@FeignClient(name = "mall-inventory")
+@FeignClient(name = "mall-inventory", fallbackFactory = InventoryClientFallbackFactory.class)
 public interface InventoryClient {
 
     @PostMapping("/api/v1/inventory/deduct")
