@@ -53,7 +53,7 @@
 - 团队固定为 5 人；
 - 13 个服务模块和基础分层已存在；
 - 父 POM 已切换为 Java 21，已取消默认 `<skipTests>true</skipTests>`；
-- Java 21 全模块构建和现有 11 个测试已通过；
+- Java 21 全模块构建和现有 13 个测试已通过；
 - 不使用 Java 21 预览特性；
 - 不采用 Java 24；
 - MySQL 8.0、Redis 7、Nacos 2.3.2 已完成基础运行验证；
@@ -103,7 +103,7 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 - `java -version` 为 Java 21；
 - `mvn -version` 使用 Java 21；
 - 全部 Maven 模块编译成功；
-- 现有测试全部通过（11 个，0 失败）；
+- 现有测试全部通过（13 个，0 失败）；
 - 父 POM 已取消默认 `<skipTests>true</skipTests>`；
 - Nacos YAML 合法；
 - 环境变量名统一；
