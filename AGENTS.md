@@ -54,29 +54,43 @@
 
 ## 3. 当前项目状态
 
+### 已完成基线
+
+- Java 21 全模块构建通过；
+- 现有 11 个测试全部通过（0 失败）；
+- 父 POM 已取消默认 `<skipTests>true</skipTests>`；
+- MySQL 8.0、Redis 7、Nacos 2.3.2 已完成基础运行验证；
+- Nacos YAML 中非法 `--` 注释已修复；
+- Seata Server 2.0.0 DB Store 已验证（session/lock store mode: db）；
+- Seata Nacos 注册已验证（dev / SEATA_GROUP / healthy=true）；
+- Seata Server Schema 已统一为官方四表，迁移脚本已提供。
+
+### 仍需验证
+
+- 业务服务的 Nacos 配置加载；
+- 核心交易链路；
+- Seata AT 真实业务回滚；
+- Postman 和 JMeter 未完成。
+
+### 基本约束
+
 - 微服务结构和主要代码已建立；
-- 配置、构建和核心链路需要验证；
-- 父 POM 已切换到 Java 21；
-- Docker/K8s 的 Seata 镜像已切换到 2.0.0；
-- Postman 最终集合需要重建；
-- JMeter 脚本和报告尚未完成；
-- Docker/Kubernetes 全栈不是正式交付路径；
+- Docker/K8s 全栈不是正式交付路径；
 - 演示账号统一密码为 `123456`。
 
-不得假定某项能力已经完成，必须以代码、配置和运行结果为依据。
+不得假定业务服务已可运行或核心链路已打通，必须以代码、配置和运行结果为依据。
 
 ---
 
 ## 4. 执行顺序
 
 ```text
-修复事实错误
-  → 验证 Java 21 构建
-  → 验证 Seata 2.0.0
-  → 完善必要实现
-  → 编译/运行验证
-  → 补针对性测试
-  → 更新报告
+[已完成] 运行基线（Java 21 / Maven / MySQL / Redis / Nacos / Seata）
+  → [当前] 认证与网关运行闭环（mall-user / mall-auth / mall-gateway）
+  → 交易主链路（Product / Inventory / Cart / Order / Seata AT）
+  → 支付与 MQ
+  → 治理与测试
+  → 最终报告
 ```
 
 禁止：
@@ -113,25 +127,36 @@
 
 ## 6. 当前优先级
 
-### P0：版本与基础可运行
+### 已完成基线
 
-1. 验证 `java -version` 与 `mvn -version` 均为 Java 21；
-2. 执行全模块构建；
-3. 验证 Seata Server 2.0.0 启动、注册与配置；
-4. 修复 Nacos YAML 和配置加载；
-5. 验证数据库初始化；
-6. 验证核心服务注册和 Gateway JWT。
+- Java 21 全模块构建通过；
+- 现有 11 个测试通过；
+- Maven 默认测试跳过已移除；
+- MySQL、Redis、Nacos 已验证；
+- Nacos YAML 语法已修复；
+- Seata Server 2.0.0 DB Store 和 Nacos 注册已验证；
+- 官方四表 Schema 和迁移脚本已完成。
 
-### P1：交易主链路
+### P0：认证与网关运行闭环（当前任务）
 
-1. 登录并查询用户；
-2. 查询商品；
-3. 购物车；
-4. 创建订单；
-5. 商品和库存 Feign；
-6. Seata 回滚；
-7. 支付消息；
-8. 订单和库存状态更新。
+1. 启动 `mall-user`；
+2. 启动 `mall-auth`；
+3. 启动 `mall-gateway`；
+4. 验证 Nacos 注册；
+5. 验证远程配置加载；
+6. 验证登录（`zhangsan / 123456`）；
+7. 验证 Gateway JWT；
+8. 验证用户上下文透传。
+
+### P1：商品和交易主链路
+
+1. Product / Inventory / Cart / Order 启动和注册；
+2. 商品查询和购物车；
+3. 创建订单；
+4. 商品和库存 Feign；
+5. Seata AT 真实回滚；
+6. 支付消息；
+7. 订单和库存状态更新。
 
 ### P2：课程技术亮点
 
