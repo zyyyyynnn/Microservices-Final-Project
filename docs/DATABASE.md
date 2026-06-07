@@ -1,316 +1,230 @@
-# MallCloud 数据库设计文档
+# MallCloud 数据库设计
 
-> 版本：v1.0.0
-> 数据库：MySQL 8.0
-> 字符集：utf8mb4 / utf8mb4_unicode_ci
-
----
-
-## 1. 数据库总览
-
-| # | 库名             | 归属服务    | 主要表                                | 预估数据量 |
-| - | ---------------- | ----------- | ------------------------------------- | ---------- |
-| 1 | mall_auth        | mall-auth   | sys_user_auth                         | 1w         |
-| 2 | mall_user        | mall-user   | user, address                         | 10w        |
-| 3 | mall_product     | mall-product| category, spu, sku, spu_attr, spu_img | 1w         |
-| 4 | mall_inventory   | mall-inventory | stock, stock_log                   | 10w        |
-| 5 | mall_order       | mall-order  | order_info, order_item, order_log     | 100w       |
-| 6 | mall_pay         | mall-pay    | pay_record, refund_record             | 100w       |
-| 7 | mall_seckill     | mall-seckill| seckill_activity, seckill_order       | 1w         |
+> 文档版本：v2.0
+> 数据库：MySQL 8.0+
+> 字符集：utf8mb4
+> 权威 DDL：`db/init/00-create-databases.sql`
+> 演示数据：`db/init/seed.sql`
 
 ---
 
-## 2. ER 总图
+## 1. 设计原则
+
+- 每个核心业务服务拥有独立业务库；
+- 服务不得直接访问其他服务数据库；
+- 跨服务操作通过 OpenFeign、RocketMQ 或 Seata；
+- 表结构以 SQL 文件为最终事实来源；
+- 本文不扩展新表，不为追求规模增加冗余数据模型；
+- 演示数据量与设计容量分开描述。
+
+---
+
+## 2. 数据库总览
+
+| 数据库 | 所属服务 | 主要表 |
+|---|---|---|
+| `mall_auth` | mall-auth | `sys_user_auth`、`undo_log` |
+| `mall_user` | mall-user | `user`、`address`、`undo_log` |
+| `mall_product` | mall-product | `category`、`spu`、`sku`、`spu_attr`、`spu_img`、`undo_log` |
+| `mall_inventory` | mall-inventory | `stock`、`stock_log`、`undo_log` |
+| `mall_order` | mall-order | `order_info`、`order_item`、`order_log`、`undo_log` |
+| `mall_pay` | mall-pay | `pay_record`、`refund_record`、`undo_log` |
+| `mall_seckill` | mall-seckill | `seckill_activity`、`seckill_order`、`undo_log` |
+| `mall_seata` | Seata Server | `global_table`、`branch_table`、`lock_table` |
+
+实际表数量以初始化 SQL 执行结果为准，不在未验证时固定宣称总数。
+
+---
+
+## 3. 核心关系
 
 ```mermaid
 erDiagram
   USER ||--o{ ADDRESS : has
-  USER ||--o{ ORDER_INFO : places
-  USER ||--o{ CART : has
-  USER ||--o{ SECKILL_ORDER : joins
+  USER ||--o{ ORDER_INFO : creates
   CATEGORY ||--o{ SPU : contains
-  SPU ||--o{ SKU : has
-  SPU ||--o{ SPU_ATTR : has
-  SPU ||--o{ SPU_IMG : has
-  SKU ||--|| STOCK : has
-  SKU ||--o{ ORDER_ITEM : in
-  SKU ||--o{ SECKILL_ORDER : in
+  SPU ||--o{ SKU : contains
+  SKU ||--|| STOCK : owns
   ORDER_INFO ||--o{ ORDER_ITEM : contains
-  ORDER_INFO ||--o{ ORDER_LOG : has
-  ORDER_INFO ||--|| PAY_RECORD : paid_by
-  ORDER_INFO ||--o{ REFUND_RECORD : refund
+  SKU ||--o{ ORDER_ITEM : referenced_by
+  ORDER_INFO ||--o| PAY_RECORD : paid_by
   SECKILL_ACTIVITY ||--o{ SECKILL_ORDER : contains
 ```
 
+微服务之间不建立数据库级外键。关联 ID 由业务逻辑维护。
+
 ---
 
-## 3. 库表结构
+## 4. 认证库 `mall_auth`
 
-### 3.1 mall_auth
+### 4.1 `sys_user_auth`
 
-#### sys_user_auth
+| 字段 | 类型 | 约束/说明 |
+|---|---|---|
+| `id` | BIGINT | 主键、自增 |
+| `user_id` | BIGINT | 对应用户服务用户 ID |
+| `identity_type` | VARCHAR(16) | PASSWORD/PHONE/WECHAT |
+| `identifier` | VARCHAR(64) | 用户名、手机号或 openId |
+| `credential` | VARCHAR(255) | BCrypt 密码摘要 |
+| `status` | TINYINT | 1 正常，0 禁用 |
+| `gmt_create` | DATETIME | 创建时间 |
+| `gmt_modified` | DATETIME | 修改时间 |
 
-| 字段         | 类型         | 备注                                       |
-| ------------ | ------------ | ------------------------------------------ |
-| id           | BIGINT PK    |                                            |
-| user_id      | BIGINT       | 关联 mall_user.user.id                      |
-| identity_type| VARCHAR(16)  | PASSWORD / PHONE / WECHAT                  |
-| identifier   | VARCHAR(64)  | 用户名/手机号/openId                       |
-| credential   | VARCHAR(255) | BCrypt 加密                                |
-| status       | TINYINT      | 1=正常 0=禁用                              |
-| gmt_create   | DATETIME     |                                            |
-| gmt_modified | DATETIME     |                                            |
+唯一约束：`identity_type + identifier`。
 
-索引：UNIQUE(identity_type, identifier)
+说明：角色当前不是独立数据库模型，而是登录逻辑根据账号规则生成。若后续需要正式 RBAC，应先修改 PRD 和数据库设计，当前阶段不扩展。
 
-### 3.2 mall_user
+---
 
-#### user
+## 5. 用户库 `mall_user`
 
-| 字段         | 类型         | 备注                              |
-| ------------ | ------------ | --------------------------------- |
-| id           | BIGINT PK    |                                   |
-| username     | VARCHAR(64)  | UNIQUE                            |
-| phone        | VARCHAR(20)  | UNIQUE                            |
-| nickname     | VARCHAR(64)  |                                   |
-| avatar       | VARCHAR(255) |                                   |
-| email        | VARCHAR(128) |                                   |
-| id_card      | VARCHAR(32)  | AES 加密                          |
-| status       | TINYINT      | 1=正常                            |
-| gmt_create   | DATETIME     |                                   |
-| gmt_modified | DATETIME     |                                   |
+### 5.1 `user`
 
-#### address
+保存用户名、手机号、昵称、头像、邮箱、身份证字段和状态。
 
-| 字段         | 类型         | 备注                          |
-| ------------ | ------------ | ----------------------------- |
-| id           | BIGINT PK    |                               |
-| user_id      | BIGINT       |                               |
-| receiver     | VARCHAR(64)  |                               |
-| phone        | VARCHAR(20)  |                               |
-| province     | VARCHAR(32)  |                               |
-| city         | VARCHAR(32)  |                               |
-| district     | VARCHAR(32)  |                               |
-| detail       | VARCHAR(255) |                               |
-| is_default   | TINYINT      | 1=默认 0=否                   |
-| gmt_create   | DATETIME     |                               |
+重要约束：
 
-索引：idx_user(user_id)
+- `username` 唯一；
+- `phone` 唯一；
+- `id_card` 字段仅表示预留敏感字段；代码未完成 AES 验证前，不宣称已加密落库。
 
-### 3.3 mall_product
+### 5.2 `address`
 
-#### category
+保存收件人、手机号、省市区、详细地址和默认标记。
 
-| 字段         | 类型         | 备注                       |
-| ------------ | ------------ | -------------------------- |
-| id           | BIGINT PK    |                            |
-| parent_id    | BIGINT       | 0=一级类目                 |
-| name         | VARCHAR(64)  |                            |
-| level        | TINYINT      | 1/2/3                      |
-| icon         | VARCHAR(255) |                            |
-| sort         | INT          |                            |
-| status       | TINYINT      | 1=启用 0=禁用              |
+索引：`user_id`。
 
-索引：idx_parent(parent_id)
+---
 
-#### spu
+## 6. 商品库 `mall_product`
 
-| 字段            | 类型         | 备注                          |
-| --------------- | ------------ | ----------------------------- |
-| id              | BIGINT PK    |                               |
-| name            | VARCHAR(255) |                               |
-| description     | TEXT         |                               |
-| main_image      | VARCHAR(255) |                               |
-| category_id     | BIGINT       |                               |
-| brand           | VARCHAR(64)  |                               |
-| merchant_id     | BIGINT       | 商家 ID                        |
-| status          | TINYINT      | 0=下架 1=上架 2=审核中         |
-| sales           | INT          | 销量                          |
-| view_count      | INT          | 浏览量                        |
-| gmt_create      | DATETIME     |                               |
+### 6.1 `category`
 
-索引：idx_category(category_id), idx_merchant(merchant_id), idx_status(status)
+三级类目结构，使用 `parent_id` 和 `level` 表示层级。
 
-#### sku
+### 6.2 `spu`
 
-| 字段         | 类型         | 备注                          |
-| ------------ | ------------ | ----------------------------- |
-| id           | BIGINT PK    |                               |
-| spu_id       | BIGINT       |                               |
-| spec_json    | JSON         | {"颜色":"红","版本":"256G"}    |
-| price        | DECIMAL(10,2)|                               |
-| original_price | DECIMAL   |                               |
-| image        | VARCHAR(255) |                               |
-| weight       | INT          | 克                            |
-| barcode      | VARCHAR(64)  |                               |
-| status       | TINYINT      | 1=启用                        |
+保存商品款型信息：
 
-索引：idx_spu(spu_id)
+- 名称、描述、主图；
+- 类目、品牌、商家；
+- 上下架状态；
+- 销量和浏览量。
 
-#### spu_attr
+### 6.3 `sku`
 
-| 字段      | 类型         | 备注                       |
-| --------- | ------------ | -------------------------- |
-| id        | BIGINT PK    |                            |
-| spu_id    | BIGINT       |                            |
-| attr_name | VARCHAR(64)  |                            |
-| attr_value| VARCHAR(255) |                            |
+保存可售单元：
 
-#### spu_img
+- `spu_id`；
+- `spec_json`；
+- 价格、原价、图片；
+- 重量、条码、状态。
 
-| 字段      | 类型         | 备注                       |
-| --------- | ------------ | -------------------------- |
-| id        | BIGINT PK    |                            |
-| spu_id    | BIGINT       |                            |
-| url       | VARCHAR(255) |                            |
-| sort      | INT          |                            |
-| is_main   | TINYINT      |                            |
+订单价格必须由商品服务返回，不能使用客户端金额。
 
-### 3.4 mall_inventory
+### 6.4 `spu_attr` 与 `spu_img`
 
-#### stock
+分别保存商品属性和图片。课程项目保留简单结构，不扩展复杂规格模板系统。
 
-| 字段         | 类型     | 备注                                  |
-| ------------ | -------- | ------------------------------------- |
-| id           | BIGINT PK|                                       |
-| sku_id       | BIGINT   | UNIQUE                                |
-| total        | INT      | 总库存                                |
-| locked       | INT      | 预扣占用                              |
-| available    | INT      | 可售 = total - locked                 |
-| version      | INT      | 乐观锁                                |
-| gmt_modified | DATETIME |                                       |
+---
 
-#### stock_log
+## 7. 库存库 `mall_inventory`
 
-| 字段       | 类型         | 备注                              |
-| ---------- | ------------ | --------------------------------- |
-| id         | BIGINT PK    |                                   |
-| sku_id     | BIGINT       |                                   |
-| change     | INT          | +入 -出                           |
-| type       | VARCHAR(16)  | LOCK/UNLOCK/DEDUCT/ROLLBACK        |
-| ref_no     | VARCHAR(64)  | 关联单号                          |
-| remark     | VARCHAR(255) |                                   |
-| gmt_create | DATETIME     |                                   |
+### 7.1 `stock`
 
-索引：idx_sku(sku_id), idx_ref(ref_no)
+| 字段 | 说明 |
+|---|---|
+| `sku_id` | SKU 唯一标识 |
+| `total` | 总库存 |
+| `locked` | 已锁定未确认库存 |
+| `available` | 可售库存 |
+| `version` | 乐观锁版本 |
+| `gmt_modified` | 修改时间 |
 
-### 3.5 mall_order
+库存状态必须满足：
 
-#### order_info
+```text
+available >= 0
+locked >= 0
+total >= locked
+```
 
-| 字段           | 类型          | 备注                                |
-| -------------- | ------------- | ----------------------------------- |
-| id             | BIGINT PK     |                                     |
-| order_no       | VARCHAR(32)   | UNIQUE，业务流水号                  |
-| user_id        | BIGINT        |                                     |
-| merchant_id    | BIGINT        |                                     |
-| total_amount   | DECIMAL(12,2) |                                     |
-| pay_amount     | DECIMAL(12,2) |                                     |
-| freight_amount | DECIMAL(12,2) |                                     |
-| discount_amount| DECIMAL(12,2) |                                     |
-| status         | TINYINT       | 0=待支付 1=已支付 2=已发货 3=已完成 4=已取消 5=已退款 |
-| address_json   | JSON          | 收货地址快照                        |
-| pay_deadline   | DATETIME      |                                     |
-| remark         | VARCHAR(255)  |                                     |
-| gmt_create     | DATETIME      |                                     |
-| gmt_pay        | DATETIME      |                                     |
-| gmt_modified   | DATETIME      |                                     |
+### 7.2 `stock_log`
 
-索引：idx_user_status(user_id, status), idx_merchant_status(merchant_id, status), idx_create(gmt_create)
+记录 LOCK、UNLOCK、DEDUCT、ROLLBACK 等库存变化，建议使用业务单号作为 `ref_no`。
 
-#### order_item
+后续测试应验证同一订单的重复扣减或释放不会造成库存重复变化。
 
-| 字段         | 类型          | 备注                          |
-| ------------ | ------------- | ----------------------------- |
-| id           | BIGINT PK     |                               |
-| order_id     | BIGINT        |                               |
-| order_no     | VARCHAR(32)   |                               |
-| sku_id       | BIGINT        |                               |
-| spu_id       | BIGINT        |                               |
-| sku_image    | VARCHAR(255)  |                               |
-| sku_name     | VARCHAR(255)  |                               |
-| spec_json    | JSON          |                               |
-| price        | DECIMAL(10,2) |                               |
-| quantity     | INT           |                               |
-| subtotal     | DECIMAL(12,2) |                               |
+---
 
-索引：idx_order(order_id), idx_sku(sku_id)
+## 8. 订单库 `mall_order`
 
-#### order_log
+### 8.1 `order_info`
 
-| 字段       | 类型         | 备注                          |
-| ---------- | ------------ | ----------------------------- |
-| id         | BIGINT PK    |                               |
-| order_id   | BIGINT       |                               |
-| from_status| TINYINT      |                               |
-| to_status  | TINYINT      |                               |
-| operator   | VARCHAR(64)  |                               |
-| remark     | VARCHAR(255) |                               |
-| gmt_create | DATETIME     |                               |
+保存：
 
-### 3.6 mall_pay
+- 订单号；
+- 用户和商家 ID；
+- 总金额、支付金额、运费和优惠；
+- 订单状态；
+- 地址快照；
+- 支付截止时间；
+- 创建、支付和修改时间。
 
-#### pay_record
+当前状态：
 
-| 字段         | 类型          | 备注                          |
-| ------------ | ------------- | ----------------------------- |
-| id           | BIGINT PK     |                               |
-| pay_no       | VARCHAR(32)   | UNIQUE                        |
-| order_no     | VARCHAR(32)   | UNIQUE                        |
-| user_id      | BIGINT        |                               |
-| pay_channel  | VARCHAR(16)   | ALIPAY/WECHAT                 |
-| pay_amount   | DECIMAL(12,2) |                               |
-| status       | TINYINT       | 0=待支付 1=成功 2=失败 3=关闭   |
-| trade_no     | VARCHAR(64)   | 第三方流水号                  |
-| notify_time  | DATETIME      |                               |
-| gmt_create   | DATETIME      |                               |
-| gmt_modified | DATETIME      |                               |
+| 值 | 含义 |
+|---:|---|
+| 0 | 待支付 |
+| 1 | 已支付 |
+| 2 | 已发货 |
+| 3 | 已完成 |
+| 4 | 已取消 |
+| 5 | 已退款 |
 
-#### refund_record
+### 8.2 `order_item`
 
-| 字段         | 类型          | 备注                          |
-| ------------ | ------------- | ----------------------------- |
-| id           | BIGINT PK     |                               |
-| refund_no    | VARCHAR(32)   | UNIQUE                        |
-| order_no     | VARCHAR(32)   |                               |
-| pay_no       | VARCHAR(32)   |                               |
-| refund_amount| DECIMAL(12,2) |                               |
-| reason       | VARCHAR(255)  |                               |
-| status       | TINYINT       | 0=待审核 1=已退款 2=拒绝      |
-| gmt_create   | DATETIME      |                               |
+保存 SKU、SPU、商品名称、规格、价格、数量和小计快照。
 
-### 3.7 mall_seckill
+### 8.3 `order_log`
 
-#### seckill_activity
+用于记录状态变化。若当前代码未写入完整日志，应标记为待完善，不通过新增复杂事件溯源扩大范围。
 
-| 字段         | 类型          | 备注                          |
-| ------------ | ------------- | ----------------------------- |
-| id           | BIGINT PK     |                               |
-| name         | VARCHAR(128)  |                               |
-| sku_id       | BIGINT        |                               |
-| seckill_price| DECIMAL(10,2) |                               |
-| total_stock  | INT           |                               |
-| limit_per_user | INT         | 默认 1                        |
-| start_time   | DATETIME      |                               |
-| end_time     | DATETIME      |                               |
-| status       | TINYINT       | 0=未开始 1=进行中 2=已结束 3=取消 |
+---
 
-#### seckill_order
+## 9. 支付库 `mall_pay`
 
-| 字段         | 类型         | 备注                          |
-| ------------ | ------------ | ----------------------------- |
-| id           | BIGINT PK    |                               |
-| activity_id  | BIGINT       |                               |
-| user_id      | BIGINT       |                               |
-| sku_id       | BIGINT       |                               |
-| order_no     | VARCHAR(32)  |                               |
-| request_id   | VARCHAR(64)  | UNIQUE,防重                   |
-| status       | TINYINT      | 0=排队 1=成功 2=失败 3=已退款  |
-| gmt_create   | DATETIME     |                               |
+### 9.1 `pay_record`
 
-索引：UNIQUE(activity_id, user_id), idx_request(request_id)
+保存支付单号、订单号、用户、渠道、金额、状态和模拟第三方流水号。
 
-### 3.8 undo_log（每个业务库都要建）
+### 9.2 `refund_record`
+
+保留基础退款记录结构。退款不是本期核心验收链路，不继续扩展复杂审核和资金处理。
+
+---
+
+## 10. 秒杀库 `mall_seckill`
+
+### 10.1 `seckill_activity`
+
+保存活动、SKU、秒杀价、总库存、用户限购、时间和状态。
+
+### 10.2 `seckill_order`
+
+保存活动、用户、SKU、订单号、请求 ID 和处理状态。
+
+关键约束：
+
+- `request_id` 唯一或具备等价防重约束；
+- 同一活动和用户不能重复成功；
+- Redis 预扣结果与数据库结果必须通过测试验证。
+
+---
+
+## 11. Seata `undo_log`
+
+所有参与 AT 事务的业务库统一使用：
 
 ```sql
 CREATE TABLE `undo_log` (
@@ -320,41 +234,83 @@ CREATE TABLE `undo_log` (
   `context` VARCHAR(128) NOT NULL,
   `rollback_info` LONGBLOB NOT NULL,
   `log_status` INT NOT NULL,
-  `log_created` DATETIME,
-  `log_modified` DATETIME,
+  `log_created` DATETIME NOT NULL,
+  `log_modified` DATETIME NOT NULL,
   UNIQUE KEY `ux_undo_log` (`xid`, `branch_id`)
 );
 ```
 
----
-
-## 4. 索引设计原则
-
-1. **高频查询字段建索引**：`user_id` / `order_no` / `status`；
-2. **组合索引遵循最左前缀**：`(user_id, status, gmt_create)`；
-3. **唯一索引前置业务唯一约束**：`order_no`、`pay_no`；
-4. **不在频繁更新字段建索引**（如 `status` 变化频繁时考虑冗余字段）；
-5. **字符串前缀索引**：`VARCHAR(255)` 类型的前 16 字符覆盖 80% 查询。
+本文与 `00-create-databases.sql` 保持一致。
 
 ---
 
-## 5. 数据迁移
+## 12. 索引原则
 
-- 使用 **init 脚本 + 迁移脚本** 管理版本：`db/init/00-create-databases.sql`（建库建表）；后续变更在 `db/migration/` 下补 `V{n}__xxx.sql`；
-- 启动时自动执行；
-- 兼容旧版：永远不修改已执行过的脚本，只能新增 V2、V3。
-
----
-
-## 6. 种子数据
-
-`db/init/seed.sql` 提供演示数据：
-- 3 级类目共 30 个；
-- 商家 5 个；
-- SPU 100 个，SKU 300 个；
-- 测试用户 10 个；
-- 秒杀活动 3 场。
+- 业务唯一键使用唯一索引，例如订单号、支付单号；
+- 高频查询字段建立普通或联合索引；
+- 联合索引按实际查询条件设计；
+- 不为低频查询机械增加索引；
+- 更新频繁的低区分度字段不单独建索引，除非查询证明有必要；
+- 索引优化以慢查询和压测结果为依据。
 
 ---
 
-**—— 文档结束 ——**
+## 13. 演示数据
+
+当前 `db/init/seed.sql` 提供：
+
+| 数据 | 数量 |
+|---|---:|
+| 用户 | 10 |
+| 地址 | 3 |
+| 类目 | 30 |
+| SPU | 5 |
+| SKU | 7 |
+| 库存记录 | 7 |
+| 秒杀活动 | 3 |
+
+此前文档中的“100 SPU、300 SKU”不是当前演示数据，已废止。
+
+演示数据只用于功能验证，不代表设计容量。
+
+---
+
+## 14. 初始化与验证
+
+推荐使用：
+
+```powershell
+.\scripts\init-db.ps1
+```
+
+手动方式：
+
+```powershell
+mysql -h 127.0.0.1 -P 3306 -u root -p < .\db\init\00-create-databases.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p < .\db\init\seed.sql
+```
+
+PowerShell 对 `<` 重定向的行为与传统 shell 不同，实际执行时优先使用项目脚本或 MySQL `source`。
+
+初始化后至少验证：
+
+```sql
+SELECT COUNT(*) FROM mall_user.user;
+SELECT COUNT(*) FROM mall_product.spu;
+SELECT COUNT(*) FROM mall_product.sku;
+SELECT COUNT(*) FROM mall_inventory.stock;
+SELECT COUNT(*) FROM mall_seckill.seckill_activity;
+```
+
+预期分别为 10、5、7、7、3。
+
+---
+
+## 15. 迁移规范
+
+- `00-create-databases.sql` 用于全新环境初始化；
+- 已提交环境的结构变更应新增迁移脚本；
+- 不在业务代码中执行 DDL；
+- 不手工修改共享演示数据库后不留记录；
+- 当前项目不强制引入 Flyway/Liquibase，避免增加不必要依赖；
+- 若后续结构频繁变化，再评估迁移工具。
