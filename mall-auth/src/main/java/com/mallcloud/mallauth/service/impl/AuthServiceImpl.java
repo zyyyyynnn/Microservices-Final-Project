@@ -44,10 +44,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
+        String loginType = loginDTO.getLoginType();
+        if (loginType == null || loginType.isBlank()) {
+            loginType = "PASSWORD";
+        }
+
         // 查询用户认证信息
         SysUserAuth auth = sysUserAuthMapper.selectOne(new LambdaQueryWrapper<SysUserAuth>()
                 .eq(SysUserAuth::getIdentifier, loginDTO.getUsername())
-                .eq(SysUserAuth::getIdentityType, loginDTO.getLoginType()));
+                .eq(SysUserAuth::getIdentityType, loginType));
         
         if (auth == null) {
             throw new BizException(ErrorCode.UNAUTHORIZED.getCode(), "用户名或密码错误");
