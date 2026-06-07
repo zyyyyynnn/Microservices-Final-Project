@@ -338,9 +338,7 @@ Invoke-RestMethod http://localhost:9006/actuator/health
 - 组合依赖尚未验证；
 - 部分前端镜像路径未验证。
 
-Kubernetes 当前提供部分中间件和 Gateway 示例。Seata 示例镜像已更新为 2.0.0，但完整 13 服务部署尚未完成。
-
-不得把 Docker/K8s 全栈描述为已完成。
+Kubernetes 当前提供部分中间件和 Gateway 示例，完整 13 服务部署尚未完成。
 
 ---
 
@@ -380,7 +378,7 @@ mvn -version
 
 ### 13.4 角色字段
 
-当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级。`sys_user_auth.role` 字段已在 `db/init/00-create-databases.sql` 中包含。
+`sys_user_auth.role` 字段已在 `db/init/00-create-databases.sql` 中包含，无需单独迁移。
 
 ---
 
