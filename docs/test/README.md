@@ -1,6 +1,7 @@
 # MallCloud 测试资产说明
 
-> 本目录用于保存可重复执行的测试脚本、环境文件、运行结果和截图。
+> 测试基线：Windows 11、PowerShell 7+、JDK 21
+> 演示账号统一密码：`123456`
 > 测试结论最终汇总到 `docs/FINAL_REPORT.md`。
 
 ---
@@ -25,16 +26,39 @@ docs/test/
     ├── nacos-refresh-before.png
     ├── nacos-refresh-after.png
     ├── sentinel-limit.png
+    ├── seata-rollback.png
     └── resource-monitoring.png
 ```
 
-不存在的文件不得在其他文档中写成已生成。
+不存在的文件不得写成已生成。
 
 ---
 
-## 2. Postman 标准
+## 2. 测试环境记录
 
-最终集合应满足：
+每次正式测试必须记录：
+
+```powershell
+java -version
+mvn -version
+docker version
+docker compose version
+docker inspect mall-seata --format '{{.Config.Image}}'
+git rev-parse HEAD
+```
+
+通过基线：
+
+- Java 21；
+- Maven 使用 Java 21；
+- Seata 镜像为 `seataio/seata-server:2.0.0`；
+- 报告中记录代码 Commit。
+
+---
+
+## 3. Postman 标准
+
+最终集合必须：
 
 - 核心接口不少于 6 个；
 - 总请求不少于 20 次；
@@ -43,13 +67,15 @@ docs/test/
 - 创建订单后自动保存 `orderNo`；
 - 正常和异常用例均有断言；
 - 至少验证一次 OpenFeign 调用链；
-- 不提交固定伪 Token；
+- 不提交固定 Token；
 - 不使用 `dummy` 或 `bad_data` 机械填充请求体。
 
 推荐环境变量：
 
 ```text
 BaseURL=http://localhost:9000
+username=zhangsan
+password=123456
 token=
 refreshToken=
 orderNo=
@@ -58,24 +84,26 @@ spuId=1001
 skuId=9001
 ```
 
-### 2.1 Newman 执行
+演示账号：
 
-安装：
+| 用户名 | 密码 | 角色 |
+|---|---|---|
+| zhangsan | 123456 | USER |
+| merchant01 | 123456 | MERCHANT |
+| admin | 123456 | ADMIN |
+
+### 3.1 Newman 执行
 
 ```powershell
 npm install -g newman newman-reporter-html
-```
 
-执行：
-
-```powershell
 newman run .\docs\test\postman\mallcloud.postman_collection.json `
   -e .\docs\test\postman\local.postman_environment.json `
   -r cli,html `
   --reporter-html-export .\docs\test\postman\report.html
 ```
 
-报告生成后记录：
+记录：
 
 - 请求总数；
 - 断言总数；
@@ -85,9 +113,9 @@ newman run .\docs\test\postman\mallcloud.postman_collection.json `
 
 ---
 
-## 3. JMeter 标准
+## 4. JMeter 标准
 
-### 3.1 商品查询负载
+### 4.1 商品查询负载
 
 文件：
 
@@ -102,7 +130,7 @@ docs/test/jmeter/search-load.jmx
 - 持续 5 分钟或课程允许的稳定时间；
 - 记录平均 RT、P95、吞吐量和错误率。
 
-### 3.2 创建订单负载
+### 4.2 创建订单负载
 
 文件：
 
@@ -112,13 +140,14 @@ docs/test/jmeter/order-load.jmx
 
 要求：
 
-- 登录或预置有效 Token；
+- 使用登录请求动态获取 Token，或由前置程序生成有效 Token；
+- 使用账号密码 `zhangsan / 123456`；
 - 使用可重复的用户和 SKU 数据；
-- 避免所有线程竞争同一个不可重复业务 ID；
+- 每个线程使用唯一请求标识；
 - 验证库存和订单结果；
-- 不只发送 HTTP 请求而不检查业务码。
+- 同时断言 HTTP 状态和业务码。
 
-### 3.3 秒杀压力
+### 4.3 秒杀压力
 
 文件：
 
@@ -141,7 +170,7 @@ docs/test/jmeter/seckill-stress.jmx
 - CPU、内存；
 - 是否出现服务完全不可用。
 
-### 3.4 命令行执行
+### 4.4 命令行执行
 
 ```powershell
 jmeter -n `
@@ -151,13 +180,11 @@ jmeter -n `
   -o .\docs\test\jmeter\report\search-50
 ```
 
-每次生成报告前，输出目录必须不存在或为空。
+输出目录必须不存在或为空。
 
 ---
 
-## 4. 异常场景
-
-至少保存以下测试记录：
+## 5. 异常场景
 
 | 场景 | 证据 |
 |---|---|
@@ -165,31 +192,43 @@ jmeter -n `
 | 库存不足 | Postman + DB 查询 |
 | 下游服务停止 | 请求结果 + Nacos/Sentinel 截图 |
 | Nacos 热更新 | 修改前后截图和日志 |
-| Seata 回滚 | 订单和库存 SQL 查询 |
+| Seata 2.0.0 回滚 | 订单、库存和事务日志 |
 | 重复支付消息 | 订单、库存状态查询 |
 | 秒杀限购 | Postman/JMeter 结果 |
 
+### 5.1 Seata 验证
+
+至少保存：
+
+- Seata Server 2.0.0 容器信息；
+- 服务注册/连接信息；
+- 全局事务 XID；
+- 失败前后订单记录；
+- 失败前后库存 `locked/available`；
+- `undo_log` 或服务端事务日志。
+
 ---
 
-## 5. 测试数据隔离
+## 6. 测试数据隔离
 
 - 测试前记录数据库初始状态；
 - 性能测试使用专用用户或可清理数据；
 - 每轮测试使用唯一请求 ID；
 - 重复测试前清理订单、库存锁定和秒杀结果；
-- 不直接修改生产或共享环境数据；
-- 报告中记录使用的 Commit。
+- 不直接修改共享环境后不留记录；
+- 密码 `123456` 仅用于本地课程环境；
+- 报告记录使用的 Commit。
 
 ---
 
-## 6. 结果可信度
+## 7. 结果可信度
 
 禁止：
 
 - 手工修改 JTL 或 HTML 结果；
 - 用预估值代替 P95；
 - 只截成功请求而隐藏失败请求；
-- 省略测试机器配置；
+- 省略测试机器配置、JDK 版本和 Commit；
 - 把未执行脚本标记为通过；
 - 使用固定 Token 假装登录链路有效。
 
@@ -197,6 +236,7 @@ jmeter -n `
 
 - 性能目标未达到；
 - 某个服务成为瓶颈；
+- Java 21 或 Seata 2.0.0 出现兼容问题；
 - 某个功能尚未验证；
 - 限流阈值需要调整；
 - Docker 或本机资源限制影响结果。
