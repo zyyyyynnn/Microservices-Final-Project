@@ -2,6 +2,7 @@
 
 MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。项目目标不是堆砌功能，而是以合理规模完成一条可运行、可测试、可讲清楚的交易主链路，并展示注册配置中心、网关、服务调用、分布式事务、消息队列、限流熔断等核心能力。
 
+> 团队规模：5 人
 > 当前阶段：基础结构和主要业务代码已建立，正在进行文档对齐、配置修复、核心链路验证和测试资产建设。
 
 ---
@@ -36,10 +37,11 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | 能力 | 当前状态 | 说明 |
 |---|---|---|
 | 13 个微服务模块 | 已实现待验证 | 模块与基础分层代码已建立 |
+| Java 21 基线 | 已配置待验证 | 父 POM 已切换到 Java 21，需完成全模块构建验证 |
 | Gateway 路由与 JWT | 已实现待验证 | 需要补完整运行和鉴权报告 |
 | Nacos 注册与配置 | 已实现待验证 | 配置模板需修正并验证热更新 |
 | OpenFeign 调用 | 已实现待验证 | 核心调用集中在商品、库存、订单等服务 |
-| Seata | 部分实现 | 代码存在，需要通过失败场景验证事务边界 |
+| Seata 2.0.0 | 已配置待验证 | Docker/K8s 镜像已统一，需验证注册和回滚 |
 | RocketMQ | 部分实现 | 普通消息消费者已实现，事务消息未实现 |
 | Sentinel | 部分实现 | 基础接入存在，核心规则和异常测试待完成 |
 | Elasticsearch | 已实现待验证 | 搜索与同步链路需形成运行证据 |
@@ -57,20 +59,20 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 
 ### 后端
 
-- Java 17
+- Java 21 LTS
 - Spring Boot 3.2.4
 - Spring Cloud 2023.0.1
 - Spring Cloud Alibaba 2023.0.1.0
-- Nacos
+- Nacos 2.3.2
 - Spring Cloud Gateway
 - OpenFeign
-- Sentinel
-- Seata
-- RocketMQ
-- Redis
-- Elasticsearch
-- MyBatis-Plus
-- MySQL
+- Sentinel 1.8.6
+- Seata 2.0.0
+- RocketMQ 5.1.4
+- Redis 7
+- Elasticsearch 8.11
+- MyBatis-Plus 3.5.5
+- MySQL 8
 - JWT
 
 ### 前端
@@ -116,7 +118,7 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 
 ## 5. 当前推荐启动方式
 
-默认环境：Windows 11、PowerShell 7+、UTF-8。
+默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21。
 
 ### 5.1 启动中间件
 
@@ -134,8 +136,12 @@ Set-Location <项目根目录>
 ### 5.3 编译项目
 
 ```powershell
+java -version
+mvn -version
 mvn clean package -DskipTests
 ```
+
+`java -version` 和 Maven 使用的 Java Home 均应指向 JDK 21。
 
 ### 5.4 启动后端
 
@@ -168,15 +174,15 @@ Docker 全栈与 Kubernetes 全栈暂不作为正式可用启动方式。
 - 7 条库存；
 - 3 场秒杀活动。
 
-测试账号：
+测试账号统一使用密码 `123456`：
 
 | 用户名 | 密码 | 角色 |
 |---|---|---|
-| zhangsan | P@ssw0rd123 | USER |
-| merchant01 | P@ssw0rd123 | MERCHANT |
-| admin | Admin@123 | ADMIN |
+| zhangsan | 123456 | USER |
+| merchant01 | 123456 | MERCHANT |
+| admin | 123456 | ADMIN |
 
-账号有效性需以实际登录测试结果为准。
+密码摘要以 `db/init/seed.sql` 为准。正式环境不得沿用该演示密码。
 
 ---
 
