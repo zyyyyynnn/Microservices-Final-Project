@@ -178,7 +178,7 @@ services:
 
   # ============== Seata Server ==============
   seata:
-    image: seataio/seata-server:1.8.0
+    image: seataio/seata-server:2.0.0
     container_name: mall-seata
     restart: always
     depends_on:
