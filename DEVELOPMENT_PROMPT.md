@@ -1,4 +1,4 @@
-﻿# MallCloud 后续开发执行 Prompt
+# MallCloud 后续开发执行 Prompt
 
 > 使用对象：开发成员
 > 团队规模：5 人
@@ -454,3 +454,4 @@ docs/test/jmeter/seckill-stress.jmx
 文档同步：
 - 已更新的文档
 ```
+
