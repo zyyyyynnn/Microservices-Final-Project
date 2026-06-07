@@ -413,7 +413,7 @@ CREATE TABLE `undo_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
--- 9. Seata Server 2.0.0 库（5 张表）
+-- 9. Seata Server 2.0.0 库（4 张表）
 -- ============================================================
 USE `mall_seata`;
 
@@ -482,14 +482,6 @@ INSERT INTO `distributed_lock` (lock_key, lock_value, expire) VALUES ('AsyncComm
 INSERT INTO `distributed_lock` (lock_key, lock_value, expire) VALUES ('RetryCommitting', ' ', 0);
 INSERT INTO `distributed_lock` (lock_key, lock_value, expire) VALUES ('RetryRollbacking', ' ', 0);
 INSERT INTO `distributed_lock` (lock_key, lock_value, expire) VALUES ('TxTimeoutCheck', ' ', 0);
-
-DROP TABLE IF EXISTS `vgroup_table`;
-CREATE TABLE `vgroup_table` (
-  `vGroup`   VARCHAR(255) DEFAULT NULL,
-  `namespace` VARCHAR(255) DEFAULT NULL,
-  `cluster`  VARCHAR(255) DEFAULT NULL,
-  UNIQUE KEY `idx_vgroup_namespace_cluster` (`vGroup`, `namespace`, `cluster`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- 10. 演示完成，可继续执行 seed.sql
