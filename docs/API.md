@@ -1,7 +1,8 @@
 # MallCloud 接口文档
 
-> 文档版本：v2.0
+> 文档版本：v2.1
 > BaseURL：`http://localhost:9000`
+> 演示账号统一密码：`123456`
 > 上位标准：`docs/PROJECT_STANDARD.md`
 > 说明：路径以当前 Controller 为基础；请求与响应仍需在代码整改后通过 Postman 最终确认。
 
@@ -95,7 +96,7 @@ Content-Type: application/json
 ```json
 {
   "username": "zhangsan",
-  "password": "P@ssw0rd123",
+  "password": "123456",
   "loginType": "PASSWORD"
 }
 ```
@@ -161,7 +162,7 @@ POST /api/v1/users/register
 {
   "username": "test_user_01",
   "phone": "13900000001",
-  "password": "P@ssw0rd123"
+  "password": "123456"
 }
 ```
 
@@ -375,7 +376,7 @@ Content-Type: application/json
 }
 ```
 
-创建订单会验证以下 OpenFeign 调用：
+创建订单会验证：
 
 ```text
 mall-order → mall-product
@@ -400,7 +401,7 @@ Authorization: Bearer {{token}}
 
 ### 8.3 当前实现限制
 
-当前外部 `OrderController` 主要提供创建和按订单号查询。取消、确认、退款等接口只有在实际 Controller 存在并验证后才能加入最终接口清单。
+当前外部 `OrderController` 主要提供创建和按订单号查询。取消、确认、退款等接口只有在实际 Controller 存在并验证后才能加入最终清单。
 
 ---
 
@@ -531,6 +532,8 @@ GET /actuator/prometheus
 
 ```text
 BaseURL=http://localhost:9000
+username=zhangsan
+password=123456
 token=
 refreshToken=
 orderNo=
@@ -542,8 +545,6 @@ skuId=9001
 Token 和动态业务 ID 必须由前置请求自动写入，不提交固定伪 Token。
 
 ### 13.3 报告
-
-建议命令：
 
 ```powershell
 newman run .\docs\test\postman\mallcloud.postman_collection.json `
