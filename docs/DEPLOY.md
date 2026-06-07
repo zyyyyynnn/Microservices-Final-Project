@@ -1,374 +1,458 @@
-# MallCloud 部署文档
+# MallCloud 部署与运行指南
 
-> 版本：v1.0.0
-> 适用场景：本地开发 / 联调测试 / 演示答辩
+> 文档版本：v2.0
+> 默认环境：Windows 11、PowerShell 7+、UTF-8
+> 当前正式路径：Docker 中间件 + 本地 IDE 启动微服务
+> 上位标准：`docs/PROJECT_STANDARD.md`
 
 ---
 
-## 1. 部署总览
+## 1. 当前支持范围
 
-| 环境       | 用途         | 部署方式                  | 一键脚本             |
-| ---------- | ------------ | ------------------------- | -------------------- |
-| dev        | 个人开发     | 本地 IDE + 远程中间件      | `scripts/dev-up.sh`  |
-| test       | 联调         | Docker Compose 全栈        | `scripts/test-up.sh` |
-| demo       | 演示 / 答辩 | K8s (minikube)             | `scripts/demo-up.sh` |
+| 方式 | 状态 | 用途 |
+|---|---|---|
+| PowerShell 启动中间件 | 已提供，待完整验证 | 本地开发与答辩 |
+| PowerShell 初始化数据库 | 已提供，待完整验证 | 初始化业务库和演示数据 |
+| IDE 启动微服务 | 当前推荐 | 开发、联调、演示 |
+| `docker-compose.all.yml` 全栈 | 实验性 | 构建文件和组合启动链路待修复 |
+| Kubernetes 全栈 | 规划项 | 当前仅有部分中间件和 Gateway 示例 |
+
+本文件不再引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh`、`start-all.*` 或分库 SQL 文件。
 
 ---
 
 ## 2. 前置要求
 
-| 软件          | 版本       | 用途                       |
-| ------------- | ---------- | -------------------------- |
-| JDK           | 17         | 编译运行                   |
-| Maven         | 3.9+       | 构建                       |
-| Node.js       | 20+        | 前端构建                   |
-| Docker        | 24+        | 容器化                     |
-| Docker Compose | 2.20+     | 编排                       |
-| minikube      | 1.32+      | K8s 本地集群（demo 环境）   |
-| kubectl       | 与 K8s 同步 | 集群管理                    |
-| Helm          | 3.x        | K8s 包管理（可选）          |
-| Git           | 2.30+      | 版本管理                    |
-| Postman       | 10+        | 接口测试                    |
-| JMeter        | 5.6+       | 性能测试                    |
+| 软件 | 推荐版本 | 检查命令 |
+|---|---|---|
+| PowerShell | 7+ | `$PSVersionTable.PSVersion` |
+| JDK | 17 | `java -version` |
+| Maven | 3.9+ | `mvn -version` |
+| Docker Desktop | 当前稳定版 | `docker version` |
+| Docker Compose | v2 | `docker compose version` |
+| MySQL Client | 8.x，可选 | `mysql --version` |
+| Node.js | 20+ | `node --version` |
+| Git | 2.30+ | `git --version` |
+| Postman/Newman | 测试阶段 | `newman --version` |
+| JMeter | 5.6+ | `jmeter --version` |
+
+建议资源：
+
+- 内存至少 16 GB；
+- Docker 分配至少 8 GB；
+- 可用磁盘至少 20 GB。
+
+8 GB 内存可能无法同时稳定运行全部中间件和 13 个 Java 服务。
 
 ---
 
-## 3. 本地开发环境
+## 3. 环境变量
 
-### 3.1 启动中间件（仅中间件）
+复制模板：
 
-```bash
-cd deploy/docker
+```powershell
+Copy-Item .env.example .env
+```
+
+说明：Spring Boot 本身不会自动读取根目录 `.env`。通过 IDE 启动时，需要把必要变量配置到 Run Configuration，或使用本地配置默认值。
+
+核心变量：
+
+| 变量 | 示例 | 说明 |
+|---|---|---|
+| `NACOS_SERVER` | `127.0.0.1:8848` | Nacos 地址 |
+| `MYSQL_HOST` | `127.0.0.1` | MySQL 地址 |
+| `MYSQL_PORT` | `3306` | MySQL 端口 |
+| `MYSQL_USER` | `root` | MySQL 用户 |
+| `MYSQL_PWD` | `root` | MySQL 密码 |
+| `REDIS_HOST` | `127.0.0.1` | Redis 地址 |
+| `ROCKETMQ_NAMESRV` | `127.0.0.1:9876` | NameServer |
+| `ES_HOST` | `127.0.0.1` | Elasticsearch 地址 |
+| `SEATA_TC_URL` | `127.0.0.1:8091` | Seata TC |
+| `SENTINEL_DASHBOARD` | `127.0.0.1:8080` | Sentinel Dashboard |
+| `JWT_SECRET` | 自定义长密钥 | Auth 与 Gateway 必须一致 |
+
+开发默认密钥只能用于本地演示，不得用于公开部署。
+
+---
+
+## 4. 启动中间件
+
+在项目根目录执行：
+
+```powershell
+.\scripts\start-middleware.ps1
+```
+
+等价手动命令：
+
+```powershell
+Set-Location .\deploy\docker
 docker compose -f docker-compose.middleware.yml up -d
 ```
 
-包含：MySQL / Redis / Nacos / RocketMQ / Elasticsearch / Sentinel Dashboard / Zipkin / Seata Server
+检查状态：
 
-### 3.2 初始化数据库
-
-```bash
-# 1. 创建所有库
-mysql -h127.0.0.1 -uroot -proot < db/init/00-create-databases.sql
-
-# 2. 逐个执行 DDL（用 scripts/init-db.sh 一键执行）
-for db in auth user product inventory order pay seckill; do
-  mysql -h127.0.0.1 -uroot -proot mall_$db < db/init/mall_$db.sql
-done
-
-# 3. 种子数据
-mysql -h127.0.0.1 -uroot -proot < db/init/seed.sql
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 ```
 
-### 3.3 启动微服务
+当前中间件编排包括：
 
-```bash
-# 编译
-mvn clean install -DskipTests
+- MySQL
+- Redis
+- Nacos
+- RocketMQ NameServer、Broker、Console
+- Elasticsearch
+- Kibana
+- Sentinel Dashboard
+- Zipkin
+- Seata Server
 
-# 启动某个服务
-cd mall-gateway && mvn spring-boot:run
+### 4.1 重要说明
+
+Docker Compose 的 `depends_on` 不等于业务可用。脚本当前只主动等待 Nacos 和 MySQL，其他中间件仍需手动检查。
+
+建议检查：
+
+```powershell
+Invoke-WebRequest http://localhost:8848/nacos/ -UseBasicParsing
+Invoke-WebRequest http://localhost:9200/ -UseBasicParsing
+Invoke-WebRequest http://localhost:8080/ -UseBasicParsing
+Invoke-WebRequest http://localhost:9411/ -UseBasicParsing
 ```
 
-或使用 IDE 启动 `Application` 类。
+RocketMQ、Seata 和 Redis 可通过容器日志或对应客户端检查。
 
-### 3.4 启动前端
+---
 
-```bash
-# 用户前台
-cd web-portal
+## 5. 初始化数据库
+
+推荐命令：
+
+```powershell
+.\scripts\init-db.ps1
+```
+
+脚本实际执行：
+
+1. `db/init/00-create-databases.sql`
+2. `db/init/seed.sql`
+
+不存在 `db/init/mall_$db.sql` 等分库脚本。
+
+### 5.1 容器内执行方案
+
+本机未安装 MySQL Client 时，可以使用容器执行：
+
+```powershell
+Get-Content .\db\init\00-create-databases.sql -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
+
+Get-Content .\db\init\seed.sql -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
+```
+
+### 5.2 验证
+
+```powershell
+docker exec mall-mysql mysql -uroot -proot -e "SELECT COUNT(*) AS users FROM mall_user.user; SELECT COUNT(*) AS spu FROM mall_product.spu; SELECT COUNT(*) AS sku FROM mall_product.sku;"
+```
+
+预期：
+
+- 用户 10；
+- SPU 5；
+- SKU 7。
+
+---
+
+## 6. 修正和导入 Nacos 配置
+
+`deploy/nacos/*.yaml` 是配置模板。导入前必须确认：
+
+- YAML 注释使用 `#`，不得使用 `--`；
+- DataId 与服务配置引用一致；
+- Namespace 为 `dev` 或实际使用值；
+- Group 默认为 `DEFAULT_GROUP`，Seata 配置按实际 Group；
+- 环境变量名统一使用项目约定。
+
+建议导入顺序：
+
+```text
+common-mysql.yaml
+common-redis.yaml
+common-rocketmq.yaml
+common-sentinel.yaml
+common-seata.yaml
+mall-gateway.yaml
+mall-auth.yaml
+mall-user.yaml
+...
+```
+
+Nacos 配置导入尚未自动化。最终答辩前应记录实际导入步骤和截图。
+
+---
+
+## 7. 编译项目
+
+```powershell
+mvn clean package -DskipTests
+```
+
+通过标准：
+
+```text
+BUILD SUCCESS
+```
+
+需要运行测试时：
+
+```powershell
+mvn clean test -DskipTests=false
+```
+
+父 POM 当前存在默认跳过测试配置，后续代码整改阶段应移除或通过命令覆盖。
+
+---
+
+## 8. 启动微服务
+
+### 8.1 核心链路最小集合
+
+首次联调建议按依赖顺序启动：
+
+1. `mall-user`
+2. `mall-auth`
+3. `mall-product`
+4. `mall-inventory`
+5. `mall-cart`
+6. `mall-order`
+7. `mall-pay`
+8. `mall-message`
+9. `mall-gateway`
+
+搜索和秒杀验证时再启动：
+
+- `mall-search`
+- `mall-seckill`
+
+后台和定时任务不影响普通交易主链路：
+
+- `mall-admin-biz`
+- `mall-job`
+
+### 8.2 端口
+
+| 服务 | 端口 |
+|---|---:|
+| mall-gateway | 9000 |
+| mall-auth | 9001 |
+| mall-user | 9002 |
+| mall-product | 9003 |
+| mall-inventory | 9004 |
+| mall-cart | 9005 |
+| mall-order | 9006 |
+| mall-pay | 9007 |
+| mall-search | 9008 |
+| mall-seckill | 9009 |
+| mall-message | 9010 |
+| mall-admin-biz | 9011 |
+| mall-job | 9012 |
+
+### 8.3 验证注册
+
+浏览器访问：
+
+```text
+http://localhost:8848/nacos
+```
+
+或使用 Nacos API。最终演示需保存：
+
+- 服务列表截图；
+- 核心服务实例健康状态；
+- 停止和恢复一个服务的状态变化。
+
+---
+
+## 9. 启动前端
+
+用户前台：
+
+```powershell
+Set-Location .\web-portal
 npm install
-npm run dev          # http://localhost:5173
+npm run dev
+```
 
-# 商家后台
-cd web-admin
+商家后台：
+
+```powershell
+Set-Location .\web-admin
 npm install
-npm run dev          # http://localhost:5174
+npm run dev
 ```
+
+前端是否已完整对接所有接口需单独验证。后端接口测试不依赖前端完成。
 
 ---
 
-## 4. Docker Compose 部署（test 环境）
+## 10. 健康检查
 
-### 4.1 启动全栈
+通过 Gateway 或服务端口检查：
 
-```bash
-cd deploy/docker
-./start-all.sh       # Linux/macOS
-# 或
-./start-all.ps1      # Windows PowerShell
+```powershell
+Invoke-RestMethod http://localhost:9000/actuator/health
+Invoke-RestMethod http://localhost:9001/actuator/health
+Invoke-RestMethod http://localhost:9006/actuator/health
 ```
 
-包含：13 个微服务 + 8 个中间件，一键启动。
+若 Gateway 未配置 Actuator 路由，应直接访问服务端口。
 
-### 4.2 服务访问入口
-
-| 服务                | 地址                                  | 备注               |
-| ------------------- | ------------------------------------- | ------------------ |
-| 用户前台            | http://localhost                     | Nginx 80 端口      |
-| 商家后台            | http://localhost/admin                |                    |
-| API 网关            | http://localhost:9000                  |                    |
-| Nacos 控制台        | http://localhost:8848/nacos            | nacos/nacos         |
-| Sentinel Dashboard  | http://localhost:8080                  | sentinel/sentinel   |
-| Zipkin UI           | http://localhost:9411                  |                    |
-| Kibana              | http://localhost:5601                  | 日志（可选）        |
-| RocketMQ Console    | http://localhost:8180                  |                    |
-| Seata 控制台        | http://localhost:7091                  | 1.8 后内置          |
-
-### 4.3 停止全栈
-
-```bash
-./stop-all.sh
-```
-
-### 4.4 查看日志
-
-```bash
-docker compose -f docker-compose.all.yml logs -f mall-gateway
-```
+`/actuator/prometheus` 只有在存在相应 Registry 依赖时才可用，不作为默认成功条件。
 
 ---
 
-## 5. Kubernetes (minikube) 部署（demo 环境）
+## 11. Docker 全栈状态
 
-### 5.1 启动 minikube
+`deploy/docker/docker-compose.all.yml` 当前不能作为正式一键启动方式，原因包括：
 
-```bash
-minikube start --driver=docker --cpus=4 --memory=8192
-minikube addons enable ingress
-minikube dashboard
+- 业务服务构建目录缺少完整 Dockerfile；
+- Compose 中的中间件依赖和组合启动方式未验证；
+- 文档此前引用的 `start-all.sh`、`start-all.ps1` 不存在；
+- 前端镜像构建路径仍需验证。
+
+后续若完善，应达到：
+
+```powershell
+docker compose `
+  -f .\deploy\docker\docker-compose.middleware.yml `
+  -f .\deploy\docker\docker-compose.all.yml `
+  config
 ```
 
-### 5.2 镜像准备
-
-```bash
-# 在 minikube Docker daemon 中构建
-eval $(minikube docker-env)
-
-# 批量构建并打 tag
-./scripts/build-images.sh
-```
-
-### 5.3 部署中间件
-
-```bash
-kubectl apply -f deploy/k8s/00-namespace.yaml
-kubectl apply -f deploy/k8s/01-mysql.yaml
-kubectl apply -f deploy/k8s/02-redis.yaml
-kubectl apply -f deploy/k8s/03-nacos.yaml
-kubectl apply -f deploy/k8s/04-rocketmq.yaml
-kubectl apply -f deploy/k8s/05-elasticsearch.yaml
-kubectl apply -f deploy/k8s/06-seata.yaml
-```
-
-### 5.4 部署业务服务
-
-```bash
-for svc in auth user product inventory cart order pay search seckill message admin-biz job; do
-  kubectl apply -f deploy/k8s/services/mall-$svc.yaml
-done
-kubectl apply -f deploy/k8s/services/mall-gateway.yaml
-```
-
-### 5.5 部署 Ingress
-
-```bash
-kubectl apply -f deploy/k8s/ingress.yaml
-```
-
-### 5.6 访问服务
-
-```bash
-# 获取 minikube IP
-minikube ip   # 192.168.49.2
-
-# 浏览器访问（hosts 绑定）
-echo "192.168.49.2 mallcloud.local" | sudo tee -a /etc/hosts
-open http://mallcloud.local
-```
-
-### 5.7 扩缩容演示
-
-```bash
-# 秒杀压测前手动扩容
-kubectl scale deployment mall-seckill --replicas=5
-kubectl scale deployment mall-order --replicas=5
-
-# 压测后缩容
-kubectl scale deployment mall-seckill --replicas=1
-```
+无错误，并实际构建、启动、健康检查通过后，才能恢复“一键全栈”表述。
 
 ---
 
-## 6. 环境变量清单
+## 12. Kubernetes 状态
 
-所有服务通用：
+当前 K8s 目录提供部分中间件和 `mall-gateway` 示例。以下命令只有对应文件存在时才能使用：
 
-| 变量               | 必填 | 默认                    | 说明                          |
-| ------------------ | ---- | ----------------------- | ----------------------------- |
-| SPRING_PROFILES_ACTIVE | 否 | dev                  | 环境标识                      |
-| NACOS_SERVER       | 是   | nacos:8848              | 注册中心地址                  |
-| MYSQL_HOST         | 是   | mysql                   | 数据库地址                    |
-| MYSQL_PORT         | 否   | 3306                    |                               |
-| MYSQL_DB           | 是   | -                       | 数据库名                      |
-| MYSQL_USER         | 否   | root                    |                               |
-| MYSQL_PWD          | 是   | -                       |                               |
-| REDIS_HOST         | 是   | redis                   |                               |
-| REDIS_PORT         | 否   | 6379                    |                               |
-| JWT_SECRET         | 是   | -                       | JWT 签名密钥                  |
-| SEATA_TC_URL       | 否   | seata:8091              | Seata TC 地址                 |
-| SENTINEL_DASHBOARD | 否   | sentinel:8080           | Sentinel Dashboard            |
-| ZIPKIN_URL         | 否   | http://zipkin:9411      | 链路追踪                      |
-| LOG_PATH           | 否   | /var/log/mallcloud     | 日志路径                      |
-
----
-
-## 7. 健康检查端点
-
-| 路径                | 说明                       |
-| ------------------- | -------------------------- |
-| /actuator/health    | 综合健康                   |
-| /actuator/health/liveness  | 存活探针             |
-| /actuator/health/readiness | 就绪探针             |
-| /actuator/info      | 服务元信息                 |
-| /actuator/prometheus| 指标                       |
-
-K8s 配置示例：
-
-```yaml
-livenessProbe:
-  httpGet:
-    path: /actuator/health/liveness
-    port: 9001
-  initialDelaySeconds: 30
-  periodSeconds: 10
-readinessProbe:
-  httpGet:
-    path: /actuator/health/readiness
-    port: 9001
-  initialDelaySeconds: 20
-  periodSeconds: 5
+```powershell
+kubectl apply -f .\deploy\k8s\00-namespace.yaml
+kubectl apply -f .\deploy\k8s\01-mysql.yaml
+kubectl apply -f .\deploy\k8s\02-redis.yaml
+kubectl apply -f .\deploy\k8s\03-nacos.yaml
+kubectl apply -f .\deploy\k8s\04-rocketmq.yaml
+kubectl apply -f .\deploy\k8s\05-sentinel.yaml
+kubectl apply -f .\deploy\k8s\06-seata.yaml
+kubectl apply -f .\deploy\k8s\services\mall-gateway.yaml
 ```
 
----
+不存在 `05-elasticsearch.yaml` 时不得引用。
 
-## 8. 常见问题
-
-### 8.1 服务注册失败
-
-- 检查 Nacos 是否启动：`docker ps | grep nacos`；
-- 检查 `spring.cloud.nacos.server-addr` 是否正确；
-- 检查 namespace 是否存在。
-
-### 8.2 Feign 调用超时
-
-- 调大 `feign.client.config.read-timeout`；
-- 检查下游服务是否健康：`/actuator/health`。
-
-### 8.3 Seata 事务不回滚
-
-- 检查 undo_log 表是否存在；
-- 检查 Seata Server 是否在 Nacos 注册成功；
-- 全局异常是否被 catch 吞掉。
-
-### 8.4 RocketMQ 消息堆积
-
-- 增加消费者实例数；
-- 调整 `consumeThreadMin/Max`；
-- 检查消费者业务是否有慢 SQL。
-
-### 8.5 ES 搜索无结果
-
-- 检查索引是否存在：`curl http://es:9200/_cat/indices`；
-- 检查数据是否同步：监听 `ES_SYNC` Topic 消费日志；
-- 重新全量：`POST /mall_product/_reindex`。
-
-### 8.6 JWT 401
-
-- 检查 Header 格式：`Authorization: Bearer {token}`（注意空格）；
-- 检查 token 是否过期：用 refreshToken 刷新；
-- 检查密钥是否一致：所有服务 `JWT_SECRET` 必须相同。
-
-### 8.7 容器间通信
-
-- 容器必须加入同一 docker network；
-- 服务间用**服务名**访问，不要用 `localhost`；
-- K8s 中使用 Service 名称。
+当前不执行循环部署 13 个服务，因为对应 manifest 尚未齐全。
 
 ---
 
-## 9. 监控与运维命令
+## 13. 停止环境
 
-```bash
-# 查看所有服务状态
-docker compose -f deploy/docker/docker-compose.all.yml ps
+停止中间件：
 
-# 实时跟踪所有日志
-docker compose -f deploy/docker/docker-compose.all.yml logs -f
-
-# 进入容器排查
-docker exec -it mall-mysql mysql -uroot -proot
-
-# 查看 Seata 全局事务
-docker exec -it mall-seata curl http://localhost:7091/api/v1/overview/metrics
-
-# K8s 排查
-kubectl get pods -n mallcloud
-kubectl describe pod mall-order-xxx
-kubectl logs -f mall-order-xxx
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml down
 ```
 
----
+删除数据卷前必须明确风险：
 
-## 10. 升级与回滚
-
-### Docker Compose
-
-```bash
-# 滚动重启单个服务
-docker compose up -d --no-deps --build mall-gateway
-
-# 回滚到上一个版本
-git checkout HEAD~1 -- mall-gateway
-docker compose up -d --no-deps --build mall-gateway
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 ```
 
-### K8s
-
-```bash
-# 查看历史版本
-kubectl rollout history deployment/mall-order
-
-# 回滚
-kubectl rollout undo deployment/mall-order
-
-# 查看状态
-kubectl rollout status deployment/mall-order
-```
+该命令会删除演示数据，不作为普通停止命令。
 
 ---
 
-## 11. 备份策略
+## 14. 常见问题
 
-| 数据        | 方式                | 频率         | 保留时间 |
-| ----------- | ------------------- | ------------ | -------- |
-| MySQL       | mysqldump + 压缩     | 每天凌晨 2 点 | 30 天   |
-| Nacos 配置   | API 导出            | 每次发布前   | 永久     |
-| Redis       | RDB + AOF            | 实时 + 5min  | 7 天    |
-| ES          | snapshot + 远端仓库  | 每天         | 30 天   |
-| RocketMQ    | broker 同步双写      | 实时         | -        |
+### 14.1 Nacos 配置未加载
+
+检查：
+
+- 配置是否为合法 YAML；
+- DataId、Group、Namespace；
+- `NACOS_SERVER`；
+- 当前 Spring Cloud Alibaba 版本使用的配置导入方式；
+- 服务启动日志中的配置加载记录。
+
+### 14.2 Feign 调用失败
+
+检查：
+
+- 下游是否已注册；
+- 服务名与 `@FeignClient` 是否一致；
+- Controller 路径是否一致；
+- 返回值是否为 `Result<T>`；
+- 超时配置；
+- Sentinel 是否触发。
+
+### 14.3 JWT 校验失败
+
+检查：
+
+- Auth 和 Gateway 使用同一 `JWT_SECRET`；
+- Header 为 `Authorization: Bearer <token>`；
+- Token 是否过期；
+- 登录环境和请求环境是否一致。
+
+### 14.4 Seata 不回滚
+
+检查：
+
+- `undo_log` 是否存在；
+- Seata Server 是否启动和注册；
+- XID 是否透传；
+- 数据源是否由 Seata 代理；
+- 异常是否被 catch 后吞掉；
+- 远程库存操作是否实际加入全局事务。
+
+### 14.5 RocketMQ 消息未消费
+
+检查：
+
+- NameServer 地址；
+- Broker 是否启动；
+- Topic 和 Consumer Group；
+- Listener 所在服务是否注册并运行；
+- 消息 JSON 是否符合消费者解析要求。
+
+### 14.6 Elasticsearch 无结果
+
+检查：
+
+- ES 是否健康；
+- 索引是否存在；
+- 种子数据是否同步；
+- 分词器是否实际安装；
+- 搜索服务日志。
 
 ---
 
-## 12. 演示剧本（答辩用）
+## 15. 答辩演示建议
 
-1. **0:00 - 1:00** 项目介绍 PPT（架构图 + 技术栈）
-2. **1:00 - 3:00** 启动全栈（Docker Compose 一行命令）
-3. **3:00 - 5:00** 用户前台演示：浏览 → 搜索 → 加购 → 下单 → 支付
-4. **5:00 - 7:00** 后台演示：商家登录 → 上下架商品 → 查订单
-5. **7:00 - 8:00** 秒杀演示：JMeter 1000 并发 → Dashboard 看限流
-6. **8:00 - 9:00** 异常演示：kill 订单服务 → Sentinel 熔断 → 恢复
-7. **9:00 - 10:00** 总结亮点
+推荐控制在 8～10 分钟：
 
----
+1. 展示架构图和范围控制；
+2. 展示 Nacos 核心服务注册；
+3. Postman 登录并获取 Token；
+4. 商品查询、购物车、下单；
+5. 展示订单调用商品和库存；
+6. 模拟支付结果并查看订单、库存变化；
+7. JMeter 展示秒杀限流或订单负载；
+8. 展示一次服务停止/恢复或配置热更新；
+9. 总结实测数据和已知限制。
 
-**—— 文档结束 ——**
+不演示未完成的 Docker 全栈或 K8s 全栈。
