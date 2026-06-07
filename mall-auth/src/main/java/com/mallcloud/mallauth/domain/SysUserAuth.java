@@ -24,4 +24,6 @@ public class SysUserAuth {
     private String credential;
     
     private Integer status;
+
+    private String role;
 }

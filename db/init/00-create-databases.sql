@@ -27,6 +27,7 @@ CREATE TABLE `sys_user_auth` (
   `identifier`    VARCHAR(64)  NOT NULL                COMMENT '用户名/手机号/openId',
   `credential`    VARCHAR(255) NOT NULL                COMMENT 'BCrypt 加密',
   `status`        TINYINT      NOT NULL DEFAULT 1     COMMENT '1=正常 0=禁用',
+  `role`          VARCHAR(16)  NOT NULL DEFAULT 'USER' COMMENT 'USER/MERCHANT/ADMIN',
   `gmt_create`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `gmt_modified`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

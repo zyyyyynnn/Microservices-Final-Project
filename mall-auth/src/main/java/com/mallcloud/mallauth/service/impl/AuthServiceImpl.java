@@ -11,6 +11,7 @@ import com.mallcloud.mallauth.config.JwtUtil;
 import com.mallcloud.mallauth.domain.SysUserAuth;
 import com.mallcloud.mallauth.mapper.SysUserAuthMapper;
 import com.mallcloud.mallauth.service.AuthService;
+import com.mallcloud.mallcommon.constant.CommonConstants;
 import com.mallcloud.mallcommon.enums.ErrorCode;
 import com.mallcloud.mallcommon.exception.BizException;
 import com.mallcloud.mallcommon.response.Result;
@@ -22,7 +23,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -74,10 +74,17 @@ public class AuthServiceImpl implements AuthService {
     public LoginVO refresh(RefreshTokenDTO refreshDTO) {
         try {
             Claims claims = jwtUtil.parseToken(refreshDTO.getRefreshToken());
+            String tokenType = claims.get(CommonConstants.JWT_CLAIM_TOKEN_TYPE, String.class);
+            if (!CommonConstants.JWT_TOKEN_TYPE_REFRESH.equals(tokenType)) {
+                throw new BizException(
+                        ErrorCode.TOKEN_INVALID.getCode(),
+                        "Token 类型错误"
+                );
+            }
             String jti = claims.getId();
             
             // 检查是否在黑名单中
-            Boolean isBlacklisted = stringRedisTemplate.hasKey("mall:jwt:blacklist:" + jti);
+            Boolean isBlacklisted = stringRedisTemplate.hasKey(CommonConstants.JWT_BLACKLIST_PREFIX + jti);
             if (Boolean.TRUE.equals(isBlacklisted)) {
                 throw new BizException(ErrorCode.UNAUTHORIZED.getCode(), "无效的 Refresh Token");
             }
@@ -95,7 +102,7 @@ public class AuthServiceImpl implements AuthService {
             // 旧 Refresh Token 加入黑名单
             long expireTime = claims.getExpiration().getTime() - System.currentTimeMillis();
             if (expireTime > 0) {
-                stringRedisTemplate.opsForValue().set("mall:jwt:blacklist:" + jti, "1", expireTime, TimeUnit.MILLISECONDS);
+                stringRedisTemplate.opsForValue().set(CommonConstants.JWT_BLACKLIST_PREFIX + jti, "1", expireTime, TimeUnit.MILLISECONDS);
             }
             
             return buildLoginVO(auth);
@@ -113,10 +120,14 @@ public class AuthServiceImpl implements AuthService {
             token = token.substring(7);
             try {
                 Claims claims = jwtUtil.parseToken(token);
+                String tokenType = claims.get(CommonConstants.JWT_CLAIM_TOKEN_TYPE, String.class);
+                if (!CommonConstants.JWT_TOKEN_TYPE_ACCESS.equals(tokenType)) {
+                    return;
+                }
                 String jti = claims.getId();
                 long expireTime = claims.getExpiration().getTime() - System.currentTimeMillis();
                 if (expireTime > 0) {
-                    stringRedisTemplate.opsForValue().set("mall:jwt:blacklist:" + jti, "1", expireTime, TimeUnit.MILLISECONDS);
+                    stringRedisTemplate.opsForValue().set(CommonConstants.JWT_BLACKLIST_PREFIX + jti, "1", expireTime, TimeUnit.MILLISECONDS);
                 }
             } catch (Exception e) {
                 log.warn("登出时解析 Token 失败或 Token 已过期", e);
@@ -127,29 +138,30 @@ public class AuthServiceImpl implements AuthService {
     private LoginVO buildLoginVO(SysUserAuth auth) {
         Long userId = auth.getUserId();
         
-        // 推导角色
-        List<String> roles = new ArrayList<>();
-        String username = auth.getIdentifier();
-        if (username.startsWith("admin")) {
-            roles.add("ADMIN");
-        } else if (username.startsWith("merchant")) {
-            roles.add("MERCHANT");
-        } else {
-            roles.add("USER");
+        // 读取角色
+        String role = auth.getRole();
+        if (!"USER".equals(role)
+                && !"MERCHANT".equals(role)
+                && !"ADMIN".equals(role)) {
+            throw new BizException(
+                    ErrorCode.FORBIDDEN.getCode(),
+                    "用户角色无效"
+            );
         }
+        List<String> roles = Collections.singletonList(role);
         
         // 调用 mall-user 获取用户信息
         Result<UserInternalDTO> userResult = userClient.getUserById(userId);
-        UserInternalDTO userDto;
-        if (userResult.isSuccess() && userResult.getData() != null) {
-            userDto = userResult.getData();
-        } else {
+        if (userResult == null
+                || !userResult.isSuccess()
+                || userResult.getData() == null) {
             log.warn("调用 mall-user 获取用户信息失败, userId: {}", userId);
-            userDto = new UserInternalDTO();
-            userDto.setId(userId);
-            userDto.setNickname("用户" + userId);
-            userDto.setAvatar("");
+            throw new BizException(
+                    ErrorCode.REMOTE_CALL_ERROR.getCode(),
+                    ErrorCode.REMOTE_CALL_ERROR.getMessage()
+            );
         }
+        UserInternalDTO userDto = userResult.getData();
         
         UserInfoVO userInfoVO = UserInfoVO.builder()
                 .id(userId)
