@@ -386,6 +386,8 @@ Content-Type: application/json
 }
 ```
 
+`remark` 最大 255 个字符，超过限制返回参数错误。
+
 创建订单会验证：
 
 ```text
