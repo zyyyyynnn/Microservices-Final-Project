@@ -69,12 +69,13 @@ erDiagram
 | `identifier` | VARCHAR(64) | 用户名、手机号或 openId |
 | `credential` | VARCHAR(255) | BCrypt 密码摘要 |
 | `status` | TINYINT | 1 正常，0 禁用 |
+| `role` | VARCHAR(16) | USER/MERCHANT/ADMIN，默认 USER |
 | `gmt_create` | DATETIME | 创建时间 |
 | `gmt_modified` | DATETIME | 修改时间 |
 
 唯一约束：`identity_type + identifier`。
 
-说明：角色当前不是独立数据库模型，而是登录逻辑根据账号规则生成。若后续需要正式 RBAC，应先修改 PRD 和数据库设计，当前阶段不扩展。
+说明：当前阶段将单一角色保存在认证记录中，登录签发 Token 时直接读取该字段；公开注册不接收角色参数，数据库默认角色为 USER。
 
 ---
 

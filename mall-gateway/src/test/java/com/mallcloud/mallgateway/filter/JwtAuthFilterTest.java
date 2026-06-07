@@ -7,6 +7,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.ServerWebExchange;
@@ -20,12 +21,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class JwtAuthFilterTest {
 
     private static final String SECRET = "mallcloud-jwt-secret-2026-please-change-in-prod";
 
-    private final JwtAuthFilter filter = new JwtAuthFilter(jwtProperties());
+    private final ReactiveStringRedisTemplate redisTemplate = mock(ReactiveStringRedisTemplate.class);
+    private final JwtAuthFilter filter = new JwtAuthFilter(jwtProperties(), redisTemplate);
 
     @Test
     void whitelistPathPassesWithoutToken() {
@@ -56,6 +61,8 @@ class JwtAuthFilterTest {
 
     @Test
     void validTokenIsParsedAndForwardedAsUserHeaders() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Mono.just(false));
+
         AtomicReference<ServerWebExchange> captured = new AtomicReference<>();
         GatewayFilterChain chain = exchange -> {
             captured.set(exchange);
@@ -90,8 +97,10 @@ class JwtAuthFilterTest {
 
     private String token(Long userId, List<String> roles) {
         return Jwts.builder()
+                .setId("test-jti-" + userId)
                 .claim("uid", userId)
                 .claim("roles", roles)
+                .claim(CommonConstants.JWT_CLAIM_TOKEN_TYPE, CommonConstants.JWT_TOKEN_TYPE_ACCESS)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 3600_000))
                 .signWith(signingKey(), SignatureAlgorithm.HS512)

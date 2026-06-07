@@ -14,6 +14,10 @@ public final class CommonConstants {
     public static final String HEADER_USER_NAME = "X-User-Name";
     public static final String HEADER_USER_ROLES = "X-User-Roles";
     public static final String HEADER_TRACE_ID = "X-Trace-Id";
+    public static final String JWT_CLAIM_TOKEN_TYPE = "tokenType";
+    public static final String JWT_TOKEN_TYPE_ACCESS = "access";
+    public static final String JWT_TOKEN_TYPE_REFRESH = "refresh";
+    public static final String JWT_BLACKLIST_PREFIX = "mall:jwt:blacklist:";
 
     public static final long DEFAULT_PAGE_NUM = 1L;
     public static final long DEFAULT_PAGE_SIZE = 20L;
