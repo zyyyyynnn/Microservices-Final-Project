@@ -382,10 +382,26 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 
 ## 14. 下一步
 
-1. 验证 Java 21 全模块构建；
-2. 验证 Seata 2.0.0 启动和回滚；
-3. 修复 Nacos 配置模板；
-4. 跑真实 Postman 核心链路；
-5. 验证 PAY_RESULT 消息；
-6. 建立 JMeter 三套脚本；
-7. 填写 `docs/FINAL_REPORT.md`。
+当前已验收通过的完整链路：
+
+```text
+登录
+→ 商品详情
+→ 购物车
+→ 创建订单
+→ 库存锁定
+→ 支付通知
+→ 消息消费
+→ 订单已支付
+→ 库存扣减
+```
+
+待完成：
+
+1. Elasticsearch 搜索完整验收；
+2. 秒杀完整链路验收；
+3. Sentinel 规则限流/熔断实测；
+4. Nacos 热更新实测；
+5. 正式 Postman 集合；
+6. JMeter 脚本和报告；
+7. 最终答辩材料。

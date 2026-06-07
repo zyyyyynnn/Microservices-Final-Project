@@ -78,7 +78,7 @@
 ### 已完成基线
 
 - Java 21 全模块构建通过；
-- 现有 11 个测试全部通过（0 失败）；
+- 现有 13 个测试全部通过（0 失败）；
 - 父 POM 已取消默认 `<skipTests>true</skipTests>`；
 - MySQL 8.0、Redis 7、Nacos 2.3.2 已完成基础运行验证；
 - Nacos YAML 中非法 `--` 注释已修复；
@@ -86,12 +86,25 @@
 - Seata Nacos 注册已验证（dev / SEATA_GROUP / healthy=true）；
 - Seata Server Schema 已统一为官方四表，迁移脚本已提供。
 
-### 仍需验证
+### 已验收通过
 
-- 业务服务的 Nacos 配置加载；
-- 核心交易链路；
-- Seata AT 真实业务回滚；
-- Postman 和 JMeter 未完成。
+- User/Auth/Gateway 认证闭环（登录、Token 类型隔离、黑名单、用户上下文透传）；
+- mall-user 停止/恢复故障场景；
+- Cart（无 Token 拒绝、有 Token 访问、加入购物车）；
+- Order 主链路（商品查询、库存锁定、订单创建、DB 验证）；
+- Seata AT 回滚（故障注入触发、订单未落库、库存恢复、undo_log 清理）；
+- Pay Notify 边界（白名单通过、无效通知不改变状态）；
+- RocketMQ / Message 支付结果链路（通知→消息→订单已支付→库存扣减、重复通知幂等）。
+
+### 仍需验证或完成
+
+- Elasticsearch 搜索完整验收；
+- 秒杀完整链路验收；
+- Sentinel 规则限流/熔断实测；
+- Nacos 热更新实测；
+- 正式 Postman 集合；
+- JMeter 脚本和报告；
+- 最终答辩材料。
 
 ### 基本约束
 
@@ -107,10 +120,10 @@
 
 ```text
 [已完成] 运行基线（Java 21 / Maven / MySQL / Redis / Nacos / Seata）
-  → [当前] 认证与网关运行闭环（mall-user / mall-auth / mall-gateway）
-  → 交易主链路（Product / Inventory / Cart / Order / Seata AT）
-  → 支付与 MQ
-  → 治理与测试
+  → [已完成] 认证与网关运行闭环（mall-user / mall-auth / mall-gateway）
+  → [已完成] 交易主链路（Product / Inventory / Cart / Order / Seata AT）
+  → [已完成] 支付与 MQ
+  → [当前] 治理与测试
   → 最终报告
 ```
 
@@ -146,7 +159,36 @@
 
 ---
 
-## 7. 当前优先级
+## 7. 工具集成：CodeGraph MCP
+
+项目已接入 CodeGraph MCP，Agent 应利用以下工具功能提升上下文理解与修改精准度：
+
+| 工具名 | 功能说明 |
+| :--- | :--- |
+| `codegraph_search` | 按名称搜索符号 |
+| `codegraph_context` | 构建任务相关的代码上下文 |
+| `codegraph_trace` | 追踪两个符号之间的调用路径 |
+| `codegraph_callers` | 查找谁调用了某个函数 |
+| `codegraph_callees` | 查找某个函数调用了谁 |
+| `codegraph_impact` | 分析修改某个符号会影响哪些代码 |
+| `codegraph_node` | 获取某个符号的详细信息（含源码） |
+| `codegraph_explore` | 批量返回多个相关符号的源码 |
+| `codegraph_files` | 获取索引的文件结构 |
+| `codegraph_status` | 检查索引健康状态和统计 |
+
+- **维护更新**：
+  - 日常代码修改后，执行增量同步（仅处理变更文件，秒级完成）：
+    ```powershell
+    codegraph sync
+    ```
+  - 首次初始化或索引损坏时，执行全量重建：
+    ```powershell
+    codegraph index
+    ```
+
+---
+
+## 8. 当前优先级
 
 ### 已完成基线
 
@@ -158,7 +200,7 @@
 - Seata Server 2.0.0 DB Store 和 Nacos 注册已验证；
 - 官方四表 Schema 和迁移脚本已完成。
 
-### P0：认证与网关运行闭环（当前任务）
+### P0：认证与网关运行闭环（已完成）
 
 1. 启动 `mall-user`；
 2. 启动 `mall-auth`；
@@ -169,7 +211,7 @@
 7. 验证 Gateway JWT；
 8. 验证用户上下文透传。
 
-### P1：商品和交易主链路
+### P1：商品和交易主链路（已完成）
 
 1. Product / Inventory / Cart / Order 启动和注册；
 2. 商品查询和购物车；
@@ -179,7 +221,7 @@
 6. 支付消息；
 7. 订单和库存状态更新。
 
-### P2：课程技术亮点
+### P2：课程技术亮点（当前任务）
 
 1. Sentinel 限流/熔断；
 2. 秒杀限购和库存边界；
@@ -196,7 +238,7 @@
 
 ---
 
-## 8. 代码修改规则
+## 9. 代码修改规则
 
 ### 8.1 精准修改
 
@@ -233,7 +275,7 @@
 
 ---
 
-## 9. 配置规则
+## 10. 配置规则
 
 - YAML 注释使用 `#`；
 - 禁止使用 `--`；
@@ -246,7 +288,7 @@
 
 ---
 
-## 10. 测试规则
+## 11. 测试规则
 
 ### 10.1 环境验证
 
@@ -286,7 +328,7 @@ docker inspect mall-seata --format '{{.Config.Image}}'
 
 ---
 
-## 11. Git 与提交
+## 12. Git 与提交
 
 ```text
 <type>(<scope>): <subject>
@@ -306,7 +348,7 @@ docs(report): record Java 21 load-test results
 
 ---
 
-## 12. 输出要求
+## 13. 输出要求
 
 完成任务后说明：
 

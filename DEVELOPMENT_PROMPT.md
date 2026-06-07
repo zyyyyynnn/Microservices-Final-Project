@@ -13,11 +13,11 @@
 
 ```text
 [已完成] 运行基线（Java 21 / Maven / MySQL / Redis / Nacos / Seata）
-  → [当前] 验证服务注册和 Gateway（mall-user / mall-auth / mall-gateway）
-  → 打通交易主链路
-  → 完善必要的治理能力
-  → 重建真实测试资产
-  → 填写最终报告
+  → [已完成] 认证与网关运行闭环（mall-user / mall-auth / mall-gateway）
+  → [已完成] 交易主链路（Product / Inventory / Cart / Order / Seata AT）
+  → [已完成] 支付与 MQ
+  → [当前] 技术亮点与测试资产
+  → 最终报告
 ```
 
 项目不增加新的微服务和业务模块，不追求功能数量。所有修改必须服务于课程评分标准和核心链路质量。
@@ -80,7 +80,7 @@
 
 ## 4. 第一阶段：运行基线回归检查（已完成，后续仅做回归）
 
-> **已完成：** Java 21、Maven 构建、现有 11 个测试、MySQL、Redis、Nacos、Seata Server 2.0.0。
+> **已完成并验收通过：** Java 21、Maven 构建、现有 13 个测试、MySQL、Redis、Nacos、Seata Server 2.0.0。
 
 ### 回归命令
 
@@ -117,9 +117,9 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 
 ---
 
-## 5. 第二阶段：服务注册和 Gateway（当前正式开发起点）
+## 5. 第二阶段：服务注册和 Gateway（已完成并验收通过）
 
-> **当前正式开发起点。** 第一批只处理 `mall-user`、`mall-auth`、`mall-gateway` 三个服务。
+> **已完成并验收通过。** mall-user、mall-auth、mall-gateway 三个服务启动、注册、登录、JWT 鉴权、用户上下文透传、mall-user 停止/恢复故障场景均已验证。
 
 ### 完成标准
 
@@ -166,7 +166,9 @@ mall-message
 
 ---
 
-## 6. 第三阶段：交易主链路
+## 6. 第三阶段：交易主链路（已完成并验收通过）
+
+> **已完成并验收通过。** Cart、Order 主链路、Seata AT 回滚均已验证。
 
 ```text
 登录
@@ -225,7 +227,23 @@ mall-message
 
 ---
 
-## 7. 第四阶段：必要的服务治理
+## 7. 第四阶段：支付与消息（已完成并验收通过）
+
+> **已完成并验收通过。** Pay Notify 白名单边界、RocketMQ / Message 支付结果链路（通知→消息→订单已支付→库存扣减、重复通知幂等）均已验证。
+
+下一阶段：
+
+```text
+阶段 E：技术亮点与测试资产
+  Sentinel 限流/熔断
+  Nacos 热更新
+  Elasticsearch 搜索
+  秒杀完整链路
+  Postman 集合
+  JMeter 脚本和报告
+  最终报告
+  答辩材料
+```
 
 ### 7.1 Feign fallback
 
