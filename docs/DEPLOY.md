@@ -151,10 +151,19 @@ curl "http://localhost:8848/nacos/v1/ns/instance/list?serviceName=seata-server&n
 
 # 数据库表确认
 docker exec mall-mysql mysql -uroot -proot -e "USE mall_seata; SHOW TABLES; SELECT COUNT(*) FROM distributed_lock;"
-# 预期：5 张表，distributed_lock 4 行
+# 预期：4 张 Server 表，distributed_lock 4 行
 ```
 
 > Seata Server 表（`mall_seata` 库）与业务 AT 分支 undo_log（`mall_order`、`mall_inventory` 等业务库）是不同层级，不要混淆。
+
+已有 MySQL 数据目录时，Docker 不会自动重新执行 `db/init/`。停止 Seata 并确认 Server 事务表为空后，执行迁移脚本：
+
+```powershell
+Get-Content `
+  .\db\migration\20260607-upgrade-seata-server-2.0.sql `
+  -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
+```
 
 ---
 

@@ -30,7 +30,9 @@
 | `mall_order` | mall-order | `order_info`、`order_item`、`order_log`、`undo_log` |
 | `mall_pay` | mall-pay | `pay_record`、`refund_record`、`undo_log` |
 | `mall_seckill` | mall-seckill | `seckill_activity`、`seckill_order`、`undo_log` |
-| `mall_seata` | Seata Server | `global_table`、`branch_table`、`lock_table` |
+| `mall_seata` | Seata Server | `global_table`、`branch_table`、`lock_table`、`distributed_lock` |
+
+> `mall_seata` 是 Seata Server 2.0.0 的 TC 协调器存储，与业务库 `undo_log`（AT 分支回滚日志）不同层级。权威 DDL 见 `db/init/00-create-databases.sql`，已有环境迁移脚本见 `db/migration/`。
 
 实际表数量以初始化 SQL 执行结果为准，不在未验证时固定宣称总数。
 
