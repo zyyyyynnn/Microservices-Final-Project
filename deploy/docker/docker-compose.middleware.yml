@@ -1,5 +1,3 @@
-version: '3.8'
-
 # MallCloud 中间件编排（test 环境）
 # 启动：docker compose -f docker-compose.middleware.yml up -d
 # 停止：docker compose -f docker-compose.middleware.yml down
