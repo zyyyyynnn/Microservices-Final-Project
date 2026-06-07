@@ -7,6 +7,7 @@ spring:
   config:
     import:
       - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-sentinel.yaml?group=DEFAULT_GROUP&refreshEnabled=true
       - optional:nacos:mall-message.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
@@ -20,7 +21,7 @@ spring:
         group: DEFAULT_GROUP
       config:
         file-extension: yaml
-        shared-dataids: common-rocketmq.yaml
+        shared-dataids: common-rocketmq.yaml,common-sentinel.yaml
         refresh-enabled: true
         extension-configs[0]:
           dataId: mall-message.yaml
@@ -36,6 +37,18 @@ management:
   endpoint:
     health:
       show-details: always
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 5000
+        loggerLevel: BASIC
+  sentinel:
+    enabled: true
+  okhttp:
+    enabled: true
 
 logging:
   level:
