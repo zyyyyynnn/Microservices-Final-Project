@@ -1,7 +1,6 @@
 -- ============================================================
 -- MallCloud 种子数据
--- 默认用户密码统一为 P@ssw0rd123（BCrypt cost=10）
--- admin 密码: Admin@123
+-- 所有测试账号密码统一为 123456（BCrypt cost=10）
 -- ============================================================
 
 USE `mall_user`;
@@ -28,9 +27,8 @@ INSERT INTO `address` (user_id, receiver, phone, province, city, district, detai
 -- ============================================================
 USE `mall_auth`;
 
--- BCrypt cost=10 of "P@ssw0rd123"
-SET @BCRYPT_PWD = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
-SET @BCRYPT_ADMIN = '$2a$10$DowJonesIndexP9rQ8w6nZ1uLO.6N9KQAGF7p92ldGxad68LJZdL17lhWy';
+-- BCrypt cost=10 of "123456"
+SET @BCRYPT_PWD = '$2y$10$k8Z56rLWfoKE6XNip7PenuX5tiKdD.QB93WSNZLHH4Y2fOg7.16Ku';
 
 INSERT INTO `sys_user_auth` (user_id, identity_type, identifier, credential) VALUES
 (1001, 'PASSWORD', 'zhangsan',    @BCRYPT_PWD),
@@ -39,7 +37,7 @@ INSERT INTO `sys_user_auth` (user_id, identity_type, identifier, credential) VAL
 (1004, 'PASSWORD', 'zhaoliu',     @BCRYPT_PWD),
 (1005, 'PASSWORD', 'merchant01',  @BCRYPT_PWD),
 (1006, 'PASSWORD', 'merchant02',  @BCRYPT_PWD),
-(1007, 'PASSWORD', 'admin',       @BCRYPT_ADMIN),
+(1007, 'PASSWORD', 'admin',       @BCRYPT_PWD),
 (1008, 'PASSWORD', 'user1',       @BCRYPT_PWD),
 (1009, 'PASSWORD', 'user2',       @BCRYPT_PWD),
 (1010, 'PASSWORD', 'user3',       @BCRYPT_PWD),
