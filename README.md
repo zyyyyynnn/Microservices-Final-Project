@@ -36,16 +36,16 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 
 | 能力 | 当前状态 | 说明 |
 |---|---|---|
-| 13 个微服务模块 | 已实现待验证 | 模块与基础分层代码已建立 |
-| Java 21 基线 | 已配置待验证 | 父 POM 已切换到 Java 21，需完成全模块构建验证 |
-| Gateway 路由与 JWT | 已实现待验证 | 需要补完整运行和鉴权报告 |
-| Nacos 注册与配置 | 已实现待验证 | 配置模板需修正并验证热更新 |
-| OpenFeign 调用 | 已实现待验证 | 核心调用集中在商品、库存、订单等服务 |
-| Seata 2.0.0 | 已配置待验证 | Docker/K8s 镜像已统一，需验证注册和回滚 |
-| RocketMQ | 部分实现 | 普通消息消费者已实现，事务消息未实现 |
-| Sentinel | 部分实现 | 基础接入存在，核心规则和异常测试待完成 |
-| Elasticsearch | 已实现待验证 | 搜索与同步链路需形成运行证据 |
-| Docker 中间件 | 已实现待验证 | `docker-compose.middleware.yml` 已提供 |
+| 13 个微服务模块 | 已实现并验证 | 模块与基础分层代码已建立 |
+| Java 21 基线 | 已验证 | 全模块构建通过，13 个测试通过 |
+| Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200、用户上下文透传 |
+| Nacos 注册与配置 | 核心已验证 | 注册和配置加载已验证；热更新待验证 |
+| OpenFeign 调用 | 已验证 | order→product、order→inventory 核心链路已验证 |
+| Seata 2.0.0 | 已验证 | Server 基线和 AT 回滚已验证 |
+| RocketMQ | 已验证 | 支付结果链路已验证 |
+| Sentinel | 待验证 | 基础接入存在，核心规则和异常测试待完成 |
+| Elasticsearch | 待验证 | 搜索与同步链路需形成运行证据 |
+| Docker 中间件 | 已验证 | `docker-compose.middleware.yml` 已提供 |
 | Docker 全栈 | 规划项 | 构建文件和启动链路尚未完整 |
 | Kubernetes 全栈 | 规划项 | 当前仅提供部分示例 manifest |
 | Postman 测试 | 待重建 | 旧集合为模板生成，不能作为最终证据 |
