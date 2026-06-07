@@ -36,6 +36,24 @@ spring:
     password: ${MYSQL_PWD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+# Seata
+seata:
+  application-id: mall-order
+  tx-service-group: mallcloud-tx-group
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+  registry:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+      application: seata-server
+
 feign:
   client:
     config:
