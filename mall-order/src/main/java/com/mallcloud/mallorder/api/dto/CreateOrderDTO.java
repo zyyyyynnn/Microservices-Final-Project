@@ -26,5 +26,6 @@ public class CreateOrderDTO implements Serializable {
     @Valid
     private List<OrderItemDTO> items;
 
+    @Size(max = 255, message = "订单备注不能超过 255 个字符")
     private String remark;
 }
