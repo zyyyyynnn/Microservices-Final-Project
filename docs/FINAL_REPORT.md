@@ -83,6 +83,7 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
+| 前端完整演示系统 | 未完成，当前阶段 | 待浏览器验证 |
 
 ---
 
