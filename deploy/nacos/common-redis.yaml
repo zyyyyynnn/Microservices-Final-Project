@@ -1,4 +1,4 @@
--- MallCloud 公共 Redis 配置
+# MallCloud 公共 Redis 配置
 spring:
   data:
     redis:

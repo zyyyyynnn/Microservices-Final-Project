@@ -1,4 +1,4 @@
--- mall-gateway Nacos 配置
+# mall-gateway Nacos 配置
 server:
   port: 9000
 

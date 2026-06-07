@@ -1,4 +1,4 @@
--- MallCloud 公共 Seata 配置
+# MallCloud 公共 Seata 配置
 spring:
   cloud:
     alibaba:
