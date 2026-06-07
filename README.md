@@ -50,6 +50,7 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Kubernetes 全栈 | 规划项 | 当前仅提供部分示例 manifest |
 | Postman 测试 | 待重建 | 旧集合为模板生成，不能作为最终证据 |
 | JMeter 测试 | 未完成 | 需要新增可执行脚本和报告 |
+| 前端完整演示系统 | 未实现，当前阶段 | 当前仓库尚无前端源码；需覆盖公共端、用户端、秒杀端、商家/管理员端和技术演示页 |
 
 状态含义见 `docs/PROJECT_STANDARD.md`。
 
