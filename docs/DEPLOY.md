@@ -164,7 +164,7 @@ SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
 
 > Seata Server 表（`mall_seata` 库）与业务 AT 分支 undo_log（`mall_order`、`mall_inventory` 等业务库）是不同层级，不要混淆。
 
-当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级。
+当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级。如需重建演示数据，应先明确备份或重建数据库容器。
 
 ---
 

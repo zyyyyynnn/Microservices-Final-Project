@@ -84,7 +84,7 @@
 - Nacos YAML 中非法 `--` 注释已修复；
 - Seata Server 2.0.0 DB Store 已验证（session/lock store mode: db）；
 - Seata Nacos 注册已验证（dev / SEATA_GROUP / healthy=true）；
-- Seata Server Schema 已统一为官方四表，迁移脚本已提供。
+- Seata Server Schema 已统一为官方四表；
 
 ### 已验收通过
 
@@ -198,7 +198,7 @@
 - MySQL、Redis、Nacos 已验证；
 - Nacos YAML 语法已修复；
 - Seata Server 2.0.0 DB Store 和 Nacos 注册已验证；
-- 官方四表 Schema 和迁移脚本已完成。
+- 官方四表 Schema 已完成。
 
 ### P0：认证与网关运行闭环（已完成）
 
