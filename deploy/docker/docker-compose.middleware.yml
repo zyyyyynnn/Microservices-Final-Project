@@ -185,7 +185,7 @@ services:
       nacos:
         condition: service_healthy
     environment:
-      SEATA_IP: mall-seata
+      SEATA_IP: ${SEATA_IP:-192.168.78.1}
       SEATA_PORT: 8091
       TZ: Asia/Shanghai
     ports:

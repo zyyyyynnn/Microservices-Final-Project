@@ -23,6 +23,7 @@ import com.mallcloud.mallorder.api.vo.SeckillOrderVO;
 import com.mallcloud.mallorder.client.InventoryClient;
 import com.mallcloud.mallorder.client.ProductClient;
 import com.mallcloud.mallorder.client.dto.LockDTO;
+import com.mallcloud.mallorder.client.dto.LockStockDTO;
 import com.mallcloud.mallorder.client.dto.SkuDTO;
 import com.mallcloud.mallorder.domain.OrderInfo;
 import com.mallcloud.mallorder.domain.OrderItem;
@@ -91,7 +92,7 @@ public class OrderServiceImpl extends OrderService {
             lockDTOs.add(new LockDTO(sku.getSkuId(), itemDto.getQuantity()));
         }
         
-        Result<Void> lockResult = inventoryClient.lock(lockDTOs);
+        Result<Void> lockResult = inventoryClient.lock(new LockStockDTO(orderNo, lockDTOs));
         if (!lockResult.isSuccess()) {
             throw new BizException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存不足或锁定失败");
         }
@@ -189,12 +190,12 @@ public class OrderServiceImpl extends OrderService {
             throw new BizException(ErrorCode.PRODUCT_NOT_FOUND.getCode(), "商品不存在: " + dto.getSkuId());
         }
         SkuDTO sku = skuResult.getData();
-        Result<Void> lockResult = inventoryClient.lock(List.of(new LockDTO(dto.getSkuId(), dto.getQuantity())));
+        String orderNo = "SK" + System.currentTimeMillis();
+        Result<Void> lockResult = inventoryClient.lock(new LockStockDTO(orderNo, List.of(new LockDTO(dto.getSkuId(), dto.getQuantity()))));
         if (!lockResult.isSuccess()) {
             throw new BizException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "秒杀库存锁定失败");
         }
 
-        String orderNo = "SK" + System.currentTimeMillis();
         BigDecimal price = dto.getSeckillPrice() == null ? sku.getPrice() : dto.getSeckillPrice();
         BigDecimal totalAmount = price.multiply(new BigDecimal(dto.getQuantity()));
 
