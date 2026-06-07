@@ -1,6 +1,6 @@
-# MallCloud 后续开发执行 Prompt
+﻿# MallCloud 后续开发执行 Prompt
 
-> 使用对象：后续执行 Agent 或开发成员
+> 使用对象：开发成员
 > 团队规模：5 人
 > 最高标准：`docs/PROJECT_STANDARD.md`
 > 技术基线：Java 21 LTS、Spring Boot 3.2.4、Spring Cloud Alibaba 2023.0.1.0、Seata 2.0.0
@@ -60,13 +60,12 @@
 - Nacos YAML 中非法 `--` 注释已修复；
 - Seata Server 2.0.0 的 DB Store 和 Nacos 注册已验证；
 - Seata Server Schema 已统一为官方四表（global_table / branch_table / lock_table / distributed_lock）；
-- 已有环境迁移脚本已提供（`db/migration/20260607-upgrade-seata-server-2.0.sql`）；
+- 当前数据库基线只保留 `db/init/`；
 - Docker/K8s 的 Seata Server 已统一为 2.0.0；
 - 演示账号统一密码为 `123456`；
 - 当前推荐部署为 Docker 中间件 + IDE 启动服务；
 - Docker 全栈和 Kubernetes 全栈不是正式可用路径；
-- 核心单元测试数量不足；
-- 旧模板 Postman 集合已废弃；
+- 旧模板 Postman 集合已废弃，需重建；
 - JMeter 脚本和报告尚未完成；
 - 普通下单调用商品与库存服务，不直接调用支付服务；
 - 支付结果由 RocketMQ 和 `mall-message` 更新订单与库存；
@@ -76,9 +75,7 @@
 - 业务服务 Nacos 配置加载已在核心链路验收中验证，Nacos 热更新仍待验证；
 - Seata AT 真实业务回滚已通过验收。
 - 当前仓库尚无前端源码；README 与 DESIGN 已声明前端技术栈和产品设计基线；
-- 前端完整演示系统是必做阶段，不是可选项；
-
-不得假定业务服务已可运行或核心链路已打通。
+- 前端完整演示系统是必做阶段，不是可选项。
 
 ---
 
@@ -111,13 +108,11 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 - Seata Server 镜像为 2.0.0；
 - Seata DB Store 和 Nacos 注册已验证。
 
-### 禁止
+### 约束
 
 - 不升级 Spring Boot/Cloud/Alibaba 大版本；
 - 不采用 Java 24；
-- 不批量改写 DTO 为 record；
-- 不默认启用虚拟线程；
-- 不完善 Docker/K8s 全栈，除非基础运行已稳定。
+- 不默认启用虚拟线程。
 
 ---
 
@@ -162,11 +157,6 @@ mall-order
 mall-pay
 mall-message
 ```
-
-### 禁止
-
-- 第一批不得同时修改订单、库存、支付、搜索或秒杀服务；
-- 不得将尚未启动的服务标记为"已注册"。
 
 ---
 
@@ -213,8 +203,6 @@ mall-message
 - 库存 `locked` 和 `available` 是否恢复；
 - 业务库 `undo_log` 是否正常；
 - Seata Server 日志是否能关联到本次全局事务。
-
-不能通过注解存在推断事务已经生效。
 
 ### 6.3 支付消息
 
@@ -466,5 +454,3 @@ docs/test/jmeter/seckill-stress.jmx
 文档同步：
 - 已更新的文档
 ```
-
-禁止使用“应该可以”作为验证结果。
