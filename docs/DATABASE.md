@@ -312,7 +312,7 @@ SELECT COUNT(*) FROM mall_seckill.seckill_activity;
 ## 15. 迁移规范
 
 - `00-create-databases.sql` 用于全新环境初始化；
-- 已提交环境的结构变更应新增迁移脚本；
+- 当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级；
 - 不在业务代码中执行 DDL；
 - 不手工修改共享演示数据库后不留记录；
 - 当前项目不强制引入 Flyway/Liquibase，避免增加不必要依赖；
