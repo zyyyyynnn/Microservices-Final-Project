@@ -180,24 +180,20 @@ services:
     container_name: mall-seata
     restart: always
     depends_on:
-      - mysql
-      - nacos
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
     environment:
-      SEATA_PORT: 8091
       SEATA_IP: mall-seata
-      SEATA_CONFIG_TYPE: nacos
-      SEATA_CONFIG_NACOS_SERVER_ADDR: mall-nacos:8848
-      SEATA_CONFIG_NACOS_NAMESPACE: dev
-      SEATA_CONFIG_NACOS_GROUP: SEATA_GROUP
-      SEATA_REGISTRY_TYPE: nacos
-      SEATA_REGISTRY_NACOS_SERVER_ADDR: mall-nacos:8848
-      SEATA_REGISTRY_NACOS_NAMESPACE: dev
-      SEATA_REGISTRY_NACOS_GROUP: SEATA_GROUP
+      SEATA_PORT: 8091
+      TZ: Asia/Shanghai
     ports:
       - "7091:7091"
       - "8091:8091"
     volumes:
-      - ./seata/conf:/seata-server/conf
+      - ./seata/conf/application.yml:/seata-server/resources/application.yml:ro
+      - ./seata/logs:/root/logs/seata
     networks:
       - mall-net
 
