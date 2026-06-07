@@ -1,6 +1,6 @@
 ---
 # 06-seata.yaml
-# Seata 1.5+（TC Server + File/DB 模式）
+# Seata 2.0.0（TC Server + DB 模式）
 # TC 通过 Nacos 注册发现；store.mode=db 需 mall_seata 库（01-mysql.yaml 已建）
 apiVersion: v1
 kind: ConfigMap
@@ -71,7 +71,7 @@ spec:
     spec:
       containers:
         - name: seata
-          image: seataio/seata-server:1.8.0
+          image: seataio/seata-server:2.0.0
           ports:
             - containerPort: 7091
               name: http

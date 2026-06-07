@@ -1,253 +1,379 @@
-# MallCloud 快速启动指南
+# MallCloud 快速启动
 
-> 5 分钟跑通全栈演示版（仅中间件 + 核心服务）
-
----
-
-## 0. 准备
-
-| 工具      | 版本     |
-| --------- | -------- |
-| JDK       | 17+      |
-| Maven     | 3.9+     |
-| Docker    | 24+      |
-| Node.js   | 20+      |
-| 内存      | ≥ 8 GB   |
-| 磁盘      | ≥ 20 GB  |
+> 团队规模：5 人
+> 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21
+> 当前正式路径：Docker 中间件 + 本地 IDE 启动微服务
+> 目标：先跑通核心交易链路，不要求一次启动全部 13 个服务
 
 ---
 
-## 1. 克隆与初始化
+## 1. 准备
 
-```bash
-git clone <repo>
-cd mallcloud
+```powershell
+java -version
+mvn -version
+docker version
+docker compose version
+$PSVersionTable.PSVersion
 ```
 
-拷贝环境变量模板：
+要求：
 
-```bash
-cp .env.example .env
-# Windows: copy .env.example .env
-```
+- JDK 21；
+- Maven 3.9+；
+- Docker Desktop；
+- PowerShell 7+；
+- Docker 可用内存至少 8 GB。
+
+`java -version` 与 `mvn -version` 输出中的 Java 版本均应为 21。
 
 ---
 
-## 2. 启动中间件（一行命令）
+## 2. 进入项目目录
 
-```bash
-cd deploy/docker
-docker compose -f docker-compose.middleware.yml up -d
+```powershell
+Set-Location <项目根目录>
 ```
 
-等待所有容器 healthy（约 1-2 分钟）：
+可选：
 
-```bash
-docker compose -f docker-compose.middleware.yml ps
+```powershell
+Copy-Item .env.example .env
 ```
 
-涉及中间件：
-- MySQL 8
-- Redis 7
-- Nacos 2.3
-- RocketMQ 5.x (NameSrv + Broker + Console)
-- Elasticsearch 8
-- Sentinel Dashboard
-- Zipkin
-- Seata Server
+`.env` 不会自动注入 IDE 启动的 Spring Boot 服务。需要的变量应配置到 IDE Run Configuration。
 
 ---
 
-## 3. 初始化数据库
+## 3. 启动中间件
 
-```bash
-# 创建库 + 表 + 种子
-bash scripts/init-db.sh
+```powershell
+.\scripts\start-middleware.ps1
+```
 
-# Windows
+检查：
+
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
+```
+
+至少确认：
+
+- MySQL；
+- Redis；
+- Nacos 2.3.2；
+- RocketMQ 5.1.4 NameServer/Broker；
+- Sentinel 1.8.6 Dashboard；
+- Seata Server 2.0.0。
+
+验证 Seata 镜像：
+
+```powershell
+docker inspect mall-seata --format '{{.Config.Image}}'
+```
+
+预期：
+
+```text
+seataio/seata-server:2.0.0
+```
+
+常用地址：
+
+| 服务 | 地址 |
+|---|---|
+| Nacos | `http://localhost:8848/nacos` |
+| Sentinel | `http://localhost:8080` |
+| RocketMQ Console | `http://localhost:8180` |
+| Elasticsearch | `http://localhost:9200` |
+| Kibana | `http://localhost:5601` |
+| Zipkin | `http://localhost:9411` |
+
+---
+
+## 4. 初始化数据库
+
+```powershell
 .\scripts\init-db.ps1
 ```
 
-预期：创建 7 个业务库（auth/user/product/inventory/order/pay/seckill）+ 1 个 Seata 库（mall_seata）、35 张表（25 业务 + 7 undo_log + 3 Seata）、30 个类目、5 个 SPU、7 个 SKU、10 个测试用户、3 场秒杀活动。
+本机没有 MySQL Client 时：
 
-测试账号：
+```powershell
+Get-Content .\db\init\00-create-databases.sql -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
 
-| 用户名     | 密码        | 角色     |
-| ---------- | ----------- | -------- |
-| zhangsan   | P@ssw0rd123 | USER     |
-| lisi       | P@ssw0rd123 | USER     |
-| merchant01 | P@ssw0rd123 | MERCHANT |
-| admin      | Admin@123   | ADMIN    |
-
----
-
-## 4. 启动后端服务
-
-### 方式 A：本地 IDE 启动
-
-依次启动以下服务（端口从小到大，避免冲突）：
-
-| 顺序 | 服务              | 端口  |
-| ---- | ----------------- | ----- |
-| 1    | mall-gateway      | 9000  |
-| 2    | mall-auth         | 9001  |
-| 3    | mall-user         | 9002  |
-| 4    | mall-product      | 9003  |
-| 5    | mall-inventory    | 9004  |
-| 6    | mall-cart         | 9005  |
-| 7    | mall-order        | 9006  |
-| 8    | mall-pay          | 9007  |
-| 9    | mall-search       | 9008  |
-| 10   | mall-seckill      | 9009  |
-| 11   | mall-message      | 9010  |
-| 12   | mall-admin-biz    | 9011  |
-| 13   | mall-job          | 9012  |
-
-### 方式 B：Docker Compose 一键
-
-```bash
-cd deploy/docker
-docker compose -f docker-compose.all.yml up -d
+Get-Content .\db\init\seed.sql -Raw -Encoding UTF8 |
+  docker exec -i mall-mysql mysql -uroot -proot
 ```
 
-### 验证
+验证：
 
-打开 Nacos 控制台：http://localhost:8848/nacos （nacos/nacos）
-应能看到 13 个服务全部注册成功。
+```powershell
+docker exec mall-mysql mysql -uroot -proot -e "SELECT COUNT(*) AS users FROM mall_user.user; SELECT COUNT(*) AS spu FROM mall_product.spu; SELECT COUNT(*) AS sku FROM mall_product.sku;"
+```
 
----
+预期：
 
-## 5. 启动前端
-
-```bash
-# 用户前台
-cd web-portal
-npm install
-npm run dev
-# → http://localhost:5173
-
-# 商家后台
-cd web-admin
-npm install
-npm run dev
-# → http://localhost:5174
+```text
+users = 10
+spu = 5
+sku = 7
 ```
 
 ---
 
-## 6. 第一笔订单（5 分钟体验）
+## 5. 测试账号
 
-1. 打开 http://localhost:5173
-2. 点击"登录" → 账号 `zhangsan` / 密码 `P@ssw0rd123`
-3. 首页搜索"iPhone" → 选商品 → 加入购物车
-4. 购物车 → 结算 → 选地址 → 提交订单
-5. 跳转到支付页 → 点击"模拟支付"
-6. 回到用户中心 → 我的订单 → 看到状态"已支付"
+所有演示账号统一密码：
+
+```text
+123456
+```
+
+| 用户名 | 密码 | 角色 |
+|---|---|---|
+| zhangsan | 123456 | USER |
+| lisi | 123456 | USER |
+| merchant01 | 123456 | MERCHANT |
+| admin | 123456 | ADMIN |
+
+密码摘要以 `db/init/seed.sql` 为准。若登录失败，应修复种子数据，不得只修改文档。
 
 ---
 
-## 7. 关键中间件控制台
+## 6. 检查 Nacos 配置
 
-| 中间件    | 地址                                | 账号          |
-| --------- | ----------------------------------- | ------------- |
-| Nacos     | http://localhost:8848/nacos         | nacos/nacos   |
-| Sentinel  | http://localhost:8080               | sentinel/sentinel |
-| Zipkin    | http://localhost:9411               | -             |
-| Kibana    | http://localhost:5601               | -             |
-| Seata     | http://localhost:7091               | -             |
-| RocketMQ  | http://localhost:8180               | -             |
+启动业务服务前确认：
 
----
+- `deploy/nacos/*.yaml` 中没有 `--` 注释；
+- Namespace 与服务配置一致；
+- Auth 和 Gateway 的 `JWT_SECRET` 一致；
+- MySQL、Redis、RocketMQ、Seata 地址正确；
+- Seata Server 和客户端配置兼容 2.0.0。
 
-## 8. 验证分布式特性
-
-### 8.1 验证 Nacos 服务注册
-
-```
-打开 Nacos → 服务管理 → 服务列表
-应能看到 mall-* 13 个服务，每个有 1+ 个健康实例
-```
-
-### 8.2 验证 Gateway 鉴权
-
-```bash
-# 不带 token 访问 → 401
-curl -i http://localhost:9000/api/v1/orders
-
-# 带 token 访问 → 200
-curl -i -H "Authorization: Bearer xxx" http://localhost:9000/api/v1/orders
-```
-
-### 8.3 验证 OpenFeign 远程调用
-
-```bash
-# 下单会调用 inventory, product, user 三个服务
-# 看 order 服务日志：
-docker logs -f mall-order
-# 出现 "调用库存服务 lock 成功"
-```
-
-### 8.4 验证 Seata 分布式事务
-
-```bash
-# 修改商品库存为 1，并发 5 个下单请求
-# 1 个成功，4 个失败
-# 失败的请求对应的库存不会被扣减（自动回滚）
-```
-
-### 8.5 验证 Sentinel 限流
-
-```bash
-# 启动 JMeter，500 并发访问秒杀接口
-# Sentinel Dashboard → 实时监控 → 看到 pass/block 数量
-# 限流触发时返回 429
-```
-
-### 8.6 验证 Nacos 配置热更新
-
-```bash
-# Nacos 控制台 → 配置管理 → mall-product.yaml
-# 修改 mall.product.page-size=20 → 30
-# 不重启服务，新值立即生效
-```
+Nacos 配置导入尚未自动化。没有导入远程配置时，应确认本地 `application.yaml` 是否能提供完整启动配置。
 
 ---
 
-## 9. 停止全栈
+## 7. 编译
 
-```bash
-cd deploy/docker
-docker compose -f docker-compose.all.yml down
-# 同时删除 volumes（注意：会丢数据）
-docker compose -f docker-compose.all.yml down -v
+```powershell
+java -version
+mvn -version
+mvn clean package -DskipTests
 ```
 
----
+通过标准：
 
-## 10. 常见 30 秒修复
+```text
+BUILD SUCCESS
+```
 
-| 问题                     | 解决                                              |
-| ------------------------ | ------------------------------------------------- |
-| 启动报 "Address in use"  | 杀掉占用端口的进程：`lsof -i :9000`              |
-| Nacos 反复注册/下线      | 检查心跳时间 + 网卡                              |
-| Feign 调不通             | 检查下游服务 `actuator/health`                     |
-| 启动报 Seata 找不到      | 确认 Seata Server 已启动并健康                    |
-| RocketMQ 连不上          | 检查 broker.conf 中 brokerIP1                     |
-| ES 中文搜索无结果        | 确认 IK 分词器已安装                              |
-| 前端跨域                 | Gateway 已配 CORS；或前端 dev proxy                |
-| 测试看不到 trace         | 检查 Zipkin URL 配置                              |
+运行测试：
 
----
+```powershell
+mvn clean test -DskipTests=false
+```
 
-## 11. 接下来
-
-- 跑 Postman 测试集合：`docs/test/postman-collection.json`
-- 跑 JMeter 压测：`docs/test/jmeter/mallcloud.jmx`
-- 查看架构细节：`docs/ARCHITECTURE.md`
-- 查看接口：`docs/API.md`
-- 查看数据库：`docs/DATABASE.md`
-- 部署到 K8s：`docs/DEPLOY.md`
+测试失败时不要用 `-DskipTests` 掩盖问题，应区分测试缺陷、配置缺陷和业务缺陷。
 
 ---
 
-**祝启动顺利！**
+## 8. 启动核心服务
+
+建议使用 IDE，按顺序启动：
+
+| 顺序 | 服务 | 端口 |
+|---:|---|---:|
+| 1 | mall-user | 9002 |
+| 2 | mall-auth | 9001 |
+| 3 | mall-product | 9003 |
+| 4 | mall-inventory | 9004 |
+| 5 | mall-cart | 9005 |
+| 6 | mall-order | 9006 |
+| 7 | mall-pay | 9007 |
+| 8 | mall-message | 9010 |
+| 9 | mall-gateway | 9000 |
+
+搜索或秒杀测试时再启动：
+
+| 服务 | 端口 |
+|---|---:|
+| mall-search | 9008 |
+| mall-seckill | 9009 |
+
+后台和任务服务最后启动：
+
+| 服务 | 端口 |
+|---|---:|
+| mall-admin-biz | 9011 |
+| mall-job | 9012 |
+
+---
+
+## 9. 验证服务注册
+
+打开：
+
+```text
+http://localhost:8848/nacos
+```
+
+核心链路至少应看到：
+
+```text
+mall-gateway
+mall-auth
+mall-user
+mall-product
+mall-inventory
+mall-cart
+mall-order
+mall-pay
+mall-message
+```
+
+Seata Server 也应按项目配置正确注册或连接。
+
+---
+
+## 10. 最小接口验证
+
+### 10.1 登录
+
+```powershell
+$loginBody = @{
+  username = "zhangsan"
+  password = "123456"
+  loginType = "PASSWORD"
+} | ConvertTo-Json
+
+$login = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:9000/api/v1/auth/login" `
+  -ContentType "application/json; charset=utf-8" `
+  -Body $loginBody
+
+$token = $login.data.accessToken
+```
+
+### 10.2 商品详情
+
+```powershell
+Invoke-RestMethod "http://localhost:9000/api/v1/products/1001"
+```
+
+### 10.3 无 Token 鉴权
+
+```powershell
+try {
+  Invoke-WebRequest "http://localhost:9000/api/v1/orders/UNKNOWN" -UseBasicParsing
+} catch {
+  $_.Exception.Response.StatusCode.value__
+}
+```
+
+预期为 401 或项目统一的未授权响应。
+
+### 10.4 创建订单
+
+```powershell
+$orderBody = @{
+  addressId = 1
+  items = @(
+    @{
+      skuId = 9001
+      quantity = 1
+    }
+  )
+  remark = "quick-start"
+} | ConvertTo-Json -Depth 5
+
+$order = Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:9000/api/v1/orders" `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -ContentType "application/json; charset=utf-8" `
+  -Body $orderBody
+
+$orderNo = $order.data.orderNo
+```
+
+### 10.5 查询订单
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://localhost:9000/api/v1/orders/$orderNo" `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+以上命令必须在最终答辩前实际执行验证。
+
+---
+
+## 11. Postman 与 JMeter
+
+最终测试资产：
+
+```text
+docs/test/
+├── README.md
+├── postman/
+└── jmeter/
+```
+
+目标文件：
+
+```text
+docs/test/postman/mallcloud.postman_collection.json
+docs/test/postman/local.postman_environment.json
+docs/test/postman/summary/newman-20260609.md
+docs/test/jmeter/search-load.jmx
+docs/test/jmeter/order-load.jmx
+docs/test/jmeter/seckill-stress.jmx
+```
+
+Postman 环境中的登录密码统一使用 `123456`，不得保存固定 Token。
+
+---
+
+## 12. 当前不使用的启动方式
+
+以下方式尚未满足正式可用标准：
+
+```powershell
+docker compose -f .\deploy\docker\docker-compose.all.yml up -d
+```
+
+原因：后端 Dockerfile、组合依赖和镜像构建链路尚未完整验证。
+
+Kubernetes 只作为部分示例，不执行不存在的 13 服务循环部署。
+
+---
+
+## 13. 停止环境
+
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml down
+```
+
+清空数据卷：
+
+```powershell
+docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
+```
+
+该命令会删除演示数据，仅在明确需要重置环境时使用。
+
+---
+
+## 14. 下一步
+
+1. 验证 Java 21 全模块构建；
+2. 验证 Seata 2.0.0 启动和回滚；
+3. 修复 Nacos 配置模板；
+4. 跑真实 Postman 核心链路；
+5. 验证 PAY_RESULT 消息；
+6. 建立 JMeter 三套脚本；
+7. 填写 `docs/FINAL_REPORT.md`。
