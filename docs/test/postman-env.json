@@ -1,21 +1,4 @@
 {
-  "id": "env-12345",
-  "name": "Local Environment",
-  "values": [
-    {
-      "key": "BaseURL",
-      "value": "http://localhost:9000",
-      "enabled": true
-    },
-    {
-      "key": "token",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "enabled": true
-    },
-    {
-      "key": "adminToken",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "enabled": true
-    }
-  ]
+  "name": "DEPRECATED",
+  "description": "该旧环境文件已废弃，请按 docs/test/README.md 创建 docs/test/postman/local.postman_environment.json。"
 }
