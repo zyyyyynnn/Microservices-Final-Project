@@ -1,391 +1,379 @@
-# MallCloud 执行 Agent 开发 Prompt
+# MallCloud 后续开发执行 Prompt
 
-> 本 Prompt 是交给执行 Agent 的唯一入口指令。Agent 读完本文件后即可开始编码，无需再逐个读文档。
-> 生成日期：2026-06-06
-> 项目评级：A- (85/100)，地基全部就绪，可直接进入业务开发。
-
----
-
-## 0. 一句话任务
-
-你是一个 Spring Boot 微服务开发 Agent。你的任务是在 **MallCloud** 项目中实现 13 个微服务的完整业务代码。项目骨架、数据库、中间件部署、Nacos 公共配置、K8s 清单已全部就绪，你只需要**填充业务代码**。
+> 使用对象：后续执行 Agent 或开发成员
+> 团队规模：5 人
+> 最高标准：`docs/PROJECT_STANDARD.md`
+> 技术基线：Java 21 LTS、Spring Boot 3.2.4、Spring Cloud Alibaba 2023.0.1.0、Seata 2.0.0
 
 ---
 
-## 1. 你现在看到的项目状态
+## 1. 任务目标
 
-### 1.1 已完成（不要动）
+按以下顺序完成后续开发：
 
-| 层级 | 内容 | 位置 |
-|---|---|---|
-| 父 POM | Spring Boot 3.2.x + Spring Cloud 2023.0.1 + SCA 2023.0.1.0 | `pom.xml` |
-| mall-common | Result/PageData/BizException/GlobalExceptionHandler/ErrorCode/CommonConstants/FeignUserInterceptor/AssertUtil/BizNoUtil/UserContext（11 个 Java 文件） | `mall-common/` |
-| 数据库 | 8 库 26 表（含 7 undo_log）+ seed.sql | `db/init/00-create-databases.sql`, `db/init/seed.sql` |
-| Docker Compose | 中间件 + 全栈两个 compose 文件 | `deploy/docker/` |
-| K8s | 6 中间件 yaml + gateway + ingress + secrets.template | `deploy/k8s/` |
-| Nacos 公共配置 | common-mysql/redis/rocketmq/seata/sentinel.yaml + mall-gateway.yaml | `deploy/nacos/` |
-| 脚本 | start-middleware.ps1/sh, init-db.ps1/sh | `scripts/` |
-| 文档 | AGENTS.md, DESIGN.md, PRD.md, ARCHITECTURE.md, API.md, DATABASE.md, CODING_STYLE.md, DEPLOY.md, QUICK_START.md | 根目录 + `docs/` |
+```text
+验证 Java 21 与 Seata 2.0.0
+  → 修复配置与构建
+  → 验证服务注册和 Gateway
+  → 打通交易主链路
+  → 完善必要的治理能力
+  → 重建真实测试资产
+  → 填写最终报告
+```
 
-### 1.2 需要你填充的（核心任务）
-
-| 服务 | 现有文件 | 需要新建 |
-|---|---|---|
-| mall-gateway | Application + JwtAuthFilter | 路由配置完善、白名单、CORS |
-| mall-auth | Application + AuthController 空壳 | AuthService/UserDetailsService/JwtUtil/RefreshToken 逻辑/Mapper/Entity |
-| mall-user | Application + UserController 空壳 | UserService/AddressService/Mapper/Entity/DTO/VO |
-| mall-product | Application + ProductController 空壳 | ProductService/CategoryService/SkuService/Mapper/Entity/DTO/VO |
-| mall-inventory | Application + Controller 空壳 | InventoryService/StockMapper/StockLogMapper/Entity/Feign接口 |
-| mall-cart | Application + Controller 空壳 | CartService（Redis Hash）/DTO/VO |
-| mall-order | Application + OrderController + CreateOrderDTO + OrderItemDTO + CreateOrderVO + OrderService 接口 | OrderServiceImpl/OrderMapper/OrderItemMapper/OrderLogMapper/Entity/Feign Client |
-| mall-pay | Application + PayController 空壳 | PayService/Alipay沙箱集成/Mapper/Entity/MQ生产者 |
-| mall-search | Application + Controller 空壳 | SearchService/ES客户端/Repository/DTO/VO |
-| mall-seckill | Application + SeckillController 空壳 | SeckillService/Redis Lua预扣/MQ异步下单/Mapper/Entity/DTO/VO |
-| mall-message | Application + Controller 空壳 | MQ Listener 集合（ORDER_CREATED/PAY_RESULT/SECKILL_REQUEST/STOCK_ROLLBACK/ES_SYNC） |
-| mall-admin-biz | Application + Controller 空壳 | DashboardService/商品管理聚合/订单管理聚合/Feign Client |
-| mall-job | Application + Controller 空壳 | 定时任务（订单超时取消/库存对账/ES全量同步） |
+项目不增加新的微服务和业务模块，不追求功能数量。所有修改必须服务于课程评分标准和核心链路质量。
 
 ---
 
-## 2. 技术栈锁定（不允许替换）
+## 2. 开始前必须阅读
 
-| 类别 | 选型 | 版本 |
-|---|---|---|
-| 语言 | Java | 17 |
-| 框架 | Spring Boot | 3.2.x |
-| 微服务 | Spring Cloud + Spring Cloud Alibaba | 2023.0.1 / 2023.0.1.0 |
-| 注册/配置 | Nacos | 2.3.x |
-| 网关 | Spring Cloud Gateway | 4.x |
-| 服务调用 | OpenFeign + Sentinel 降级 | 4.x |
-| 分布式事务 | Seata (AT 模式) | 1.8.x |
-| 消息队列 | RocketMQ | 5.x |
-| 缓存 | Redis | 7.x |
-| 搜索 | Elasticsearch | 8.x |
-| ORM | MyBatis-Plus | 3.5.x |
-| 安全 | Spring Security + JWT (jjwt) | - |
-| 前端 | Vue 3 + Vite + Element Plus | - |
+1. `docs/PROJECT_STANDARD.md`
+2. `docs/PRD.md`
+3. `docs/ARCHITECTURE.md`
+4. `docs/API.md`
+5. `docs/DATABASE.md`
+6. `docs/CODING_STYLE.md`
+7. `docs/DEPLOY.md`
+8. `docs/QUICK_START.md`
+9. `docs/test/README.md`
+10. `docs/FINAL_REPORT.md`
 
----
+若代码与文档冲突：
 
-## 3. 核心约束（违反即失败）
-
-### 3.1 代码规范
-
-```
-- 包路径：com.mallcloud.mall{service}（如 com.mallcloud.mallorder）
-- 注入方式：@RequiredArgsConstructor 构造器注入，禁止 @Autowired 字段注入
-- 日志：@Slf4j + log.info/error，禁止 System.out.println
-- 异常：业务异常用 BizException + ErrorCode 枚举，禁止空 catch
-- 查询：禁止 SELECT *，禁止循环单条 INSERT
-- Controller 层：只做参数校验 + 包装 Result<T>，业务逻辑下沉到 Service
-- Service 层：返回值不用 Result<T>，直接返回 VO/DTO/布尔
-- public 方法必须有 JavaDoc 注释
-```
-
-### 3.2 微服务边界
-
-```
-- 禁止直接调用其他服务的数据库，必须走 Feign 或 MQ
-- 禁止跨服务改 Nacos 公共配置
-- 禁止循环 Feign 依赖（A→B→A）
-- 跨服务数据变更必须用 @GlobalTransactional（Seata）或 MQ 异步
-- Redis 操作统一走 mall-common 中的封装
-```
-
-### 3.3 配置管理
-
-```
-- 公共配置走 Nacos：common-mysql.yaml / common-redis.yaml / common-rocketmq.yaml / common-seata.yaml / common-sentinel.yaml
-- 服务私有配置走 Nacos：mall-{service}.yaml（你需要为每个服务创建并放到 deploy/nacos/）
-- 本地 application.yaml 只放：spring.application.name, server.port, Nacos 地址, shared-dataids
-- 敏感配置（JWT_SECRET/DB密码）走环境变量 ${}，不硬编码
-```
-
-### 3.4 前端纪律（若涉及前端任务）
-
-```
-- 零动效：禁止 transition/animation/@keyframes
-- 色彩 Token 化：禁止硬编码 #hex/rgba，必须 var(--color-xxx)
-- 无阴影：禁止 box-shadow，层级靠 1px 边框
-- 样式作用域：业务 CSS 必须 <style scoped>
-- API 路径：必须经 Gateway :9000
-- 设计语言：白蓝线条极简风，详见 DESIGN.md
-```
+- 先确认实际可运行行为；
+- 再按项目标准决定正确目标；
+- 同时修改代码和相关文档；
+- 不静默保留冲突。
 
 ---
 
-## 4. 服务开发顺序（推荐）
+## 3. 当前事实
 
-按依赖拓扑排序，先底层后上层：
+- 团队固定为 5 人；
+- 13 个服务模块和基础分层已存在；
+- 父 POM 已切换为 Java 21；
+- 不使用 Java 21 预览特性；
+- 不采用 Java 24；
+- Docker/K8s 的 Seata Server 已统一为 2.0.0；
+- 演示账号统一密码为 `123456`；
+- 当前推荐部署为 Docker 中间件 + IDE 启动服务；
+- Docker 全栈和 Kubernetes 全栈不是正式可用路径；
+- Nacos 配置模板存在语法和加载方式待验证问题；
+- 父 POM 当前默认跳过测试；
+- 核心单元测试数量不足；
+- 旧模板 Postman 集合已废弃；
+- JMeter 脚本和报告尚未完成；
+- 普通下单调用商品与库存服务，不直接调用支付服务；
+- 支付结果由 RocketMQ 和 `mall-message` 更新订单与库存；
+- `STOCK_ROLLBACK` 当前是普通消息；
+- Java 代码当前未使用 `@SentinelResource`；
+- 不要求所有 Feign Client 配置 fallbackFactory。
 
-```
-第 1 批（无上游依赖）：
-  1. mall-auth      — 认证（JWT 签发/刷新/黑名单）
-  2. mall-user      — 用户/地址 CRUD
-  3. mall-product   — 类目/SPU/SKU CRUD + 上下架
-  4. mall-inventory — 库存预扣/扣减/释放
-
-第 2 批（依赖第 1 批）：
-  5. mall-cart      — Redis 购物车
-  6. mall-order     — 下单（Seata 全局事务：调 inventory + pay）
-  7. mall-pay       — 支付沙箱 + 支付回调 MQ
-
-第 3 批（依赖第 2 批）：
-  8. mall-search    — ES 搜索（消费 ES_SYNC 消息）
-  9. mall-seckill   — Redis 预扣 + MQ 异步下单
-  10. mall-message  — MQ Listener 集合
-
-第 4 扡（聚合层）：
-  11. mall-admin-biz — 后台聚合（Feign 调 product + order）
-  12. mall-job      — 定时任务
-
-第 5 扡（入口）：
-  13. mall-gateway  — 路由 + JWT Filter 完善
-```
+不得假定“地基全部可运行”或“只需填充业务代码”。
 
 ---
 
-## 5. 每个服务的开发模板
+## 4. 第一阶段：版本、配置与构建
 
-以 `mall-order` 为例，一个完整服务应包含：
+### 完成标准
 
-```
-mall-order/src/main/java/com/mallcloud/mallorder/
-├── MallOrderApplication.java          # @SpringBootApplication + @EnableFeignClients + @EnableDiscoveryClient
-├── api/
-│   ├── dto/
-│   │   ├── CreateOrderDTO.java        # 入参
-│   │   └── OrderItemDTO.java
-│   └── vo/
-│       ├── OrderVO.java               # 出参
-│       └── OrderListVO.java
-├── client/                            # Feign Client 接口
-│   ├── InventoryClient.java           # @FeignClient("mall-inventory")
-│   ├── ProductClient.java
-│   ├── UserClient.java
-│   └── PayClient.java
-├── controller/
-│   └── OrderController.java           # @RestController, 只做校验+Result包装
-├── service/
-│   ├── OrderService.java              # 接口
-│   └── impl/
-│       └── OrderServiceImpl.java      # @Service, 业务逻辑, @GlobalTransactional
-├── mapper/
-│   ├── OrderMapper.java               # extends BaseMapper<OrderInfo>
-│   └── OrderItemMapper.java
-├── domain/
-│   ├── OrderInfo.java                 # @TableName("order_info")
-│   ├── OrderItem.java
-│   └── OrderLog.java
-└── config/
-    └── OrderConfig.java               # 配置类（如需）
-```
+- `java -version` 为 Java 21；
+- `mvn -version` 使用 Java 21；
+- 全部 Maven 模块编译成功；
+- Seata Server 镜像为 2.0.0；
+- Seata 能注册、连接并完成一次回滚；
+- Nacos YAML 合法；
+- 环境变量名统一；
+- 数据库脚本可执行；
+- 测试不会被默认配置永久跳过。
 
-每个服务还需要：
-- `src/main/resources/application.yaml`（本地配置）
-- `deploy/nacos/mall-{service}.yaml`（Nacos 私有配置）
+### 任务
 
----
-
-## 6. 关键业务流程实现要点
-
-### 6.1 下单链路（Seata 全局事务）
-
-```java
-@GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
-public CreateOrderVO createOrder(CreateOrderDTO dto) {
-    // 1. 校验用户（Feign → mall-user）
-    // 2. 校验商品+价格（Feign → mall-product）
-    // 3. 预扣库存（Feign → mall-inventory/lock）
-    // 4. 创建订单（本地事务）
-    // 5. 创建支付单（Feign → mall-pay/create）
-    // 6. 发送 ORDER_CREATED 消息（MQ → message）
-    return createOrderVO;
-}
-```
-
-### 6.2 秒杀链路（Redis + MQ）
-
-```java
-// 1. Sentinel 限流（QPS 500）
-// 2. Redis Lua 预扣库存（原子操作）
-// 3. 用户限购检查（Redis SET NX）
-// 4. 投递 SECKILL_REQUEST 消息到 MQ
-// 5. 返回 requestId，客户端轮询结果
-// 6. mall-message 消费 → 调 mall-order 创建订单
-```
-
-### 6.3 支付回调链路
-
-```java
-// 1. mall-pay 接收支付宝沙箱回调
-// 2. 验签
-// 3. 发送 PAY_RESULT 消息到 MQ
-// 4. mall-order 消费 → 更新订单状态为"已支付"
-// 5. mall-inventory 消费 → 确认扣减（从 locked → deducted）
-```
-
-### 6.4 Gateway JWT 鉴权
-
-```java
-// 白名单放行：/api/v1/auth/login, /api/v1/users/register, /api/v1/search/**, /api/v1/products/**, /api/v1/categories/**
-// 非白名单：解析 Authorization: Bearer {token}
-// 校验签名 + 过期时间
-// 提取 userId/roles 写入请求头 X-User-Id / X-User-Roles
-// 传递给下游服务
-```
-
----
-
-## 7. 验证标准（每个服务完成后必须通过）
-
-### 7.1 编译验证
+1. 执行：
 
 ```powershell
-# 编译单个服务
-mvn clean compile -pl mall-order -am
-
-# 编译全部
-mvn clean install -DskipTests
-# 期望：BUILD SUCCESS
+java -version
+mvn -version
+mvn clean package -DskipTests
 ```
 
-### 7.2 服务注册验证
+2. 检查 Seata：
 
 ```powershell
-# 启动服务后检查 Nacos
-curl http://localhost:8848/nacos/v1/ns/instance/list?serviceName=mall-order
-# 期望：至少 1 个健康实例
+docker inspect mall-seata --format '{{.Config.Image}}'
 ```
 
-### 7.3 接口验证（Postman / curl）
+预期：
 
-```powershell
-# 1. 登录获取 Token
-curl -X POST http://localhost:9000/api/v1/auth/login -H "Content-Type: application/json" -d '{"username":"zhangsan","password":"P@ssw0rd123","loginType":"PASSWORD"}'
-
-# 2. 用 Token 访问
-curl -H "Authorization: Bearer {token}" http://localhost:9000/api/v1/orders
-
-# 3. 不带 Token → 期望 401
-curl http://localhost:9000/api/v1/orders
+```text
+seataio/seata-server:2.0.0
 ```
 
-### 7.4 硬约束扫描（每次提交前）
+3. 修复 `deploy/nacos/*.yaml` 中的非法 `--` 注释；
+4. 检查 Nacos 地址、Namespace、DataId 和 Group；
+5. 确认 Spring Cloud Alibaba 2023 的配置导入方式；
+6. 统一 `NACOS_SERVER` 与 `NACOS_SERVER_ADDR`；
+7. 验证 `scripts/start-middleware.ps1`；
+8. 验证 `scripts/init-db.ps1`；
+9. 调整父 POM 测试默认行为，使 `mvn test` 实际执行测试。
 
-```powershell
-# 0 命中才算通过
-rg -c "System\.out\.println" --type java      # 必须 0
-rg -c "@Autowired" --type java                # 必须 0
-rg -c "SELECT \*" --type java                 # 必须 0
-rg -c "catch\s*\(\s*Exception" --type java    # 检查是否空 catch
+### 禁止
+
+- 不升级 Spring Boot/Cloud/Alibaba 大版本；
+- 不采用 Java 24；
+- 不批量改写 DTO 为 record；
+- 不默认启用虚拟线程；
+- 不完善 Docker/K8s 全栈，除非基础运行已稳定。
+
+---
+
+## 5. 第二阶段：服务注册和 Gateway
+
+### 完成标准
+
+- 核心服务在 Nacos 健康注册；
+- Gateway 能按路径路由；
+- 白名单可无 Token 访问；
+- 受限资源无 Token、错误 Token 返回未授权；
+- 有效 Token 能向下游传递用户 ID 和角色。
+
+### 测试账号
+
+```text
+zhangsan / 123456
+merchant01 / 123456
+admin / 123456
+```
+
+### 核心服务
+
+```text
+mall-gateway
+mall-auth
+mall-user
+mall-product
+mall-inventory
+mall-cart
+mall-order
+mall-pay
+mall-message
 ```
 
 ---
 
-## 8. 提交规范
+## 6. 第三阶段：交易主链路
 
-格式：`<type>(<scope>): <subject>`
-
+```text
+登录
+  → 商品查询
+  → 购物车
+  → 创建订单
+  → order 调 product
+  → order 调 inventory.lock
+  → 写订单
+  → 支付结果消息
+  → message 调 order.markPaid
+  → message 调 inventory.deduct
 ```
-feat(order): add create order with seata global transaction
-fix(pay): fix alipay notify signature verification
-feat(seckill): implement redis lua stock deduction
-feat(gateway): complete jwt filter with whitelist
-docs(api): add seckill polling endpoint
-test(order): add create order unit test
+
+### 6.1 订单创建
+
+检查：
+
+- DTO 参数校验；
+- 商品不存在；
+- 商品服务调用失败；
+- 数量和金额计算；
+- 库存锁定失败；
+- 订单和订单项写入；
+- 失败时库存状态；
+- 返回 orderNo。
+
+### 6.2 Seata 2.0.0
+
+验证：
+
+- Server 是否正确启动；
+- 客户端是否注册或连接；
+- `@GlobalTransactional` 是否生效；
+- XID 是否透传到库存服务；
+- 数据源是否被代理；
+- 订单写入失败后库存锁定是否回滚；
+- `undo_log` 是否正常。
+
+不能通过注解存在推断事务已经生效。
+
+### 6.3 支付消息
+
+检查：
+
+- `PAY_RESULT` 消息结构；
+- JSON 解析；
+- 订单状态条件更新；
+- 库存确认扣减；
+- 重复消息幂等；
+- 订单更新成功但库存失败时的明确错误和恢复策略。
+
+课程项目优先使用状态幂等和明确重试，不直接引入复杂本地消息表。
+
+---
+
+## 7. 第四阶段：必要的服务治理
+
+### 7.1 Feign fallback
+
+只优先处理：
+
+```text
+order → product
+order → inventory
+message → order
+message → inventory
 ```
 
-提交频率：每完成一个服务或一个完整功能即提交。单次 commit < 400 行。
+要求：
+
+- 返回明确失败；
+- 不伪造成功数据；
+- 写操作不盲目重试；
+- 异常日志包含服务名和业务 ID。
+
+### 7.2 Sentinel
+
+只选择两个主要资源：
+
+- 创建订单；
+- 秒杀请求。
+
+可以按 Web 路径配置，或在核心方法增加少量 `@SentinelResource`。选择后同步架构文档。
+
+### 7.3 Nacos 热更新
+
+选择一个低风险参数，完成：
+
+- 配置修改前调用；
+- Nacos 修改；
+- 不重启服务再次调用；
+- 保存日志与截图。
 
 ---
 
-## 9. 文档同步要求
+## 8. 第五阶段：搜索与秒杀
 
-| 改动类型 | 必须同步的文档 |
-|---|---|
-| 新增/修改接口 | `docs/API.md` |
-| 新增/修改表结构 | `docs/DATABASE.md` + `db/init/00-create-databases.sql` |
-| 新增/修改 Nacos 配置 | `deploy/nacos/*.yaml` |
-| 新增/修改部署方式 | `docs/DEPLOY.md` |
-| 新增服务端口/依赖 | `docs/PRD.md` §6.2 |
+普通交易主链路稳定后再处理。
 
----
+### 搜索
 
-## 10. 关键参考文档索引
+- 验证 Elasticsearch 健康；
+- 创建或初始化索引；
+- 搜索种子商品；
+- 验证 `ES_SYNC`；
+- 检查 IK 插件是否存在；
+- 插件不存在时使用标准分析器，不阻塞核心演示。
 
-| 文档 | 路径 | 核心内容 |
-|---|---|---|
-| 架构设计 | `docs/ARCHITECTURE.md` | Nacos/Gateway/Feign/Sentinel/Seata/RocketMQ/Redis/ES/JWT 设计细节 |
-| 接口契约 | `docs/API.md` | 全部 API 路径/请求/响应/错误码，Postman 12 用例 |
-| 数据库 | `docs/DATABASE.md` | 7 库 25 表结构 + ER 图 + 索引原则 |
-| 编码规范 | `docs/CODING_STYLE.md` | 命名/注释/异常/日志/Git 提交规范 |
-| 部署指南 | `docs/DEPLOY.md` | 本地开发/Docker Compose/K8s 三套部署方案 |
-| 快速启动 | `docs/QUICK_START.md` | 5 分钟跑通全栈的步骤 |
-| 设计规范 | `DESIGN.md` | 前端白蓝线条极简风 + Token 体系 + 零动效 |
+### 秒杀
 
----
-
-## 11. 服务端口速查
-
-| 服务 | 端口 | 数据库 | 核心职责 |
-|---|---|---|---|
-| mall-gateway | 9000 | - | 路由 + JWT 鉴权 + Sentinel 限流 |
-| mall-auth | 9001 | mall_auth | 登录/注册/Token 签发/刷新/黑名单 |
-| mall-user | 9002 | mall_user | 用户 CRUD / 地址管理 |
-| mall-product | 9003 | mall_product | 类目/SPU/SKU / 上下架 / ES 同步 |
-| mall-inventory | 9004 | mall_inventory | 库存预扣/扣减/释放/对账 |
-| mall-cart | 9005 | Redis | 购物车（Redis Hash） |
-| mall-order | 9006 | mall_order | 下单/取消/退款/订单状态机 |
-| mall-pay | 9007 | mall_pay | 支付沙箱/回调/退款 |
-| mall-search | 9008 | ES | 全文搜索/热词/聚合 |
-| mall-seckill | 9009 | mall_seckill + Redis | 秒杀活动/Redis预扣/MQ异步下单 |
-| mall-message | 9010 | - | MQ Listener 集合 |
-| mall-admin-biz | 9011 | - | 后台聚合（Feign） |
-| mall-job | 9012 | - | 定时任务 |
+- 活动时间校验；
+- 用户限购；
+- Redis 原子预扣；
+- requestId 防重；
+- MQ 异步创建订单；
+- 失败回写；
+- Sentinel 限流；
+- 不超卖测试。
 
 ---
 
-## 12. MQ Topic 速查
+## 9. 第六阶段：测试资产
 
-| Topic | 生产者 | 消费者 | 用途 |
-|---|---|---|---|
-| ORDER_CREATED | order | pay, message | 订单创建后触发支付+通知 |
-| PAY_RESULT | pay | order, inventory | 支付结果→更新订单+确认库存 |
-| SECKILL_REQUEST | seckill | order | 秒杀请求→异步创建订单 |
-| STOCK_ROLLBACK | order | inventory | 订单取消→库存回滚 |
-| ES_SYNC | product | search | 商品上下架→ES同步 |
-| NOTIFY_MERCHANT | order | admin-biz | 新订单通知商家（延时消息） |
+### 9.1 Postman
+
+创建：
+
+```text
+docs/test/postman/mallcloud.postman_collection.json
+docs/test/postman/local.postman_environment.json
+```
+
+要求：
+
+- 20～30 个真实请求；
+- 环境变量保存 `username=zhangsan`、`password=123456`；
+- 登录保存 Token；
+- 创建订单保存 orderNo；
+- 正常和异常场景；
+- HTTP 状态和业务码断言；
+- Newman HTML 报告。
+
+### 9.2 JMeter
+
+创建：
+
+```text
+docs/test/jmeter/search-load.jmx
+docs/test/jmeter/order-load.jmx
+docs/test/jmeter/seckill-stress.jmx
+```
+
+执行：
+
+- 50 用户；
+- 75～150 用户；
+- 阶梯压力到 500 用户；
+- 保存 JTL 和 HTML 报告；
+- 记录 CPU、内存、JDK 21 和代码 Commit。
+
+### 9.3 异常测试
+
+至少完成：
+
+- 下游服务停止或超时；
+- Sentinel 限流/熔断；
+- Nacos 热更新；
+- 库存不足；
+- Seata 2.0.0 回滚；
+- 重复支付消息。
 
 ---
 
-## 13. 测试账号
+## 10. 第七阶段：最终报告与答辩
 
-| 用户名 | 密码 | 角色 | 用途 |
-|---|---|---|---|
-| zhangsan | P@ssw0rd123 | USER | 前台购物测试 |
-| lisi | P@ssw0rd123 | USER | 第二个用户测试 |
-| merchant01 | P@ssw0rd123 | MERCHANT | 商家后台测试 |
-| admin | Admin@123 | ADMIN | 管理员测试 |
+填写 `docs/FINAL_REPORT.md`，不得保留“待填写”。
 
----
+答辩主流程：
 
-## 14. 禁止行为清单
+1. 5 人团队分工；
+2. Java 21 与组件版本；
+3. Nacos 注册；
+4. 使用 `zhangsan / 123456` 登录；
+5. 商品、购物车、订单；
+6. Feign、Seata 2.0.0、MQ；
+7. JMeter 与 Sentinel；
+8. 一个异常或热更新场景；
+9. 测试结果和已知限制。
 
-- ❌ 删改 `db/init/00-create-databases.sql` 已有内容（只在末尾追加）
-- ❌ 把密钥/Token/密码 commit 到仓库
-- ❌ 在 `application.yaml` 硬编码配置（必须走 Nacos + `${ENV}`）
-- ❌ 用 `@Transactional` 跨服务调用（必须用 `@GlobalTransactional`）
-- ❌ 在 Controller 里写业务逻辑
-- ❌ 引入新依赖/新框架（除非被明确要求且已记录到 PRD/ARCHITECTURE）
-- ❌ 用 `System.out.println`
-- ❌ 空 catch 块
-- ❌ `SELECT *`
-- ❌ 前端使用 `transition`/`animation`/`box-shadow`/硬编码颜色
+不演示未完成的 Docker/K8s 全栈。
 
 ---
 
-**—— Prompt 结束 ——**
+## 11. 每次任务输出格式
 
-> 读完本文件后，从第 1 批服务（mall-auth / mall-user / mall-product / mall-inventory）开始开发。
-> 每完成一个服务，运行 `mvn clean compile -pl {service} -am` 验证编译，然后提交。
+```text
+结论：
+- 完成/部分完成/未完成
+
+修改：
+- 文件与关键改动
+
+验证：
+- 执行命令
+- 实际结果
+
+未验证：
+- 原因
+
+文档同步：
+- 已更新的文档
+```
+
+禁止使用“应该可以”作为验证结果。
