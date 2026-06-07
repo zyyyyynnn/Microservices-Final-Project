@@ -1,7 +1,7 @@
--- MallCloud 公共 Sentinel 配置
--- 注意：dataId 涉及 ${spring.application.name} 在 shared-dataids 阶段可能未就绪，
--- 故 sentinel 规则加载应放在各服务的 mall-{service}.yaml 私有配置中显式声明 dataId。
--- 本文件仅保留基础连接配置。
+# MallCloud 公共 Sentinel 配置
+# 注意：dataId 涉及 ${spring.application.name} 在 shared-dataids 阶段可能未就绪，
+# 故 sentinel 规则加载应放在各服务的 mall-{service}.yaml 私有配置中显式声明 dataId。
+# 本文件仅保留基础连接配置。
 spring:
   cloud:
     sentinel:

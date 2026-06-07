@@ -1,6 +1,6 @@
--- MallCloud 公共 MySQL 配置（共享给所有服务）
--- 注意：本文件仅声明通用 MyBatis-Plus / Hikari 默认值，
--- 各服务的 datasource.url 必须在 mall-{service}.yaml 中显式提供 ${MYSQL_DB}。
+# MallCloud 公共 MySQL 配置（共享给所有服务）
+# 注意：本文件仅声明通用 MyBatis-Plus / Hikari 默认值，
+# 各服务的 datasource.url 必须在 mall-{service}.yaml 中显式提供 ${MYSQL_DB}。
 spring:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource

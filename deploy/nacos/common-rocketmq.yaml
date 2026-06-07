@@ -1,4 +1,4 @@
--- MallCloud 公共 RocketMQ 配置
+# MallCloud 公共 RocketMQ 配置
 rocketmq:
   name-server: ${ROCKETMQ_NAMESRV:rocketmq-namesrv:9876}
   producer:

@@ -286,7 +286,18 @@ sequenceDiagram
 
 本文不把支付服务画入创建订单的 Seata 分支，因为当前代码没有该远程调用。
 
-### 7.3 undo_log
+### 7.3 Server 表 vs 业务表
+
+Seata 涉及两类数据库，不可混淆：
+
+| 层级 | 数据库 | 表 | 用途 |
+|---|---|---|---|
+| **Server 端** | `mall_seata` | `global_table` / `branch_table` / `lock_table` / `distributed_lock` | TC 事务协调器存储 |
+| **Client 端（AT 分支）** | `mall_order` / `mall_inventory` 等业务库 | `undo_log` | 分支事务回滚日志 |
+
+Server 端配置见 `deploy/docker/seata/conf/application.yml`，通过 Docker 挂载到容器。
+
+### 7.4 undo_log
 
 每个参与 Seata AT 的业务库必须包含：
 
