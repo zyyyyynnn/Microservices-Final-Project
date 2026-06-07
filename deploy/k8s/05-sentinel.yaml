@@ -1,0 +1,56 @@
+---
+# 05-sentinel.yaml
+# Sentinel Dashboard（限流规则通过 Nacos DataId mall-{service}.yaml 动态下发，本服务只跑控制台）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinel-dashboard
+  namespace: mallcloud
+  labels:
+    app: sentinel-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentinel-dashboard
+  template:
+    metadata:
+      labels:
+        app: sentinel-dashboard
+    spec:
+      containers:
+        - name: sentinel
+          image: bladex/sentinel-dashboard:1.8.6
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: USERNAME
+              value: sentinel
+            - name: PASSWORD
+              value: sentinel
+            - name: AUTH_FILTER_RULES_ORDER
+              value: "1"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel
+  namespace: mallcloud
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: sentinel-dashboard

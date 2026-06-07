@@ -1,0 +1,12 @@
+rocketmq:
+  consumer:
+    group: mall-message-consumer
+
+mallcloud:
+  message:
+    topics:
+      order-created: ORDER_CREATED
+      pay-result: PAY_RESULT
+      seckill-request: SECKILL_REQUEST
+      stock-rollback: STOCK_ROLLBACK
+      es-sync: ES_SYNC

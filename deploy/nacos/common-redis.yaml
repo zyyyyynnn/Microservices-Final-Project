@@ -1,0 +1,19 @@
+-- MallCloud 公共 Redis 配置
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PWD:}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 5000ms
+
+mallcloud:
+  redis:
+    database: 0
+    timeout-ms: 3000

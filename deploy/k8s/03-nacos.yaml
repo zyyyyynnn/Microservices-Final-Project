@@ -1,0 +1,100 @@
+---
+# 03-nacos.yaml
+# Nacos 2.3.x（standalone 模式 + 内嵌 Derby；生产请切 MySQL 后端）
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nacos-data
+  namespace: mallcloud
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nacos
+  namespace: mallcloud
+  labels:
+    app: nacos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nacos
+  template:
+    metadata:
+      labels:
+        app: nacos
+    spec:
+      containers:
+        - name: nacos
+          image: nacos/nacos-server:v2.3.2
+          ports:
+            - containerPort: 8848
+              name: http
+            - containerPort: 9848
+              name: rpc
+          env:
+            - name: MODE
+              value: standalone
+            - name: JVM_XMS
+              value: 512m
+            - name: JVM_XMX
+              value: 512m
+            - name: JVM_XMN
+              value: 256m
+            - name: TZ
+              value: Asia/Shanghai
+            - name: SPRING_DATASOURCE_PLATFORM
+              value: derby
+          volumeMounts:
+            - name: data
+              mountPath: /home/nacos/data
+            - name: logs
+              mountPath: /home/nacos/logs
+          readinessProbe:
+            httpGet:
+              path: /nacos/v1/console/health/liveness
+              port: 8848
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /nacos/v1/console/health/liveness
+              port: 8848
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 2Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: nacos-data
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos
+  namespace: mallcloud
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8848
+      targetPort: 8848
+      name: http
+    - port: 9848
+      targetPort: 9848
+      name: rpc
+  selector:
+    app: nacos

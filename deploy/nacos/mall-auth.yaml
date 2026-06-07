@@ -1,0 +1,4 @@
+jwt:
+  secret: ${JWT_SECRET:8f0e5e09-b4b1-4034-8c08-01314d156541_test_secret_must_be_long_enough_for_hs512_signing_key_to_be_secure}
+  access-token-expiration: 7200 # 2 hours in seconds
+  refresh-token-expiration: 604800 # 7 days in seconds

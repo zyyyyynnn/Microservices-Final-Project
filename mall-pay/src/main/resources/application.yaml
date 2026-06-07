@@ -1,0 +1,57 @@
+server:
+  port: 9007
+
+spring:
+  application:
+    name: mall-pay
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-mysql.yaml,common-rocketmq.yaml,common-seata.yaml
+        refresh-enabled: true
+        extension-configs[0]:
+          dataId: mall-pay.yaml
+          group: DEFAULT_GROUP
+          refresh: true
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_pay}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# Seata
+seata:
+  application-id: mall-pay
+  tx-service-group: mallcloud-tx-group
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+  registry:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+      application: seata-server
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.mallcloud.mallpay: DEBUG

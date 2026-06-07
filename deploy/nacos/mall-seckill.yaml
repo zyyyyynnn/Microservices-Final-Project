@@ -1,0 +1,9 @@
+mallcloud:
+  seckill:
+    redis:
+      stock-prefix: seckill:stock:
+      user-prefix: seckill:user:
+
+rocketmq:
+  producer:
+    group: mall-seckill-producer

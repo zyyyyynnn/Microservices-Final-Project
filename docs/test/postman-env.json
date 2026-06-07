@@ -1,0 +1,21 @@
+{
+  "id": "env-12345",
+  "name": "Local Environment",
+  "values": [
+    {
+      "key": "BaseURL",
+      "value": "http://localhost:9000",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "enabled": true
+    },
+    {
+      "key": "adminToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "enabled": true
+    }
+  ]
+}

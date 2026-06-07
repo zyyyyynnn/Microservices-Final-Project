@@ -1,0 +1,35 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: mall-gateway
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml
+        refresh-enabled: true
+        extension-configs[0]:
+          dataId: mall-gateway.yaml
+          group: DEFAULT_GROUP
+          refresh: true
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.mallcloud.mallgateway: DEBUG

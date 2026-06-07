@@ -1,0 +1,18 @@
+-- mall-order Sentinel 限流规则
+[
+  {
+    "resource": "createOrder",
+    "grade": 1,
+    "count": 200,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0,
+    "clusterMode": false
+  },
+  {
+    "resource": "cancelOrder",
+    "grade": 1,
+    "count": 100,
+    "limitApp": "default"
+  }
+]

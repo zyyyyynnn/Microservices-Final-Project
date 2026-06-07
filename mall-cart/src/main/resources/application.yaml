@@ -1,0 +1,38 @@
+server:
+  port: 9005
+
+spring:
+  application:
+    name: mall-cart
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-redis.yaml
+        refresh-enabled: true
+        extension-configs[0]:
+          dataId: mall-cart.yaml
+          group: DEFAULT_GROUP
+          refresh: true
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.mallcloud.mallcart: DEBUG

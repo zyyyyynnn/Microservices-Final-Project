@@ -1,0 +1,15 @@
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 10000
+        loggerLevel: BASIC
+  sentinel:
+    enabled: true
+
+mallcloud:
+  job:
+    order-timeout-cron: "0 */5 * * * ?"
+    inventory-reconcile-cron: "0 */10 * * * ?"
+    search-full-sync-cron: "0 0 2 * * ?"

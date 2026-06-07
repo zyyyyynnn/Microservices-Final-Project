@@ -1,0 +1,209 @@
+version: '3.8'
+
+# MallCloud 中间件编排（test 环境）
+# 启动：docker compose -f docker-compose.middleware.yml up -d
+# 停止：docker compose -f docker-compose.middleware.yml down
+
+x-common-env: &common-env
+  TZ: Asia/Shanghai
+  LANG: en_US.UTF-8
+
+services:
+  # ============== MySQL ==============
+  mysql:
+    image: mysql:8.0
+    container_name: mall-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mall_test
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=500
+      - --innodb_buffer_pool_size=512M
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/conf:/etc/mysql/conf.d
+      - ../../db/init:/docker-entrypoint-initdb.d
+    networks:
+      - mall-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ============== Redis ==============
+  redis:
+    image: redis:7-alpine
+    container_name: mall-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
+    networks:
+      - mall-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ============== Nacos ==============
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: mall-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    volumes:
+      - ./nacos/data:/home/nacos/data
+      - ./nacos/logs:/home/nacos/logs
+    networks:
+      - mall-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  # ============== RocketMQ ==============
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: mall-rocketmq-namesrv
+    restart: always
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    networks:
+      - mall-net
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: mall-rocketmq-broker
+    restart: always
+    depends_on:
+      - rocketmq-namesrv
+    command: sh mqbroker -n mall-rocketmq-namesrv:9876 -c /opt/rocketmq/conf/broker.conf
+    environment:
+      JAVA_OPT_EXT: "-server -Xms512m -Xmx512m"
+    ports:
+      - "10911:10911"
+      - "10912:10912"
+    volumes:
+      - ./rocketmq/broker.conf:/opt/rocketmq/conf/broker.conf
+      - ./rocketmq/data:/root/store
+    networks:
+      - mall-net
+
+  rocketmq-console:
+    image: apacherocketmq/rocketmq-console-ng:2.0.0
+    container_name: mall-rocketmq-console
+    restart: always
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      JAVA_OPTS: "-Drocketmq.namesrv.addr=mall-rocketmq-namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false"
+    ports:
+      - "8180:8080"
+    networks:
+      - mall-net
+
+  # ============== Elasticsearch ==============
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: mall-elasticsearch
+    restart: always
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      bootstrap.memory_lock: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+    networks:
+      - mall-net
+
+  kibana:
+    image: kibana:8.11.0
+    container_name: mall-kibana
+    restart: always
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_HOSTS: http://mall-elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - mall-net
+
+  # ============== Sentinel Dashboard ==============
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: mall-sentinel
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - mall-net
+
+  # ============== Zipkin ==============
+  zipkin:
+    image: openzipkin/zipkin:2.24
+    container_name: mall-zipkin
+    restart: always
+    environment:
+      STORAGE_TYPE: mem
+    ports:
+      - "9411:9411"
+    networks:
+      - mall-net
+
+  # ============== Seata Server ==============
+  seata:
+    image: seataio/seata-server:1.8.0
+    container_name: mall-seata
+    restart: always
+    depends_on:
+      - mysql
+      - nacos
+    environment:
+      SEATA_PORT: 8091
+      SEATA_IP: mall-seata
+      SEATA_CONFIG_TYPE: nacos
+      SEATA_CONFIG_NACOS_SERVER_ADDR: mall-nacos:8848
+      SEATA_CONFIG_NACOS_NAMESPACE: dev
+      SEATA_CONFIG_NACOS_GROUP: SEATA_GROUP
+      SEATA_REGISTRY_TYPE: nacos
+      SEATA_REGISTRY_NACOS_SERVER_ADDR: mall-nacos:8848
+      SEATA_REGISTRY_NACOS_NAMESPACE: dev
+      SEATA_REGISTRY_NACOS_GROUP: SEATA_GROUP
+    ports:
+      - "7091:7091"
+      - "8091:8091"
+    volumes:
+      - ./seata/conf:/seata-server/conf
+    networks:
+      - mall-net
+
+networks:
+  mall-net:
+    driver: bridge
+    name: mall-net

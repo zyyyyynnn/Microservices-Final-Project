@@ -1,0 +1,15 @@
+-- mall-seckill Sentinel 限流规则
+[
+  {
+    "resource": "execute",
+    "grade": 1,
+    "count": 500,
+    "limitApp": "default",
+    "controlBehavior": 0
+  },
+  {
+    "resource": "result",
+    "grade": 1,
+    "count": 1000
+  }
+]
