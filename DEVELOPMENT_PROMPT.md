@@ -12,9 +12,8 @@
 按以下顺序完成后续开发：
 
 ```text
-验证 Java 21 与 Seata 2.0.0
-  → 修复配置与构建
-  → 验证服务注册和 Gateway
+[已完成] 运行基线（Java 21 / Maven / MySQL / Redis / Nacos / Seata）
+  → [当前] 验证服务注册和 Gateway（mall-user / mall-auth / mall-gateway）
   → 打通交易主链路
   → 完善必要的治理能力
   → 重建真实测试资产
@@ -51,15 +50,19 @@
 
 - 团队固定为 5 人；
 - 13 个服务模块和基础分层已存在；
-- 父 POM 已切换为 Java 21；
+- 父 POM 已切换为 Java 21，已取消默认 `<skipTests>true</skipTests>`；
+- Java 21 全模块构建和现有 11 个测试已通过；
 - 不使用 Java 21 预览特性；
 - 不采用 Java 24；
+- MySQL 8.0、Redis 7、Nacos 2.3.2 已完成基础运行验证；
+- Nacos YAML 中非法 `--` 注释已修复；
+- Seata Server 2.0.0 的 DB Store 和 Nacos 注册已验证；
+- Seata Server Schema 已统一为官方四表（global_table / branch_table / lock_table / distributed_lock）；
+- 已有环境迁移脚本已提供（`db/migration/20260607-upgrade-seata-server-2.0.sql`）；
 - Docker/K8s 的 Seata Server 已统一为 2.0.0；
 - 演示账号统一密码为 `123456`；
 - 当前推荐部署为 Docker 中间件 + IDE 启动服务；
 - Docker 全栈和 Kubernetes 全栈不是正式可用路径；
-- Nacos 配置模板存在语法和加载方式待验证问题；
-- 父 POM 当前默认跳过测试；
 - 核心单元测试数量不足；
 - 旧模板 Postman 集合已废弃；
 - JMeter 脚本和报告尚未完成；
@@ -67,55 +70,42 @@
 - 支付结果由 RocketMQ 和 `mall-message` 更新订单与库存；
 - `STOCK_ROLLBACK` 当前是普通消息；
 - Java 代码当前未使用 `@SentinelResource`；
-- 不要求所有 Feign Client 配置 fallbackFactory。
+- 不要求所有 Feign Client 配置 fallbackFactory；
+- 业务服务的 Nacos 配置加载仍待验证；
+- Seata AT 真实业务回滚仍待验证。
 
-不得假定“地基全部可运行”或“只需填充业务代码”。
+不得假定业务服务已可运行或核心链路已打通。
 
 ---
 
-## 4. 第一阶段：版本、配置与构建
+## 4. 第一阶段：运行基线回归检查（已完成，后续仅做回归）
 
-### 完成标准
+> **已完成：** Java 21、Maven 构建、现有 11 个测试、MySQL、Redis、Nacos、Seata Server 2.0.0。
 
-- `java -version` 为 Java 21；
-- `mvn -version` 使用 Java 21；
-- 全部 Maven 模块编译成功；
-- Seata Server 镜像为 2.0.0；
-- Seata 能注册、连接并完成一次回滚；
-- Nacos YAML 合法；
-- 环境变量名统一；
-- 数据库脚本可执行；
-- 测试不会被默认配置永久跳过。
+### 回归命令
 
-### 任务
-
-1. 执行：
+新任务开始前执行以下命令确认基线未被破坏：
 
 ```powershell
 java -version
 mvn -version
 mvn clean package -DskipTests
+mvn clean test
+docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 ```
 
-2. 检查 Seata：
+### 原完成标准（已达成）
 
-```powershell
-docker inspect mall-seata --format '{{.Config.Image}}'
-```
-
-预期：
-
-```text
-seataio/seata-server:2.0.0
-```
-
-3. 修复 `deploy/nacos/*.yaml` 中的非法 `--` 注释；
-4. 检查 Nacos 地址、Namespace、DataId 和 Group；
-5. 确认 Spring Cloud Alibaba 2023 的配置导入方式；
-6. 统一 `NACOS_SERVER` 与 `NACOS_SERVER_ADDR`；
-7. 验证 `scripts/start-middleware.ps1`；
-8. 验证 `scripts/init-db.ps1`；
-9. 调整父 POM 测试默认行为，使 `mvn test` 实际执行测试。
+- `java -version` 为 Java 21；
+- `mvn -version` 使用 Java 21；
+- 全部 Maven 模块编译成功；
+- 现有测试全部通过（11 个，0 失败）；
+- 父 POM 已取消默认 `<skipTests>true</skipTests>`；
+- Nacos YAML 合法；
+- 环境变量名统一；
+- 数据库脚本可执行；
+- Seata Server 镜像为 2.0.0；
+- Seata DB Store 和 Nacos 注册已验证。
 
 ### 禁止
 
@@ -127,12 +117,17 @@ seataio/seata-server:2.0.0
 
 ---
 
-## 5. 第二阶段：服务注册和 Gateway
+## 5. 第二阶段：服务注册和 Gateway（当前正式开发起点）
+
+> **当前正式开发起点。** 第一批只处理 `mall-user`、`mall-auth`、`mall-gateway` 三个服务。
 
 ### 完成标准
 
-- 核心服务在 Nacos 健康注册；
-- Gateway 能按路径路由；
+- `mall-user`、`mall-auth`、`mall-gateway` 能启动；
+- 三个服务注册到 Nacos；
+- 明确配置来源（本地 application.yaml + Nacos 远程配置）；
+- 登录成功（`zhangsan / 123456`）；
+- Gateway JWT 正常；
 - 白名单可无 Token 访问；
 - 受限资源无 Token、错误 Token 返回未授权；
 - 有效 Token 能向下游传递用户 ID 和角色。
@@ -145,12 +140,17 @@ merchant01 / 123456
 admin / 123456
 ```
 
-### 核心服务
+### 第一批服务（仅这三个）
 
 ```text
-mall-gateway
-mall-auth
 mall-user
+mall-auth
+mall-gateway
+```
+
+### 后续服务（第二阶段后半段，不在第一批）
+
+```text
 mall-product
 mall-inventory
 mall-cart
@@ -158,6 +158,11 @@ mall-order
 mall-pay
 mall-message
 ```
+
+### 禁止
+
+- 第一批不得同时修改订单、库存、支付、搜索或秒杀服务；
+- 不得将尚未启动的服务标记为"已注册"。
 
 ---
 
