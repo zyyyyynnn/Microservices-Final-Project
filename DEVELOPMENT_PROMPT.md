@@ -194,17 +194,19 @@ mall-message
 - 失败时库存状态；
 - 返回 orderNo。
 
-### 6.2 Seata 2.0.0
+### 6.2 Seata AT 业务回滚
 
 验证：
 
-- Server 是否正确启动；
-- 客户端是否注册或连接；
-- `@GlobalTransactional` 是否生效；
+- `mall-order` 和 `mall-inventory` 是否成功连接 TC；
+- `@GlobalTransactional` 是否实际生效；
 - XID 是否透传到库存服务；
-- 数据源是否被代理；
-- 订单写入失败后库存锁定是否回滚；
-- `undo_log` 是否正常。
+- 业务数据源是否被 Seata 代理；
+- 库存锁定成功后订单写入失败是否整体回滚；
+- 订单是否未落库；
+- 库存 `locked` 和 `available` 是否恢复；
+- 业务库 `undo_log` 是否正常；
+- Seata Server 日志是否能关联到本次全局事务。
 
 不能通过注解存在推断事务已经生效。
 
