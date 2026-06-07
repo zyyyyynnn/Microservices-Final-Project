@@ -73,7 +73,7 @@ spring:
 # JWT
 mallcloud:
   jwt:
-    secret: ${JWT_SECRET:mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key-please-change-in-prod}
+    secret: ${JWT_SECRET:mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key}
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 604800
     header: Authorization
