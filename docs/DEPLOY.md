@@ -164,18 +164,7 @@ SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
 
 > Seata Server 表（`mall_seata` 库）与业务 AT 分支 undo_log（`mall_order`、`mall_inventory` 等业务库）是不同层级，不要混淆。
 
-已有 MySQL 数据目录时，Docker 不会自动重新执行 `db/init/`。迁移脚本内置自动安全检查，事务表非空时会中止执行：
-
-```powershell
-Get-Content `
-  .\db\migration\20260607-upgrade-seata-server-2.0.sql `
-  -Raw -Encoding UTF8 |
-  docker exec -i mall-mysql mysql -uroot -proot
-
-if ($LASTEXITCODE -ne 0) {
-    throw 'Seata Server Schema 迁移失败，数据库未通过安全检查。'
-}
-```
+当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级。
 
 ---
 
@@ -349,9 +338,7 @@ Invoke-RestMethod http://localhost:9006/actuator/health
 - 组合依赖尚未验证；
 - 部分前端镜像路径未验证。
 
-Kubernetes 当前提供部分中间件和 Gateway 示例。Seata 示例镜像已更新为 2.0.0，但完整 13 服务部署尚未完成。
-
-不得把 Docker/K8s 全栈描述为已完成。
+Kubernetes 当前提供部分中间件和 Gateway 示例，完整 13 服务部署尚未完成。
 
 ---
 
@@ -389,26 +376,9 @@ mvn -version
 - Auth 与 Gateway 使用相同 JWT 密钥（默认值已统一）；
 - Header 格式正确。
 
-### 13.4 角色迁移
+### 13.4 角色字段
 
-已有环境需要添加认证角色字段时，执行迁移脚本：
-
-```powershell
-Get-Content `
-  .\db\migration\20260607-add-auth-role.sql `
-  -Raw -Encoding UTF8 |
-  docker exec -i mall-mysql mysql -uroot -proot
-```
-
-脚本幂等，可重复执行。验证：
-
-```powershell
-docker exec mall-mysql mysql -uroot -proot -e "
-SELECT user_id, identity_type, identifier, role
-FROM mall_auth.sys_user_auth
-ORDER BY user_id, identity_type;
-"
-```
+`sys_user_auth.role` 字段已在 `db/init/00-create-databases.sql` 中包含，无需单独迁移。
 
 ---
 
