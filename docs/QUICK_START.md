@@ -398,10 +398,17 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 
 待完成：
 
-1. Elasticsearch 搜索完整验收；
-2. 秒杀完整链路验收；
-3. Sentinel 规则限流/熔断实测；
-4. Nacos 热更新实测；
-5. 正式 Postman 集合；
-6. JMeter 脚本和报告；
-7. 最终答辩材料。
+1. 前端完整演示系统（当前阶段）；
+2. Elasticsearch 搜索完整验收；
+3. 秒杀完整链路验收；
+4. Sentinel 规则限流/熔断实测；
+5. Nacos 热更新实测；
+6. 正式 Postman 集合；
+7. JMeter 脚本和报告；
+8. 最终答辩材料。
+
+---
+
+## 15. 前端启动（待实现）
+
+当前仓库尚未提交前端工程。前端完整演示系统为下一阶段必做任务，计划使用 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。前端不得直接调用内部微服务端口，所有业务请求统一经 Gateway。
