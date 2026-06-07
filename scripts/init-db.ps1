@@ -33,8 +33,8 @@ Write-Host "=========================================" -ForegroundColor Green
 Write-Host "  数据库初始化完成！" -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "测试账号："
-Write-Host "  USER:     zhangsan    / P@ssw0rd123"
-Write-Host "  MERCHANT: merchant01  / P@ssw0rd123"
-Write-Host "  ADMIN:    admin       / Admin@123"
+Write-Host "测试账号（统一密码 123456）："
+Write-Host "  USER:     zhangsan    / 123456"
+Write-Host "  MERCHANT: merchant01  / 123456"
+Write-Host "  ADMIN:    admin       / 123456"
 Write-Host ""
