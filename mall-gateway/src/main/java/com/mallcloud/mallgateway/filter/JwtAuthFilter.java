@@ -16,6 +16,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -41,6 +42,7 @@ import java.util.StringJoiner;
 public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private final GatewayJwtProperties jwtProperties;
+    private final ReactiveStringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -63,14 +65,54 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         try {
             Claims claims = parseToken(auth.substring(prefix.length()));
             Object userId = claims.get("uid");
-            if (userId == null) {
-                throw new IllegalArgumentException("uid is required");
+            String tokenType = claims.get(
+                    CommonConstants.JWT_CLAIM_TOKEN_TYPE,
+                    String.class
+            );
+            String jti = claims.getId();
+
+            if (userId == null
+                    || jti == null
+                    || !CommonConstants.JWT_TOKEN_TYPE_ACCESS.equals(tokenType)) {
+                throw new IllegalArgumentException("invalid access token");
             }
-            ServerHttpRequest req = request.mutate()
-                    .header(CommonConstants.HEADER_USER_ID, String.valueOf(userId))
-                    .header(CommonConstants.HEADER_USER_ROLES, roles(claims.get("roles")))
-                    .build();
-            return chain.filter(exchange.mutate().request(req).build());
+
+            return stringRedisTemplate
+                    .hasKey(CommonConstants.JWT_BLACKLIST_PREFIX + jti)
+                    .materialize()
+                    .flatMap(signal -> {
+                        if (signal.isOnError()) {
+                            log.error(
+                                    "JWT 黑名单校验失败 path={}",
+                                    path,
+                                    signal.getThrowable()
+                            );
+                            return writeError(
+                                    exchange,
+                                    HttpStatus.SERVICE_UNAVAILABLE,
+                                    ErrorCode.SYSTEM_ERROR
+                            );
+                        }
+
+                        if (Boolean.TRUE.equals(signal.get())) {
+                            return unauthorized(exchange, ErrorCode.TOKEN_INVALID);
+                        }
+
+                        ServerHttpRequest req = request.mutate()
+                                .header(
+                                        CommonConstants.HEADER_USER_ID,
+                                        String.valueOf(userId)
+                                )
+                                .header(
+                                        CommonConstants.HEADER_USER_ROLES,
+                                        roles(claims.get("roles"))
+                                )
+                                .build();
+
+                        return chain.filter(
+                                exchange.mutate().request(req).build()
+                        );
+                    });
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("JWT 校验失败 path={}", path);
             return unauthorized(exchange, ErrorCode.TOKEN_INVALID);
@@ -121,8 +163,16 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, ErrorCode code) {
+        return writeError(exchange, HttpStatus.UNAUTHORIZED, code);
+    }
+
+    private Mono<Void> writeError(
+            ServerWebExchange exchange,
+            HttpStatus status,
+            ErrorCode code
+    ) {
         ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.setStatusCode(status);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         Result<Void> body = Result.error(code.getCode(), code.getMessage());
         DataBuffer buffer = response.bufferFactory().wrap(writeJson(body));

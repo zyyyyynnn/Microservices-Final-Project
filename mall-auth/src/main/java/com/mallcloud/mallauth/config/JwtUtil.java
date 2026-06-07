@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import com.mallcloud.mallcommon.constant.CommonConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -45,6 +46,7 @@ public class JwtUtil {
                 .setId(UUID.randomUUID().toString())
                 .claim("uid", userId)
                 .claim("roles", roles)
+                .claim(CommonConstants.JWT_CLAIM_TOKEN_TYPE, CommonConstants.JWT_TOKEN_TYPE_ACCESS)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration * 1000))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
@@ -55,6 +57,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setId(UUID.randomUUID().toString())
                 .claim("uid", userId)
+                .claim(CommonConstants.JWT_CLAIM_TOKEN_TYPE, CommonConstants.JWT_TOKEN_TYPE_REFRESH)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration * 1000))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)

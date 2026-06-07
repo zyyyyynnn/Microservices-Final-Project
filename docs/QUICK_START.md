@@ -184,6 +184,18 @@ mvn clean test -DskipTests=false
 
 建议使用 IDE，按顺序启动：
 
+Windows + Docker Desktop 本地启动服务时，IDE Run Configuration 至少配置：
+
+```text
+NACOS_SERVER=127.0.0.1:8848
+MYSQL_HOST=host.docker.internal
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PWD=root
+REDIS_HOST=127.0.0.1
+JWT_SECRET=8f0e5e09-b4b1-4034-8c08-01314d156541_test_secret_must_be_long_enough_for_hs512_signing_key_to_be_secure
+```
+
 | 顺序 | 服务 | 端口 |
 |---:|---|---:|
 | 1 | mall-user | 9002 |

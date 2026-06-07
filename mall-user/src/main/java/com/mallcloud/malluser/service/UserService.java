@@ -9,5 +9,6 @@ import com.mallcloud.malluser.domain.entity.User;
 public interface UserService extends IService<User> {
     void register(UserRegisterDTO dto);
     UserVO getCurrentUser();
+    UserVO getByUserId(Long userId);
     void updateCurrentUser(UserUpdateDTO dto);
 }

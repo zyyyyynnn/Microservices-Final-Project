@@ -4,12 +4,24 @@ server:
 spring:
   application:
     name: mall-order
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-redis.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-sentinel.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-seata.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-order.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:nacos:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
         shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml,common-seata.yaml
@@ -18,6 +30,29 @@ spring:
           dataId: mall-order.yaml
           group: DEFAULT_GROUP
           refresh: true
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_order}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# Seata
+seata:
+  application-id: mall-order
+  tx-service-group: mallcloud-tx-group
+  config:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+  registry:
+    type: nacos
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      group: SEATA_GROUP
+      application: seata-server
 
 feign:
   client:

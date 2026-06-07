@@ -4,12 +4,25 @@ server:
 spring:
   application:
     name: mall-gateway
+  main:
+    web-application-type: reactive
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-redis.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-sentinel.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-gateway.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:nacos:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
         shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml

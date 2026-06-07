@@ -4,12 +4,21 @@ server:
 spring:
   application:
     name: mall-auth
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-redis.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-auth.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:127.0.0.1:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
         shared-configs:
@@ -20,6 +29,11 @@ spring:
         extension-configs:
           - dataId: mall-auth.yaml
             refresh: true
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_auth}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
 # Actuator
 management:
