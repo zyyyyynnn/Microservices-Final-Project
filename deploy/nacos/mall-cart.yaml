@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: mall-cart
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        file-extension: yaml
+        shared-configs:
+          - data-id: common-redis.yaml
+            refresh: true
+          - data-id: common-sentinel.yaml
+            refresh: true

@@ -1,0 +1,18 @@
+-- MallCloud 公共 Sentinel 配置
+-- 注意：dataId 涉及 ${spring.application.name} 在 shared-dataids 阶段可能未就绪，
+-- 故 sentinel 规则加载应放在各服务的 mall-{service}.yaml 私有配置中显式声明 dataId。
+-- 本文件仅保留基础连接配置。
+spring:
+  cloud:
+    sentinel:
+      transport:
+        # Sentinel Dashboard 地址
+        dashboard: ${SENTINEL_DASHBOARD:sentinel:8080}
+        # 应用与 Dashboard 的通信端口
+        port: 8719
+        heartbeat-interval-ms: 5000
+      # 关闭时仍保持规则
+      eager: true
+      # Web 拦截
+      filter:
+        enabled: true

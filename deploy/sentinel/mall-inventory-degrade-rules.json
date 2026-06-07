@@ -1,0 +1,13 @@
+-- mall-inventory 熔断规则
+[
+  {
+    "resource": "lock",
+    "grade": 0,
+    "count": 50,
+    "timeWindow": 5,
+    "minRequestAmount": 10,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.5,
+    "slowRtMs": 1000
+  }
+]

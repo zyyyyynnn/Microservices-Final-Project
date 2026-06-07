@@ -1,0 +1,10 @@
+mallcloud:
+  search:
+    index:
+      product: mall_product
+
+spring:
+  elasticsearch:
+    uris: http://${ES_HOST:elasticsearch}:${ES_PORT:9200}
+    connection-timeout: 5s
+    socket-timeout: 30s

@@ -1,0 +1,39 @@
+server:
+  port: 9008
+
+spring:
+  application:
+    name: mall-search
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-rocketmq.yaml
+        refresh-enabled: true
+        extension-configs[0]:
+          dataId: mall-search.yaml
+          group: DEFAULT_GROUP
+          refresh: true
+  elasticsearch:
+    uris: http://${ES_HOST:elasticsearch}:${ES_PORT:9200}
+    connection-timeout: 5s
+    socket-timeout: 30s
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.mallcloud.mallsearch: DEBUG
+    org.elasticsearch.client: INFO

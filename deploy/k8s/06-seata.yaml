@@ -1,0 +1,126 @@
+---
+# 06-seata.yaml
+# Seata 1.5+（TC Server + File/DB 模式）
+# TC 通过 Nacos 注册发现；store.mode=db 需 mall_seata 库（01-mysql.yaml 已建）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seata-config
+  namespace: mallcloud
+data:
+  application.yml: |
+    server:
+      port: 7091
+    spring:
+      application:
+        name: seata-server
+    seata:
+      config:
+        type: nacos
+        nacos:
+          server-addr: nacos:8848
+          namespace: dev
+          group: SEATA_GROUP
+          username: nacos
+          password: nacos
+      registry:
+        type: nacos
+        nacos:
+          application: seata-server
+          server-addr: nacos:8848
+          namespace: dev
+          group: SEATA_GROUP
+          username: nacos
+          password: nacos
+      store:
+        mode: db
+        db:
+          datasource: druid
+          db-type: mysql
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://mysql:3306/mall_seata?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          user: root
+          password: root
+          min-conn: 5
+          max-conn: 20
+          global-table: global_table
+          branch-table: branch_table
+          lock-table: lock_table
+          query-limit: 100
+          max-wait: 5000
+  logging:
+    level:
+      io.seata: INFO
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seata-server
+  namespace: mallcloud
+  labels:
+    app: seata-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seata-server
+  template:
+    metadata:
+      labels:
+        app: seata-server
+    spec:
+      containers:
+        - name: seata
+          image: seataio/seata-server:1.8.0
+          ports:
+            - containerPort: 7091
+              name: http
+            - containerPort: 8091
+              name: rpc
+          env:
+            - name: SEATA_CONFIG_NAME
+              value: file:/root/seata-config/application.yml
+            - name: TZ
+              value: Asia/Shanghai
+          volumeMounts:
+            - name: config
+              mountPath: /root/seata-config
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 7091
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 7091
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 2Gi
+      volumes:
+        - name: config
+          configMap:
+            name: seata-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seata-server
+  namespace: mallcloud
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7091
+      targetPort: 7091
+      name: http
+    - port: 8091
+      targetPort: 8091
+      name: rpc
+  selector:
+    app: seata-server

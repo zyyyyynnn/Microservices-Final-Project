@@ -1,0 +1,27 @@
+-- MallCloud 公共 RocketMQ 配置
+rocketmq:
+  name-server: ${ROCKETMQ_NAMESRV:rocketmq-namesrv:9876}
+  producer:
+    group: mallcloud-producer-group
+    send-message-timeout: 10000
+    retry-times-when-send-failed: 3
+    retry-times-when-send-async-failed: 3
+    max-message-size: 4194304
+    compress-message-body-threshold: 4096
+  consumer:
+    group-prefix: mallcloud-consumer-
+    consume-thread-min: 5
+    consume-thread-max: 20
+    consume-message-batch-max-size: 1
+    pull-batch-size: 32
+    pull-interval: 0
+
+mallcloud:
+  mq:
+    topics:
+      order-created: ORDER_CREATED
+      pay-result: PAY_RESULT
+      seckill-request: SECKILL_REQUEST
+      stock-rollback: STOCK_ROLLBACK
+      es-sync: ES_SYNC
+      notify-merchant: NOTIFY_MERCHANT

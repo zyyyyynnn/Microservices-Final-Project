@@ -1,0 +1,109 @@
+-- mall-gateway Nacos 配置
+server:
+  port: 9000
+
+spring:
+  application:
+    name: mall-gateway
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml
+        refresh-enabled: true
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: mall-auth
+          uri: lb://mall-auth
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: mall-user
+          uri: lb://mall-user
+          predicates:
+            - Path=/api/v1/users/**
+        - id: mall-product
+          uri: lb://mall-product
+          predicates:
+            - Path=/api/v1/products/**,/api/v1/categories/**
+        - id: mall-inventory
+          uri: lb://mall-inventory
+          predicates:
+            - Path=/api/v1/inventory/**
+        - id: mall-cart
+          uri: lb://mall-cart
+          predicates:
+            - Path=/api/v1/carts/**
+        - id: mall-order
+          uri: lb://mall-order
+          predicates:
+            - Path=/api/v1/orders/**
+        - id: mall-pay
+          uri: lb://mall-pay
+          predicates:
+            - Path=/api/v1/pay/**
+        - id: mall-search
+          uri: lb://mall-search
+          predicates:
+            - Path=/api/v1/search/**
+        - id: mall-seckill
+          uri: lb://mall-seckill
+          predicates:
+            - Path=/api/v1/seckill/**
+        - id: mall-admin-biz
+          uri: lb://mall-admin-biz
+          predicates:
+            - Path=/api/v1/admin/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+# JWT
+mallcloud:
+  jwt:
+    secret: ${JWT_SECRET:mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key-please-change-in-prod}
+    access-token-expire-seconds: 7200
+    refresh-token-expire-seconds: 604800
+    header: Authorization
+    prefix: "Bearer "
+    whitelist:
+      - /api/v1/auth/login
+      - /api/v1/auth/captcha
+      - /api/v1/auth/refresh
+      - /api/v1/users/register
+      - /api/v1/search/**
+      - /api/v1/products/**
+      - /api/v1/categories/**
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.mallcloud: DEBUG
+    org.springframework.cloud.gateway: INFO

@@ -1,0 +1,81 @@
+# =====================================================
+# MallCloud 项目根 .gitignore
+# =====================================================
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+*.iws
+*.ipr
+
+# Build
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Frontend
+node_modules/
+dist/
+.nuxt/
+.next/
+.cache/
+
+# IDE Database
+*.sqlite
+*.db
+*.h2.db
+
+# Maven wrapper (use system mvn)
+!mvnw
+
+# Local dev data
+data/
+deploy/docker/mysql/data/
+deploy/docker/redis/data/
+deploy/docker/elasticsearch/data/
+deploy/docker/nacos/data/
+deploy/docker/nacos/logs/
+deploy/docker/rocketmq/data/
+deploy/docker/seata/logs/
+
+# Postman / JMeter outputs
+docs/test/*.html
+docs/test/jmeter/results/
+docs/test/postman/environments/
+
+# Sensitive
+*.pem
+*.key
+*.jks
+*.p12
+secrets.yaml
+# 注意：K8s 部署示例 secrets.yaml.template 包含占位符，可被 track；真实部署应使用 sealed-secrets 或外部 secret 管理
+# secrets.yaml.template 是模板（占位符），可被 git 追踪
+!secrets.yaml.template
+
+# CodeGraph
+.codegraph/

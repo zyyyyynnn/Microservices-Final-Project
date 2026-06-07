@@ -1,0 +1,25 @@
+-- MallCloud 公共 MySQL 配置（共享给所有服务）
+-- 注意：本文件仅声明通用 MyBatis-Plus / Hikari 默认值，
+-- 各服务的 datasource.url 必须在 mall-{service}.yaml 中显式提供 ${MYSQL_DB}。
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      pool-name: HikariCP-Mall
+  jpa:
+    open-in-view: false
+
+mallcloud:
+  db:
+    host: ${MYSQL_HOST:mysql}
+    port: ${MYSQL_PORT:3306}
+    database: ${MYSQL_DB:mall_default}
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_default}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:root}

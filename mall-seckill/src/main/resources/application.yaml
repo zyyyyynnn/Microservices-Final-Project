@@ -1,0 +1,60 @@
+server:
+  port: 9009
+
+spring:
+  application:
+    name: mall-seckill
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER:nacos:8848}
+      namespace: dev
+      config:
+        file-extension: yaml
+        shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml
+        refresh-enabled: true
+        extension-configs[0]:
+          dataId: mall-seckill.yaml
+          group: DEFAULT_GROUP
+          refresh: true
+        extension-configs[1]:
+          dataId: mall-seckill-flow-rules.json
+          group: SENTINEL_GROUP
+          refresh: true
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_seckill}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PWD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+# Sentinel
+spring.cloud.sentinel:
+  transport:
+    dashboard: ${SENTINEL_DASHBOARD:sentinel:8080}
+    port: 8719
+  datasource:
+    flow:
+      nacos:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        dataId: mall-seckill-flow-rules.json
+        groupId: SENTINEL_GROUP
+        rule-type: flow
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.mallcloud.mallseckill: DEBUG
