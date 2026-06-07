@@ -37,6 +37,11 @@ public class UserController {
         return Result.ok(userService.getCurrentUser());
     }
 
+    @GetMapping("/internal/{userId}")
+    public Result<UserVO> getInternalUser(@PathVariable("userId") Long userId) {
+        return Result.ok(userService.getByUserId(userId));
+    }
+
     @PutMapping("/me")
     public Result<Void> updateCurrentUser(@RequestBody UserUpdateDTO dto) {
         userService.updateCurrentUser(dto);

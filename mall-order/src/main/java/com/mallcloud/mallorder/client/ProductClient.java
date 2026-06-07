@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "mall-product", contextId = "productClient")
+@FeignClient(name = "mall-product", contextId = "productClient", fallbackFactory = ProductClientFallbackFactory.class)
 public interface ProductClient {
     @GetMapping("/internal/products/skus/{skuId}")
     Result<SkuDTO> getSku(@PathVariable("skuId") Long skuId);

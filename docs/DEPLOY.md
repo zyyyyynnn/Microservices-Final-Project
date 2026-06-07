@@ -78,7 +78,7 @@ Spring Boot 不会自动读取根目录 `.env`。IDE 启动时应把必要变量
 | 变量 | 示例 | 说明 |
 |---|---|---|
 | `NACOS_SERVER` | `127.0.0.1:8848` | Nacos 地址 |
-| `MYSQL_HOST` | `127.0.0.1` | MySQL 地址 |
+| `MYSQL_HOST` | `host.docker.internal` | MySQL 地址；Windows + Docker Desktop + IDE 启动服务时优先使用该值 |
 | `MYSQL_PORT` | `3306` | MySQL 端口 |
 | `MYSQL_USER` | `root` | MySQL 用户 |
 | `MYSQL_PWD` | `root` | MySQL 密码 |
@@ -88,6 +88,8 @@ Spring Boot 不会自动读取根目录 `.env`。IDE 启动时应把必要变量
 | `SEATA_TC_URL` | `127.0.0.1:8091` | Seata TC |
 | `SENTINEL_DASHBOARD` | `127.0.0.1:8080` | Sentinel Dashboard |
 | `JWT_SECRET` | 自定义长密钥 | Auth 与 Gateway 必须一致 |
+
+若本机 `127.0.0.1:3306` 命中 MySQL 的 `root@localhost` 授权导致 JDBC 认证失败，可改用 `MYSQL_HOST=host.docker.internal`。
 
 开发默认密钥只能用于本地演示。
 

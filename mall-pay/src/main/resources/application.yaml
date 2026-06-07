@@ -4,12 +4,22 @@ server:
 spring:
   application:
     name: mall-pay
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-seata.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-pay.yaml?group=DEFAULT_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:nacos:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
         shared-dataids: common-mysql.yaml,common-rocketmq.yaml,common-seata.yaml

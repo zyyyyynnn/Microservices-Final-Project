@@ -30,19 +30,21 @@ USE `mall_auth`;
 -- BCrypt cost=10 of "123456"
 SET @BCRYPT_PWD = '$2y$10$k8Z56rLWfoKE6XNip7PenuX5tiKdD.QB93WSNZLHH4Y2fOg7.16Ku';
 
-INSERT INTO `sys_user_auth` (user_id, identity_type, identifier, credential) VALUES
-(1001, 'PASSWORD', 'zhangsan',    @BCRYPT_PWD),
-(1002, 'PASSWORD', 'lisi',        @BCRYPT_PWD),
-(1003, 'PASSWORD', 'wangwu',      @BCRYPT_PWD),
-(1004, 'PASSWORD', 'zhaoliu',     @BCRYPT_PWD),
-(1005, 'PASSWORD', 'merchant01',  @BCRYPT_PWD),
-(1006, 'PASSWORD', 'merchant02',  @BCRYPT_PWD),
-(1007, 'PASSWORD', 'admin',       @BCRYPT_PWD),
-(1008, 'PASSWORD', 'user1',       @BCRYPT_PWD),
-(1009, 'PASSWORD', 'user2',       @BCRYPT_PWD),
-(1010, 'PASSWORD', 'user3',       @BCRYPT_PWD),
-(1001, 'PHONE',    '13800138001', @BCRYPT_PWD),
-(1002, 'PHONE',    '13800138002', @BCRYPT_PWD);
+INSERT INTO `sys_user_auth`
+    (user_id, identity_type, identifier, credential, role)
+VALUES
+(1001, 'PASSWORD', 'zhangsan',    @BCRYPT_PWD, 'USER'),
+(1002, 'PASSWORD', 'lisi',        @BCRYPT_PWD, 'USER'),
+(1003, 'PASSWORD', 'wangwu',      @BCRYPT_PWD, 'USER'),
+(1004, 'PASSWORD', 'zhaoliu',     @BCRYPT_PWD, 'USER'),
+(1005, 'PASSWORD', 'merchant01',  @BCRYPT_PWD, 'MERCHANT'),
+(1006, 'PASSWORD', 'merchant02',  @BCRYPT_PWD, 'MERCHANT'),
+(1007, 'PASSWORD', 'admin',       @BCRYPT_PWD, 'ADMIN'),
+(1008, 'PASSWORD', 'user1',       @BCRYPT_PWD, 'USER'),
+(1009, 'PASSWORD', 'user2',       @BCRYPT_PWD, 'USER'),
+(1010, 'PASSWORD', 'user3',       @BCRYPT_PWD, 'USER'),
+(1001, 'PHONE',    '13800138001', @BCRYPT_PWD, 'USER'),
+(1002, 'PHONE',    '13800138002', @BCRYPT_PWD, 'USER');
 
 -- ============================================================
 USE `mall_product`;
