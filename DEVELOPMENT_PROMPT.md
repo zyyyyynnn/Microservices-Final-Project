@@ -71,8 +71,8 @@
 - `STOCK_ROLLBACK` 当前是普通消息；
 - Java 代码当前未使用 `@SentinelResource`；
 - 不要求所有 Feign Client 配置 fallbackFactory；
-- 业务服务的 Nacos 配置加载仍待验证；
-- Seata AT 真实业务回滚仍待验证。
+- 业务服务 Nacos 配置加载已在核心链路验收中验证，Nacos 热更新仍待验证；
+- Seata AT 真实业务回滚已通过验收。
 
 不得假定业务服务已可运行或核心链路已打通。
 
