@@ -555,8 +555,9 @@ if defined "_existing_pid" (
                 echo [SKIP] !_svc_name! already running, PID=!_existing_pid!, port=!_svc_port!
                 endlocal & exit /b 0
             )
-            rem PID+JAR 匹配但端口未监听，安全清理状态
-            echo [WARN] !_svc_name! PID=!_existsing_pid! exists but port !_svc_port! not listening
+            rem PID+JAR 匹配但端口未监听，停止僵尸进程并清理状态
+            echo [WARN] !_svc_name! PID=!_existing_pid! exists but port !_svc_port! not listening, killing stale process
+            taskkill /PID !_existing_pid! /T /F >nul 2>&1
             pwsh.exe -NoProfile -Command ^
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
@@ -566,7 +567,7 @@ if defined "_existing_pid" (
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
         if "!_pid_check!"=="GONE" (
-            echo [INFO] !_svc_name! state PID=!_expired_pid! already gone, clearing state
+            echo [INFO] !_svc_name! state PID=!_existing_pid! already gone, clearing state
             pwsh.exe -NoProfile -Command ^
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
