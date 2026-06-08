@@ -4,15 +4,26 @@ server:
 spring:
   application:
     name: mall-seckill
+  config:
+    import:
+      - optional:nacos:common-mysql.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:common-sentinel.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-seckill.yaml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:mall-seckill-flow-rules.json?group=SENTINEL_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
     nacos:
       server-addr: ${NACOS_SERVER:nacos:8848}
       namespace: dev
+      discovery:
+        server-addr: ${NACOS_SERVER:nacos:8848}
+        namespace: dev
+        group: DEFAULT_GROUP
       config:
         file-extension: yaml
-        shared-dataids: common-mysql.yaml,common-redis.yaml,common-rocketmq.yaml,common-sentinel.yaml
+        shared-dataids: common-mysql.yaml,common-rocketmq.yaml,common-sentinel.yaml
         refresh-enabled: true
         extension-configs[0]:
           dataId: mall-seckill.yaml
@@ -58,3 +69,6 @@ management:
 logging:
   level:
     com.mallcloud.mallseckill: DEBUG
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAMESRV:rocketmq-namesrv:9876}

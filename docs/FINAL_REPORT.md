@@ -13,8 +13,8 @@
 |---|---|
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
-| 代码分支/Commit | feat/core-runtime-integration → main |
-| 测试日期 | 2026-06-07 |
+| 代码分支/Commit | main（本轮提交信息以最终 Git 输出为准） |
+| 测试日期 | 2026-06-08 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 本地 IDE 服务 |
 
@@ -83,10 +83,10 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
-| Postman 集合 | 已建立，工具链已验证 | `docs/test/postman/mallcloud.postman_collection.json`、`docs/test/postman/local.postman_environment.json`；Newman 已可执行，Gateway 未启动时 28 个请求全部连接失败，业务通过率待完整后端环境复测 |
-| JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试因 Gateway 未启动未运行 |
+| Postman 集合 | 已建立，当前后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
+| JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，当前 Sentinel Dashboard 与 Elasticsearch 不可达 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
-| 技术专项冒烟入口 | 已建立，已执行一次当前环境检查 | `scripts/run-special-checks.ps1` 可检查 Nacos、Sentinel、Elasticsearch、Gateway、搜索和秒杀活动端点可达性；当前仅 Nacos 控制台返回 200，Sentinel、Elasticsearch、Gateway、搜索和秒杀端点不可达，不能标记为专项验收通过 |
+| 技术专项冒烟入口 | 已建立，当前环境部分通过 | `scripts/run-special-checks.ps1 -AllowFailures` 已执行：Nacos、Gateway health、搜索热词、搜索商品为 200，秒杀活动无 Token 返回 401；Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化页面整改和浏览器基础验证；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
@@ -102,10 +102,10 @@ docs/test/postman/summary/newman-20260609.md
 | 指标 | 结果 |
 |---|---|
 | 核心接口数量 | 待填写，要求 ≥ 6 |
-| 请求总数 | 28（Gateway 未启动环境下执行） |
-| 断言总数 | 46（Gateway 未启动环境下执行） |
-| 通过 | 0 |
-| 失败 | 28 个请求连接失败、46 个断言失败；原因：`connect ECONNREFUSED 127.0.0.1:9000` |
+| 请求总数 | 28 |
+| 断言总数 | 56 |
+| 通过 | 50 |
+| 失败 | 6；原因：搜索商品返回业务码 10003（Elasticsearch 当前不可达）、库存查询返回 500、秒杀请求返回业务码 10001、秒杀结果查询返回 500 |
 
 核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
 
@@ -148,7 +148,7 @@ docs/test/postman/summary/newman-20260609.md
 
 ### 7.1 测试环境
 
-当前状态：JMeter 5.6.3 命令已验证可执行；因 Gateway `http://localhost:9000` 未启动，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
+当前状态：JMeter 5.6.3 命令已验证可执行；本轮已恢复 Gateway 和 12 个后端服务启动，但 Sentinel Dashboard 与 Elasticsearch 当前不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -239,6 +239,7 @@ docs/test/postman/summary/newman-20260609.md
 如实记录：
 
 - Docker 全栈尚未完成；
+- 本地一键后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；

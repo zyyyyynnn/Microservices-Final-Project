@@ -11,6 +11,19 @@ $mysqlHost = if ($env:MYSQL_HOST) { $env:MYSQL_HOST } else { "127.0.0.1" }
 $mysqlPort = if ($env:MYSQL_PORT) { $env:MYSQL_PORT } else { "3306" }
 $mysqlUser = if ($env:MYSQL_USER) { $env:MYSQL_USER } else { "root" }
 $mysqlPwd  = if ($env:MYSQL_PWD)  { $env:MYSQL_PWD }  else { "root" }
+$mysqlArgs = @("-h$mysqlHost", "-P$mysqlPort", "-u$mysqlUser", "-p$mysqlPwd", "--default-character-set=utf8mb4")
+
+function Invoke-MysqlFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    Get-Content -Raw -Encoding UTF8 -LiteralPath $Path | & mysql @mysqlArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "$(Split-Path -Leaf $Path) 执行失败，退出码 $LASTEXITCODE"
+    }
+}
 
 Write-Host "=========================================" -ForegroundColor Green
 Write-Host "  初始化 MallCloud 数据库" -ForegroundColor Green
@@ -20,12 +33,12 @@ Write-Host "=========================================" -ForegroundColor Green
 # 1. 创建库 + 表
 $sql1 = Join-Path $dbDir "00-create-databases.sql"
 Write-Host ">> 执行 00-create-databases.sql ..." -ForegroundColor Cyan
-& mysql -h$mysqlHost -P$mysqlPort -u$mysqlUser -p$mysqlPwd "--execute=source $sql1"
+Invoke-MysqlFile -Path $sql1
 
 # 2. 种子数据
 $sql2 = Join-Path $dbDir "seed.sql"
 Write-Host ">> 执行 seed.sql ..." -ForegroundColor Cyan
-& mysql -h$mysqlHost -P$mysqlPort -u$mysqlUser -p$mysqlPwd "--execute=source $sql2"
+Invoke-MysqlFile -Path $sql2
 
 # 3. 验证
 Write-Host ""

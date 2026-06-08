@@ -48,9 +48,9 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Docker 中间件 | 已验证 | `docker-compose.middleware.yml` 已提供 |
 | Docker 全栈 | 规划项 | 构建文件和启动链路尚未完整 |
 | Kubernetes 全栈 | 规划项 | 当前仅提供部分示例 manifest |
-| Postman 测试 | 已建立，工具链已验证 | 已新增 `docs/test/postman/mallcloud.postman_collection.json` 和本地环境；Gateway 未启动时 Newman 运行失败，业务通过率待完整后端环境复测 |
+| Postman 测试 | 已建立，已执行当前后端环境回归 | `run-newman.ps1 -SkipHtml` 已执行 28 个请求、56 个断言，当前 50 通过 / 6 失败；失败集中在 Elasticsearch 未运行导致搜索业务码 10003、库存查询 500、秒杀请求/结果断言 |
 | JMeter 测试 | 已建立，工具链已验证 | 已新增搜索、订单、秒杀三套 JMeter 脚本；工具链可执行，负载和压力报告待完整后端环境执行 |
-| 技术专项检查 | 已建立待运行 | `scripts/run-special-checks.ps1` 可做 Nacos、Sentinel、Elasticsearch、Gateway、搜索和秒杀端点冒烟检查；不等同于专项验收通过 |
+| 技术专项检查 | 已建立，当前环境部分通过 | Nacos、Gateway、搜索热词、搜索商品、秒杀活动鉴权状态已可达；Sentinel Dashboard 与 Elasticsearch 当前不可达，不等同于专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | `mall-frontend` 已完成产品化页面整改，覆盖首页、商品详情、搜索、登录、注册、账户、购物车、结算、订单详情、支付、秒杀和后台；浏览器已验证 502/后端不可用错误状态，真实后端业务联调待补充 |
 
 状态含义见 `docs/PROJECT_STANDARD.md`。
@@ -147,7 +147,14 @@ mvn clean package -DskipTests
 
 ### 5.4 启动后端
 
-当前推荐使用 IDE 启动所需服务。首次验证核心链路时至少启动：
+当前可使用脚本启动后端，也可继续使用 IDE 启动所需服务。脚本路径：
+
+```powershell
+.\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+.\scripts\stop-all.ps1
+```
+
+2026-06-08 本地验证中，除 `mall-job` 因 9012 被外部 `ArmourySocketServer` 占用外，其余 12 个后端服务均可注册到 Nacos `dev` 命名空间并监听对应端口。首次验证核心链路时至少启动：
 
 ```text
 mall-gateway

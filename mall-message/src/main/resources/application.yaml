@@ -53,3 +53,6 @@ feign:
 logging:
   level:
     com.mallcloud.mallmessage: DEBUG
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAMESRV:rocketmq-namesrv:9876}

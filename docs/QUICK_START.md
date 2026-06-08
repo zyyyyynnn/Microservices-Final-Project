@@ -2,8 +2,8 @@
 
 > 团队规模：5 人
 > 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21
-> 当前正式路径：Docker 中间件 + 本地 IDE 启动微服务
-> 目标：先跑通核心交易链路，不要求一次启动全部 13 个服务
+> 当前正式路径：Docker 中间件 + 本地脚本或 IDE 启动微服务
+> 目标：先跑通核心交易链路，再补齐专项验证证据
 
 ---
 
@@ -152,7 +152,7 @@ sku = 7
 - MySQL、Redis、RocketMQ、Seata 地址正确；
 - Seata Server 和客户端配置兼容 2.0.0。
 
-Nacos 配置导入尚未自动化。没有导入远程配置时，应确认本地 `application.yaml` 是否能提供完整启动配置。
+Nacos 配置导入尚未自动化。没有导入远程配置时，应确认本地 `application.yaml` 是否能提供完整启动配置。2026-06-08 已修复 `mall-search`、`mall-seckill`、`mall-admin-biz` 的 Nacos import 与 discovery namespace，使其可注册到 `dev` 命名空间。
 
 ---
 
@@ -182,7 +182,15 @@ mvn clean test -DskipTests=false
 
 ## 8. 启动核心服务
 
-建议使用 IDE，按顺序启动：
+可使用脚本启动后端：
+
+```powershell
+.\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+```
+
+脚本会执行 Maven 打包、启动后端、写入 `.runtime/processes.json`，并通过端口判断服务状态。本机 9012 若被外部进程占用，`mall-job` 会标记为 `PortOccupied`，不得写成已启动。
+
+也可使用 IDE，按顺序启动：
 
 Windows + Docker Desktop 本地启动服务时，IDE Run Configuration 至少配置：
 
@@ -245,6 +253,8 @@ mall-order
 mall-pay
 mall-message
 ```
+
+当前完整后端验证应在 `dev` 命名空间看到除 `mall-job` 外的 12 个业务服务；`mall-job` 是否可用取决于本机 9012 是否空闲。
 
 Seata Server 也应按项目配置正确注册或连接。
 
@@ -403,7 +413,7 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 3. 秒杀完整链路验收；
 4. Sentinel 规则限流/熔断实测；
 5. Nacos 热更新实测；
-6. Postman/Newman 完整后端环境报告；
+6. Postman/Newman 剩余失败项修复或说明；
 7. JMeter 负载、压力和 HTML 报告；
 8. 最终答辩材料。
 

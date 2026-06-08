@@ -12,14 +12,14 @@
 
 | 方式 | 状态 | 用途 |
 |---|---|---|
-| PowerShell 启动中间件 | 已提供，待完整验证 | 本地开发与答辩 |
-| BAT/PowerShell 一键启停脚本 | 已提供，待完整启动验证 | 本地联调和演示辅助 |
-| PowerShell 初始化数据库 | 已提供，待完整验证 | 初始化业务库和演示数据 |
+| PowerShell 启动中间件 | 已提供，部分受镜像拉取限制 | 本地开发与答辩 |
+| BAT/PowerShell 一键启停脚本 | 已提供，后端启动已验证 | 本地联调和演示辅助 |
+| PowerShell 初始化数据库 | 已提供，已验证 | 初始化业务库和演示数据 |
 | IDE 启动微服务 | 当前推荐 | 开发、联调、演示 |
 | `docker-compose.all.yml` 全栈 | 实验性 | 构建文件和组合启动链路待修复 |
 | Kubernetes 全栈 | 规划项 | 当前仅有部分中间件和 Gateway 示例 |
 
-本文件不引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh` 或分库 SQL 文件。`start-all.bat`、`stop-all.bat` 及对应 PowerShell 脚本已存在，但完整启动结果仍需实际验证后记录。
+本文件不引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh` 或分库 SQL 文件。`start-all.bat`、`stop-all.bat` 及对应 PowerShell 脚本已存在；2026-06-08 本地验证中，PowerShell 后端启动可拉起 12 个业务服务，`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用标记为 `PortOccupied`。
 
 ---
 
@@ -175,7 +175,7 @@ SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
 .\scripts\init-db.ps1
 ```
 
-脚本执行：
+脚本通过 PowerShell 按 UTF-8 读取 SQL 并通过 stdin 传给 MySQL Client，避免中文路径下 `mysql source` 解析失败。脚本执行：
 
 1. `db/init/00-create-databases.sql`
 2. `db/init/seed.sql`
@@ -260,7 +260,13 @@ mvn clean test -DskipTests=false
 
 ## 9. 启动微服务
 
-核心链路推荐顺序：
+可使用脚本启动：
+
+```powershell
+.\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+```
+
+核心链路 IDE 推荐顺序：
 
 1. `mall-user`
 2. `mall-auth`

@@ -66,11 +66,12 @@ function Test-Port($port, $timeout = 2) {
     } catch { return $false }
 }
 
-function Wait-Port($port, $label, $timeoutSec = 120, $intervalSec = 3) {
+function Wait-Port($port, $label, $timeoutSec = 120, $intervalSec = 3, $process = $null) {
     Write-Info "等待 $label (端口 $port) ..."
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
         if (Test-Port $port) { return $true }
+        if ($process -and $process.HasExited) { return $false }
         Start-Sleep -Seconds $intervalSec
     }
     return $false
@@ -257,23 +258,42 @@ if (-not $SkipBackend) {
         $port = $svc.Port
         $logFile = Join-Path $LogsDir "$name.log"
         $moduleDir = Join-Path $ProjectRoot $name
+        $jarPath = Join-Path $moduleDir "target\$name.jar"
         $jarPattern = Join-Path $moduleDir "target\$name-*.jar"
 
         # 检查是否已在运行
         $existingPid = Get-ExistingPid $port
         if ($existingPid) {
-            Write-Warn "$name 端口 $port 已被 PID $existingPid 占用，跳过"
-            [void]$Results.Add(@{
-                Name = $name; PID = $existingPid; Port = $port
-                Status = "AlreadyRunning"; Type = "backend"; Log = $logFile
-            })
+            $existingProc = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+            $isKnownService = $false
+            if ($Processes.ContainsKey($name) -and $Processes[$name].PID -eq $existingPid -and $existingProc -and $existingProc.ProcessName -in @("java", "node")) {
+                $isKnownService = $true
+            }
+
+            if ($isKnownService) {
+                Write-Warn "$name 端口 $port 已由记录中的 PID $existingPid 占用，跳过"
+                [void]$Results.Add(@{
+                    Name = $name; PID = $existingPid; Port = $port
+                    Status = "AlreadyRunning"; Type = "backend"; Log = $logFile
+                })
+            } else {
+                $procName = if ($existingProc) { $existingProc.ProcessName } else { "unknown" }
+                Write-Err "$name 端口 $port 已被非本服务进程 PID $existingPid ($procName) 占用"
+                [void]$Results.Add(@{
+                    Name = $name; PID = $existingPid; Port = $port
+                    Status = "PortOccupied"; Type = "backend"; Log = $null
+                })
+            }
             continue
         }
 
         # 查找 jar
-        $jar = Get-ChildItem -Path $jarPattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        $jar = Get-Item -LiteralPath $jarPath -ErrorAction SilentlyContinue
         if (-not $jar) {
-            Write-Err "$name 未找到 jar: $jarPattern"
+            $jar = Get-ChildItem -Path $jarPattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        if (-not $jar) {
+            Write-Err "$name 未找到 jar: $jarPath 或 $jarPattern"
             [void]$Results.Add(@{
                 Name = $name; PID = $null; Port = $port
                 Status = "JarNotFound"; Type = "backend"; Log = $null
@@ -283,9 +303,13 @@ if (-not $SkipBackend) {
 
         # 启动
         Write-Info "启动 $name (端口 $port) ..."
-        $env:NACOS_SERVER = "127.0.0.1:8848"
-        $env:MYSQL_HOST   = "127.0.0.1"
-        $env:REDIS_HOST   = "127.0.0.1"
+        $env:NACOS_SERVER       = "127.0.0.1:8848"
+        $env:MYSQL_HOST         = "127.0.0.1"
+        $env:REDIS_HOST         = "127.0.0.1"
+        $env:ROCKETMQ_NAMESRV   = "127.0.0.1:9876"
+        $env:ES_HOST            = "127.0.0.1"
+        $env:ES_PORT            = "9200"
+        $env:SENTINEL_DASHBOARD = "127.0.0.1:8080"
 
         $proc = Start-Process -FilePath "java" `
             -ArgumentList "-jar", $jar.FullName `
@@ -305,7 +329,7 @@ if (-not $SkipBackend) {
         }
 
         # 等待端口
-        $portOk = Wait-Port $port $name 90
+        $portOk = Wait-Port $port $name 90 3 $proc
         if ($portOk) {
             Write-Ok "$name PID=$($proc.Id) 端口=$port 已就绪"
             [void]$Results.Add(@{
@@ -314,10 +338,11 @@ if (-not $SkipBackend) {
                 Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             })
         } else {
-            Write-Warn "$name PID=$($proc.Id) 端口 $port 未就绪，请检查日志"
+            $status = if ($proc.HasExited) { "Exited" } else { "Timeout" }
+            Write-Warn "$name PID=$($proc.Id) 端口 $port 未就绪，状态=$status，请检查日志"
             [void]$Results.Add(@{
                 Name = $name; PID = $proc.Id; Port = $port
-                Status = "Timeout"; Type = "backend"
+                Status = $status; Type = "backend"
                 Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             })
         }
@@ -424,6 +449,9 @@ Write-Banner "MallCloud 启动结果"
 $running   = $Results | Where-Object { $_.Status -eq "Running" }
 $already   = $Results | Where-Object { $_.Status -eq "AlreadyRunning" }
 $failed    = $Results | Where-Object { $_.Status -notin @("Running", "AlreadyRunning") }
+$runningCount = @($running).Count
+$alreadyCount = @($already).Count
+$failedCount = @($failed).Count
 
 $fmt = "{0,-22} {1,-10} {2,-10} {3,-12}"
 Write-Host ($fmt -f "服务", "PID", "端口", "状态") -ForegroundColor White
@@ -441,9 +469,9 @@ foreach ($r in $Results) {
 }
 
 Write-Host ""
-Write-Host "  运行中:  $($running.Count + $already.Count)" -ForegroundColor Green
-if ($failed.Count -gt 0) {
-    Write-Host "  失败/超时: $($failed.Count)" -ForegroundColor Red
+Write-Host "  运行中:  $($runningCount + $alreadyCount)" -ForegroundColor Green
+if ($failedCount -gt 0) {
+    Write-Host "  失败/超时: $failedCount" -ForegroundColor Red
 }
 
 # 输出访问地址

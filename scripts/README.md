@@ -34,6 +34,13 @@ pwsh .\scripts\start-all.ps1 -SkipInfrastructure
 pwsh .\scripts\start-all.ps1 -CleanLogs
 ```
 
+2026-06-08 本地验证结果：
+
+- `init-db.ps1` 已在中文路径下通过 UTF-8 stdin 执行 SQL；
+- `start-all.ps1 -SkipInfrastructure -SkipFrontend` 可识别各模块 `target\<模块名>.jar`；
+- 后端 12 个业务服务可启动并注册到 Nacos `dev` 命名空间；
+- `mall-job` 若遇到本机 9012 被外部进程占用，会标记为 `PortOccupied`，不会写成已运行。
+
 ## 测试脚本
 
 Postman/Newman：
