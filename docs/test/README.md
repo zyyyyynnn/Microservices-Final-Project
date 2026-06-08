@@ -126,13 +126,10 @@ skuId=9001
 ### 3.1 Newman 执行
 
 ```powershell
-npm install -g newman newman-reporter-html
-
-newman run .\docs\test\postman\mallcloud.postman_collection.json `
-  -e .\docs\test\postman\local.postman_environment.json `
-  -r cli,html `
-  --reporter-html-export .\docs\test\postman\report.html
+pwsh .\scripts\run-newman.ps1
 ```
+
+脚本优先使用本机已安装的 `newman`；未安装时回退到 `npx` 临时获取 `newman` 和 `newman-reporter-htmlextra`。
 
 记录：
 
@@ -210,14 +207,12 @@ docs/test/jmeter/seckill-stress.jmx
 ### 4.4 命令行执行
 
 ```powershell
-jmeter -n `
-  -t .\docs\test\jmeter\search-load.jmx `
-  -l .\docs\test\jmeter\results\search-50.jtl `
-  -e `
-  -o .\docs\test\jmeter\report\search-50
+pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 ```
 
-输出目录必须不存在或为空。
+脚本优先使用本机已安装的 `jmeter`；未安装时按需下载 Apache JMeter 到 `.tools/`，并生成 JTL 与 HTML 报告。输出目录必须不存在或为空。
 
 ---
 

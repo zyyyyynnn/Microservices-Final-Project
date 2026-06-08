@@ -34,6 +34,26 @@ pwsh .\scripts\start-all.ps1 -SkipInfrastructure
 pwsh .\scripts\start-all.ps1 -CleanLogs
 ```
 
+## 测试脚本
+
+Postman/Newman：
+
+```powershell
+pwsh .\scripts\run-newman.ps1
+```
+
+该脚本优先使用本机已安装的 `newman`；未安装时回退到 `npx` 临时获取 `newman` 和 `newman-reporter-htmlextra`。
+
+JMeter：
+
+```powershell
+pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
+```
+
+该脚本优先使用本机已安装的 `jmeter`；未安装时按需下载 Apache JMeter 到 `.tools/`，输出 JTL 到 `docs/test/jmeter/results/`，输出 HTML 报告到 `docs/test/jmeter/report/`。
+
 ## 必要环境
 
 | 依赖 | 版本 | 说明 |
@@ -44,6 +64,8 @@ pwsh .\scripts\start-all.ps1 -CleanLogs
 | npm | - | 前端包管理 |
 | Docker Desktop | - | 基础设施容器 |
 | PowerShell | 7+ | BAT 脚本内部调用 |
+
+未全局安装测试工具时，脚本需要本机可访问互联网以便首次获取 Newman/JMeter；工具缓存不提交到仓库。
 
 ## 服务端口
 

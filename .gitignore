@@ -66,6 +66,7 @@ deploy/docker/seata/logs/
 # Postman / JMeter outputs
 docs/test/*.html
 docs/test/jmeter/results/
+docs/test/jmeter/report/
 docs/test/postman/environments/
 
 # Sensitive
@@ -83,3 +84,6 @@ secrets.yaml
 
 # Runtime
 .runtime/
+
+# Local tool cache
+.tools/
