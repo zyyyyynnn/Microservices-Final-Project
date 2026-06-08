@@ -398,7 +398,7 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 
 待完成：
 
-1. 前端完整演示系统浏览器联调和截图证据；
+1. 前端演示系统产品化页面整改、浏览器联调和截图证据；
 2. Elasticsearch 搜索完整验收；
 3. 秒杀完整链路验收；
 4. Sentinel 规则限流/熔断实测；
@@ -412,6 +412,8 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 ## 15. 前端启动
 
 当前仓库已新增 `mall-frontend`，技术栈为 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。
+
+当前前端仅作为基础工程和接口入口断点；它可以用于验证 Vite、路由、Gateway 代理和部分接口错误反馈，但不能作为最终产品化前端交付。商品详情、搜索、结算、订单详情、支付、秒杀轮询和后台管理页面仍需整改。
 
 ```powershell
 Set-Location .\mall-frontend
