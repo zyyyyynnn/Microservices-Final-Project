@@ -74,9 +74,14 @@ rem -- 清理状态文件中的已停止进程 --
 if exist "%STATE_FILE%" (
     pwsh.exe -NoProfile -Command ^
         "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable;" ^
-        "$cleaned = @{}; foreach ($k in $s.Keys) { $e = $s[$k];" ^
-        "  if ($e.pid) { $p = Get-Process -Id $e.pid -ErrorAction SilentlyContinue;" ^
-        "    if ($p -and ($p.ProcessName -eq 'java' -or $p.ProcessName -eq 'node')) { $cleaned[$k] = $e } } };" ^
+        "$cleaned = @{}; foreach ($k in $s.Keys) {" ^
+        "  $e = $s[$k]; if (-not $e.pid) { continue };" ^
+        "  $p = Get-Process -Id $e.pid -ErrorAction SilentlyContinue; if (-not $p) { continue };" ^
+        "  $cmd = (Get-CimInstance Win32_Process -Filter ('ProcessId=' + $e.pid) -ErrorAction SilentlyContinue).CommandLine;" ^
+        "  if (-not $cmd) { continue };" ^
+        "  if ($e.type -eq 'backend' -and $p.ProcessName -eq 'java' -and $e.jar -and ($cmd -match [regex]::Escape($e.jar))) { $cleaned[$k] = $e; continue };" ^
+        "  if ($e.type -eq 'frontend' -and $p.ProcessName -eq 'node' -and ($cmd -match 'mall-frontend|vite')) { $cleaned[$k] = $e; continue };" ^
+        "};" ^
         "if ($cleaned.Count -gt 0) { $cleaned | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8 }" ^
         "else { Remove-Item '%STATE_FILE%' -Force -ErrorAction SilentlyContinue }" >nul 2>&1
 )
@@ -88,6 +93,11 @@ if %_failed% GTR 0 echo  Failed:  %_failed%
 echo.
 
 :END
+if %_failed% GTR 0 (
+    if "%ARG_NO_PAUSE%"=="1" exit /b 1
+    pause
+    exit /b 1
+)
 if "%ARG_NO_PAUSE%"=="1" exit /b 0
 pause
 exit /b 0

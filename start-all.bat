@@ -558,6 +558,24 @@ if defined "_existing_pid" (
             rem PID+JAR 匹配但端口未监听，停止僵尸进程并清理状态
             echo [WARN] !_svc_name! PID=!_existing_pid! exists but port !_svc_port! not listening, killing stale process
             taskkill /PID !_existing_pid! /T /F >nul 2>&1
+            if errorlevel 1 (
+                echo [ERROR] Failed to kill stale !_svc_name! process PID=!_existing_pid!
+                endlocal & exit /b 1
+            )
+            rem 等待旧 PID 消失
+            set /a "_kill_wait=0"
+            :WAIT_STALE_EXIT
+            set /a "_kill_wait+=1"
+            if !_kill_wait! GEQ 10 (
+                echo [ERROR] Stale !_svc_name! process PID=!_existing_pid! still exists after kill
+                endlocal & exit /b 1
+            )
+            tasklist /fi "PID eq !_existing_pid!" 2>nul | findstr /i "!_existing_pid!" >nul 2>&1
+            if not errorlevel 1 (
+                timeout /t 1 /nobreak >nul
+                goto :WAIT_STALE_EXIT
+            )
+            rem 旧进程已消失，清理状态
             pwsh.exe -NoProfile -Command ^
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
