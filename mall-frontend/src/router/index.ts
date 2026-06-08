@@ -13,6 +13,7 @@ import PayView from '../views/PayView.vue';
 import SeckillView from '../views/SeckillView.vue';
 import AdminView from '../views/AdminView.vue';
 import TechView from '../views/TechView.vue';
+import NotFoundView from '../views/NotFoundView.vue';
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: HomeView },
@@ -28,6 +29,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/seckill', name: 'seckill', component: SeckillView, meta: { auth: true } },
   { path: '/admin', name: 'admin', component: AdminView, meta: { auth: true } },
   { path: '/tech', name: 'tech', component: TechView },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ];
 
 export const router = createRouter({

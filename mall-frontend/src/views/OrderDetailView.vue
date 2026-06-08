@@ -50,7 +50,8 @@ onMounted(load);
         <el-descriptions-item label="收货信息">{{ field(order, ['addressJson'], '待联调') }}</el-descriptions-item>
         <el-descriptions-item label="支付截止">{{ field(order, ['payDeadline'], '待联调') }}</el-descriptions-item>
       </el-descriptions>
-      <el-table v-if="items.length" :data="items" class="stable-table">
+      <div v-if="items.length" class="table-scroll">
+      <el-table :data="items" class="stable-table">
         <el-table-column prop="skuName" label="商品" min-width="220" />
         <el-table-column prop="skuId" label="SKU" width="120" />
         <el-table-column label="单价" width="120">
@@ -61,6 +62,7 @@ onMounted(load);
           <template #default="{ row }">{{ money(row.subtotal) }}</template>
         </el-table-column>
       </el-table>
+      </div>
       <el-empty v-if="order && !items.length" description="订单项字段未返回，待后端联调确认" />
     </el-card>
 

@@ -92,7 +92,8 @@ onMounted(load);
       <template #header>
         <div class="panel-title">收货地址</div>
       </template>
-      <el-table v-if="addresses.length" :data="addresses" class="stable-table">
+      <div v-if="addresses.length" class="table-scroll">
+      <el-table :data="addresses" class="stable-table">
         <el-table-column prop="receiver" label="收件人" min-width="100" />
         <el-table-column prop="phone" label="手机号" min-width="130" />
         <el-table-column label="地区" min-width="160">
@@ -106,6 +107,7 @@ onMounted(load);
           </template>
         </el-table-column>
       </el-table>
+      </div>
       <el-empty v-else description="暂无地址，新增后可用于订单确认" />
 
       <el-divider />
