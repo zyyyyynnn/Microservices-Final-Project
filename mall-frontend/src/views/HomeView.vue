@@ -1,107 +1,105 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { computed, onMounted, ref } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
+import ProductCard from '../components/ProductCard.vue';
+import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
+import { field } from '../utils/format';
 
+const router = useRouter();
 const loading = ref(false);
+const error = ref('');
 const categories = ref<UnknownRecord[]>([]);
-const product = ref<UnknownRecord | null>(null);
-const searchResult = ref<UnknownRecord | null>(null);
-const hotWords = ref<string[]>([]);
-const loadError = ref('');
+const products = ref<UnknownRecord[]>([]);
+const keyword = ref('iPhone');
 
-const query = reactive({
-  spuId: 1001,
-  skuId: 9001,
-  quantity: 1,
-  keyword: 'iPhone',
-});
+const categoryCount = computed(() => categories.value.length);
 
-function display(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
-
-async function loadBasics() {
+async function loadHome() {
   loading.value = true;
-  loadError.value = '';
+  error.value = '';
+  products.value = [];
   try {
-    const [categoryData, productData, words] = await Promise.allSettled([
+    const [categoryResult, productResult] = await Promise.allSettled([
       mallApi.categories(),
-      mallApi.product(query.spuId),
-      mallApi.hotWords(),
+      mallApi.product(1001),
     ]);
-    categories.value = categoryData.status === 'fulfilled' ? categoryData.value || [] : [];
-    product.value = productData.status === 'fulfilled' ? productData.value : null;
-    hotWords.value = words.status === 'fulfilled' ? words.value || [] : [];
-    if (categoryData.status === 'rejected' || productData.status === 'rejected') {
-      loadError.value = 'Gateway 或后端服务暂不可用，已保留页面可操作状态。';
+    categories.value = categoryResult.status === 'fulfilled' ? categoryResult.value || [] : [];
+    if (productResult.status === 'fulfilled') {
+      products.value = [productResult.value];
+    }
+    if (categoryResult.status === 'rejected' || productResult.status === 'rejected') {
+      error.value = 'Gateway 或商品服务暂不可用，首页已进入错误状态。';
     }
   } finally {
     loading.value = false;
   }
 }
 
-async function search() {
-  searchResult.value = await mallApi.searchProducts(query.keyword);
+function goSearch() {
+  router.push({ path: '/search', query: { keyword: keyword.value } });
 }
 
-async function addCart() {
-  await mallApi.addCart({ skuId: query.skuId, quantity: query.quantity });
-  ElMessage.success('已加入购物车');
-}
-
-onMounted(loadBasics);
+onMounted(loadHome);
 </script>
 
 <template>
-  <section class="page-grid two">
-    <el-card class="panel">
-      <template #header>
-        <div class="panel-title">公共商品入口</div>
-      </template>
-      <el-form class="inline-form" label-position="top" @submit.prevent="loadBasics">
-        <el-form-item label="SPU">
-          <el-input-number v-model="query.spuId" :min="1" />
-        </el-form-item>
-        <el-form-item label="SKU">
-          <el-input-number v-model="query.skuId" :min="1" />
-        </el-form-item>
-        <el-form-item label="数量">
-          <el-input-number v-model="query.quantity" :min="1" />
-        </el-form-item>
-        <el-button type="primary" :loading="loading" @click="loadBasics">加载商品</el-button>
-        <el-button plain @click="addCart">加入购物车</el-button>
-      </el-form>
-      <el-alert v-if="loadError" class="mt" :title="loadError" type="error" :closable="false" />
-
-      <el-empty v-if="!loading && !product" description="未加载商品详情" />
-      <pre v-else class="json-box">{{ display(product) }}</pre>
-    </el-card>
-
-    <el-card class="panel">
-      <template #header>
-        <div class="panel-title">类目与搜索</div>
-      </template>
-      <div class="search-row">
-        <el-input v-model="query.keyword" placeholder="搜索关键字" />
-        <el-button type="primary" @click="search">搜索</el-button>
-      </div>
-      <div class="tag-row">
-        <el-tag v-for="word in hotWords" :key="word" effect="plain">{{ word }}</el-tag>
-        <el-tag v-if="!hotWords.length" type="info" effect="plain">热词接口未返回数据</el-tag>
-      </div>
-      <el-divider />
-      <div class="split-block">
-        <div>
-          <h2 class="section-title">类目树</h2>
-          <pre class="json-box compact">{{ display(categories) }}</pre>
-        </div>
-        <div>
-          <h2 class="section-title">搜索结果</h2>
-          <pre class="json-box compact">{{ display(searchResult) }}</pre>
+  <section class="commerce-layout">
+    <div class="hero-band">
+      <div>
+        <el-tag effect="plain">Gateway 统一入口</el-tag>
+        <h1>MallCloud 微商城</h1>
+        <p>从商品浏览到购物车、下单、支付消息和订单查询的课程演示链路。</p>
+        <div class="hero-actions">
+          <RouterLink to="/products/1001">
+            <el-button type="primary">查看演示商品</el-button>
+          </RouterLink>
+          <RouterLink to="/cart">
+            <el-button plain>进入购物车</el-button>
+          </RouterLink>
         </div>
       </div>
-    </el-card>
+      <div class="search-panel">
+        <label for="home-search">搜索商品</label>
+        <div class="search-row">
+          <el-input id="home-search" v-model="keyword" placeholder="输入关键字" @keyup.enter="goSearch" />
+          <el-button type="primary" @click="goSearch">搜索</el-button>
+        </div>
+        <span>当前搜索由 `/api/v1/search/products` 提供，未启动搜索服务时会显示错误状态。</span>
+      </div>
+    </div>
+
+    <PageState :loading="loading" :error="error" @retry="loadHome" />
+
+    <div class="page-grid two" v-if="!loading">
+      <el-card class="panel">
+        <template #header>
+          <div class="panel-title">类目入口</div>
+        </template>
+        <div v-if="categoryCount" class="category-grid">
+          <RouterLink
+            v-for="category in categories"
+            :key="String(field(category, ['id', 'categoryId', 'name']))"
+            class="category-item"
+            :to="{ path: '/search', query: { categoryId: field(category, ['id', 'categoryId']) } }"
+          >
+            <strong>{{ field(category, ['name'], '未命名类目') }}</strong>
+            <span>进入商品搜索</span>
+          </RouterLink>
+        </div>
+        <el-empty v-else description="类目服务未返回数据" />
+      </el-card>
+
+      <el-card class="panel">
+        <template #header>
+          <div class="panel-title">商品推荐</div>
+        </template>
+        <div class="product-grid" v-if="products.length">
+          <ProductCard v-for="product in products" :key="String(field(product, ['spuId', 'id']))" :product="product" />
+        </div>
+        <el-empty v-else description="商品详情接口暂不可用" />
+      </el-card>
+    </div>
   </section>
 </template>

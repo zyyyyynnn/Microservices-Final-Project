@@ -8,10 +8,11 @@ const auth = useAuthStore();
 const router = useRouter();
 
 const navItems = [
-  { label: '公共浏览', path: '/' },
+  { label: '首页', path: '/' },
+  { label: '搜索', path: '/search' },
   { label: '账户', path: '/account', auth: true },
   { label: '购物车', path: '/cart', auth: true },
-  { label: '订单支付', path: '/orders', auth: true },
+  { label: '结算', path: '/checkout', auth: true },
   { label: '秒杀', path: '/seckill', auth: true },
   { label: '后台', path: '/admin', auth: true },
   { label: '技术演示', path: '/tech' },

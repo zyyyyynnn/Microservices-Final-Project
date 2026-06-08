@@ -29,12 +29,27 @@ docs/test/
     ├── seata-rollback.png
     ├── frontend-home-desktop.png
     ├── frontend-home-mobile.png
+    ├── frontend-home-productized-desktop.png
+    ├── frontend-home-productized-mobile.png
+    ├── frontend-login.png
+    ├── frontend-register.png
+    ├── frontend-account-error.png
+    ├── frontend-product-detail-error.png
+    ├── frontend-search-error.png
+    ├── frontend-cart-error.png
+    ├── frontend-checkout-error.png
+    ├── frontend-order-detail-error.png
+    ├── frontend-pay-error.png
+    ├── frontend-seckill-error.png
+    ├── frontend-admin-error.png
     └── resource-monitoring.png
 ```
 
 不存在的文件不得写成已生成。
 
 `frontend-home-desktop.png` 和 `frontend-home-mobile.png` 只能证明前端工程可渲染和基础响应式可用，不能证明完整前端页面已交付。前端页面验收必须补充逐页截图、主流程操作结果、状态反馈和未完成项说明。
+
+`frontend-*-error.png` 表示本轮在后端未完整可用或 Gateway 返回 502 时验证了页面错误状态，不代表对应业务成功态已完成。
 
 ---
 
@@ -200,6 +215,24 @@ jmeter -n `
 - 技术演示页。
 
 每个页面至少记录桌面端和移动端截图、主操作路径、loading / empty / error / disabled / success 中适用状态、后端接口联调结果和未完成原因。业务页面不得以 raw JSON 或接口调试面板作为主要验收证据。
+
+### 4.5.1 本轮前端页面整改验收矩阵
+
+| 页面 | 路由 | 实现状态 | 验证方式 | 证据或说明 | 未完成原因 |
+|---|---|---|---|---|---|
+| 首页 / 商品浏览 | `/` | 部分完成 | 浏览器桌面、移动端 | `frontend-home-productized-desktop.png`、`frontend-home-productized-mobile.png` | 商品列表接口未确认，首页使用已知演示 SPU 详情入口 |
+| 商品详情 | `/products/:id` | 受后端限制 | 浏览器错误状态 | `frontend-product-detail-error.png` | 当前验证环境 Gateway 返回 502，成功态待后端联调 |
+| 搜索页 | `/search` | 受后端限制 | 浏览器错误状态 | `frontend-search-error.png` | mall-search / Elasticsearch 成功数据待联调 |
+| 登录页 | `/login` | 部分完成 | 浏览器页面渲染 | `frontend-login.png` | 登录成功态需后端 Auth/Gateway 联调 |
+| 注册页 | `/register` | 部分完成 | 浏览器页面渲染 | `frontend-register.png` | 注册成功态待后端联调 |
+| 账户资料 / 地址页 | `/account` | 受后端限制 | 浏览器受限路由错误状态 | `frontend-account-error.png` | 用户资料和地址成功态待后端联调 |
+| 购物车页 | `/cart` | 受后端限制 | 浏览器错误状态 | `frontend-cart-error.png` | 购物车 Redis 数据和商品远程查询成功态待联调 |
+| 订单确认页 | `/checkout` | 受后端限制 | 浏览器错误状态 | `frontend-checkout-error.png` | 地址、购物车和创建订单成功态待联调 |
+| 订单详情页 | `/orders/:orderNo` | 受后端限制 | 浏览器错误状态 | `frontend-order-detail-error.png` | 订单查询成功态待后端联调 |
+| 支付页 | `/pay/:orderNo` | 受后端限制 | 浏览器错误状态 | `frontend-pay-error.png` | 支付记录、通知和 MQ 成功态待联调 |
+| 秒杀活动 / 结果页 | `/seckill` | 受后端限制 | 浏览器错误状态 | `frontend-seckill-error.png` | 秒杀活动、请求和结果轮询成功态待联调 |
+| 后台看板 / 订单 / 商品页 | `/admin` | 受后端限制 | 浏览器错误状态 | `frontend-admin-error.png` | 后台聚合接口成功态和角色权限待联调 |
+| 技术演示页 | `/tech` | 部分完成 | 浏览器路由验证 | 技术点说明和可验证入口保留 | Sentinel、Nacos 热更新和 ES 成功证据待专项验证 |
 
 ---
 
