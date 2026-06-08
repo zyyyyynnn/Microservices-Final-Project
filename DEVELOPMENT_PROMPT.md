@@ -16,7 +16,7 @@
   → [已完成] 认证与网关运行闭环（mall-user / mall-auth / mall-gateway）
   → [已完成] 交易主链路（Product / Inventory / Cart / Order / Seata AT）
   → [已完成] 支付与 MQ
-  → [当前] 前端完整演示系统
+  → [当前] 前端演示系统产品化页面整改
   → 技术亮点与专项验证
   → 测试资产
   → 最终报告与答辩材料
@@ -74,8 +74,8 @@
 - 不要求所有 Feign Client 配置 fallbackFactory；
 - 业务服务 Nacos 配置加载已在核心链路验收中验证，Nacos 热更新仍待验证；
 - Seata AT 真实业务回滚已通过验收。
-- 当前仓库尚无前端源码；README 与 DESIGN 已声明前端技术栈和产品设计基线；
-- 前端完整演示系统是必做阶段，不是可选项。
+- 当前仓库已新增 `mall-frontend`，但仅完成基础工程、路由骨架、接口入口和基础错误反馈；
+- 前端完整演示系统是必做阶段，不是可选项；当前状态为"部分实现"，后续必须按 `DESIGN.md` 的 Frontend Page Completion Matrix 完成产品化页面整改。
 
 ---
 
@@ -225,21 +225,24 @@ mall-message
 
 ---
 
-## 8. 第五阶段：前端完整演示系统（当前任务）
+## 8. 第五阶段：前端演示系统产品化页面整改（当前任务）
 
-> **当前正式开发起点。** 后端核心链路已完成运行验收，下一步必须搭建前端完整演示系统，用浏览器展示 MallCloud 微商城主要功能。
+> **当前正式开发起点。** 后端核心链路已完成运行验收，前端基础工程和接口入口断点已新增；下一步必须按 `DESIGN.md` 的 Frontend Page Completion Matrix 完成产品化页面整改，用浏览器展示 MallCloud 微商城主要功能。
 
 ### 完成标准
 
-- 新建 Vue 3 + Vite + TypeScript 前端工程；
-- 使用 Element Plus、Axios、Pinia；
+- 保留现有 Vue 3 + Vite + TypeScript 前端工程；
+- 继续使用 Element Plus、Axios、Pinia，不引入平行组件库或设计系统；
+- 按 `DESIGN.md` 的 Frontend Page Completion Matrix 逐页整改；
+- 商品详情、搜索、结算、订单详情、支付、秒杀轮询、后台看板 / 订单 / 商品等页面达到产品化展示标准；
 - 能通过 Gateway 调用后端接口；
 - 登录后保存并携带 Access Token；
 - 支持 Token 失效、无权限和接口错误提示；
-- 覆盖公共端、用户端、秒杀端、商家/管理员端和技术演示页；
+- 覆盖公共端、用户端、秒杀端、商家/管理员端和技术演示页，并逐页记录完成状态；
+- 业务页面不得以 raw JSON、接口调试面板或基础渲染截图作为主要完成证据；
 - 不使用 mock 伪造未完成后端能力；
-- 浏览器真实验证通过；
-- 保存截图或录屏证据；
+- 浏览器真实验证必须覆盖桌面端、移动端、主流程、状态反馈和错误状态；
+- 保存逐页截图或录屏证据；
 - 同步 README、DESIGN、FINAL_REPORT 和测试文档。
 
 ### 功能范围
