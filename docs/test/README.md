@@ -54,6 +54,9 @@ docs/test/
 - `docs/test/jmeter/search-load.jmx`
 - `docs/test/jmeter/order-load.jmx`
 - `docs/test/jmeter/seckill-stress.jmx`
+- `scripts/run-newman.ps1`
+- `scripts/run-jmeter.ps1`
+- `scripts/run-special-checks.ps1`
 
 以上资产已完成 JSON/XML 静态解析校验；尚未在完整后端环境中执行，不代表接口、性能或 Sentinel 结果已通过。
 
@@ -216,7 +219,26 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 
 ---
 
-## 4.5 前端页面验收
+## 4.5 技术专项冒烟检查
+
+```powershell
+pwsh .\scripts\run-special-checks.ps1
+```
+
+该脚本只做只读可达性检查，覆盖：
+
+- Nacos 控制台；
+- Sentinel Dashboard；
+- Elasticsearch `_cluster/health`；
+- Gateway `/actuator/health`；
+- 搜索热词和商品搜索；
+- 秒杀活动接口。
+
+如果 Gateway、业务服务或中间件未启动，脚本会返回失败。可使用 `-AllowFailures` 保留失败输出但不让命令返回非 0，便于记录当前环境状态。该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
+
+---
+
+## 4.6 前端页面验收
 
 前端验收不得只检查首页可渲染。最终至少应覆盖：
 
@@ -229,7 +251,7 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 
 每个页面至少记录桌面端和移动端截图、主操作路径、loading / empty / error / disabled / success 中适用状态、后端接口联调结果和未完成原因。业务页面不得以 raw JSON 或接口调试面板作为主要验收证据。
 
-### 4.5.1 本轮前端页面整改验收矩阵
+### 4.6.1 本轮前端页面整改验收矩阵
 
 | 页面 | 路由 | 实现状态 | 验证方式 | 证据或说明 | 未完成原因 |
 |---|---|---|---|---|---|

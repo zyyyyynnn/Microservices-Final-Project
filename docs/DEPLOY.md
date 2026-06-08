@@ -13,12 +13,13 @@
 | 方式 | 状态 | 用途 |
 |---|---|---|
 | PowerShell 启动中间件 | 已提供，待完整验证 | 本地开发与答辩 |
+| BAT/PowerShell 一键启停脚本 | 已提供，待完整启动验证 | 本地联调和演示辅助 |
 | PowerShell 初始化数据库 | 已提供，待完整验证 | 初始化业务库和演示数据 |
 | IDE 启动微服务 | 当前推荐 | 开发、联调、演示 |
 | `docker-compose.all.yml` 全栈 | 实验性 | 构建文件和组合启动链路待修复 |
 | Kubernetes 全栈 | 规划项 | 当前仅有部分中间件和 Gateway 示例 |
 
-本文件不引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh`、`start-all.*` 或分库 SQL 文件。
+本文件不引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh` 或分库 SQL 文件。`start-all.bat`、`stop-all.bat` 及对应 PowerShell 脚本已存在，但完整启动结果仍需实际验证后记录。
 
 ---
 
@@ -295,7 +296,7 @@ mall-frontend
 
 首次启动：
 
-当前前端工程可用于本地启动、构建、Gateway 代理和接口入口验证；完整产品化页面尚未验收，不得把基础渲染截图作为最终前端交付证据。
+当前前端工程已完成一轮产品化页面整改，可用于本地启动、构建、Gateway 代理和页面错误状态验证；完整交付仍需补充后端真实成功态联调、逐页成功截图和主流程操作证据。
 
 ```powershell
 Set-Location .\mall-frontend

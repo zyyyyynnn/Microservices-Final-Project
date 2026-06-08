@@ -86,6 +86,7 @@ mvn clean test -DskipTests=false
 | Postman 集合 | 已建立，工具链已验证 | `docs/test/postman/mallcloud.postman_collection.json`、`docs/test/postman/local.postman_environment.json`；Newman 已可执行，Gateway 未启动时 28 个请求全部连接失败，业务通过率待完整后端环境复测 |
 | JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试因 Gateway 未启动未运行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
+| 技术专项冒烟入口 | 已建立，已执行一次当前环境检查 | `scripts/run-special-checks.ps1` 可检查 Nacos、Sentinel、Elasticsearch、Gateway、搜索和秒杀活动端点可达性；当前仅 Nacos 控制台返回 200，Sentinel、Elasticsearch、Gateway、搜索和秒杀端点不可达，不能标记为专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化页面整改和浏览器基础验证；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
@@ -241,7 +242,7 @@ docs/test/postman/summary/newman-20260609.md
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；
-- 前端当前为基础工程和接口入口断点，不能作为完整产品化商城前端交付；
+- 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
 - 某些性能目标未达到；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 

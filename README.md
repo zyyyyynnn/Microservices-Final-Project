@@ -3,7 +3,7 @@
 MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。项目目标不是堆砌功能，而是以合理规模完成一条可运行、可测试、可讲清楚的交易主链路，并展示注册配置中心、网关、服务调用、分布式事务、消息队列、限流熔断等核心能力。
 
 > 团队规模：5 人
-> 当前阶段：前端产品化页面整改已完成一轮；下一阶段为后端真实联调、技术亮点专项验证和测试资产补齐。
+> 当前阶段：前端产品化页面整改已完成一轮；当前推进技术亮点专项验证、后端真实联调和测试资产补齐。
 
 ---
 
@@ -48,8 +48,9 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Docker 中间件 | 已验证 | `docker-compose.middleware.yml` 已提供 |
 | Docker 全栈 | 规划项 | 构建文件和启动链路尚未完整 |
 | Kubernetes 全栈 | 规划项 | 当前仅提供部分示例 manifest |
-| Postman 测试 | 已建立待运行 | 已新增 `docs/test/postman/mallcloud.postman_collection.json` 和本地环境；Newman 报告待真实执行 |
-| JMeter 测试 | 已建立待运行 | 已新增搜索、订单、秒杀三套 JMeter 脚本；JTL 和 HTML 报告待真实执行 |
+| Postman 测试 | 已建立，工具链已验证 | 已新增 `docs/test/postman/mallcloud.postman_collection.json` 和本地环境；Gateway 未启动时 Newman 运行失败，业务通过率待完整后端环境复测 |
+| JMeter 测试 | 已建立，工具链已验证 | 已新增搜索、订单、秒杀三套 JMeter 脚本；工具链可执行，负载和压力报告待完整后端环境执行 |
+| 技术专项检查 | 已建立待运行 | `scripts/run-special-checks.ps1` 可做 Nacos、Sentinel、Elasticsearch、Gateway、搜索和秒杀端点冒烟检查；不等同于专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | `mall-frontend` 已完成产品化页面整改，覆盖首页、商品详情、搜索、登录、注册、账户、购物车、结算、订单详情、支付、秒杀和后台；浏览器已验证 502/后端不可用错误状态，真实后端业务联调待补充 |
 
 状态含义见 `docs/PROJECT_STANDARD.md`。

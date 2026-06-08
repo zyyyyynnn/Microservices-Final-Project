@@ -54,6 +54,14 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 
 该脚本优先使用本机已安装的 `jmeter`；未安装时按需下载 Apache JMeter 到 `.tools/`，输出 JTL 到 `docs/test/jmeter/results/`，输出 HTML 报告到 `docs/test/jmeter/report/`。
 
+技术专项冒烟检查：
+
+```powershell
+pwsh .\scripts\run-special-checks.ps1
+```
+
+该脚本只检查 Nacos、Sentinel、Elasticsearch、Gateway、搜索和秒杀活动端点是否可达。它不能替代 Newman、JMeter 或专项截图报告；失败项不得写成已验证。
+
 ## 必要环境
 
 | 依赖 | 版本 | 说明 |
