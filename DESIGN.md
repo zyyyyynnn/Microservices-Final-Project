@@ -6,7 +6,7 @@
 > 设计语言：白蓝线条极简风（White-Blue Lineart Minimalist）
 > 核心原则：零动效（no transition / no animation / no easing）
 > 最后更新：2026-06-08
-> 当前前端状态：`mall-frontend` 已完成基础工程、接口入口和技术演示断点；完整产品化页面仍需整改，不得作为最终前端交付完成。
+> 当前前端状态：`mall-frontend` 已完成一轮产品化页面整改；后端真实成功态联调、逐页成功截图和专项技术验证仍需补充，不得直接标记为最终完成。
 
 ---
 
@@ -602,6 +602,8 @@ import './styles/element-theme.css';
 
 前端验收时必须逐行填写实现状态、证据路径和未完成原因。未满足本矩阵的页面只能标记为"部分实现"或"未完成"。
 
+本轮整改已在 `docs/test/README.md` 的「本轮前端页面整改验收矩阵」记录逐页状态。当前结论为：前端页面结构已产品化，业务成功态仍受后端服务和联调进度限制。
+
 ---
 
 ## 14. Open Questions
@@ -632,3 +634,4 @@ import './styles/element-theme.css';
 | 2026-06-07 | 不把商品列表、后台独立登录、方法级 RBAC、核心链路运行结果写成已完成 | 当前代码与项目标准要求 |
 | 2026-06-08 | 新增 `mall-frontend` 单应用基础工程、接口入口和技术演示断点 | 第五阶段提交 `483e433 feat(frontend): add mallcloud demo app` |
 | 2026-06-08 | 复查后确认当前前端不能作为完整产品化页面交付，需按 Frontend Page Completion Matrix 整改 | 前端页面质量审查 |
+| 2026-06-08 | 完成一轮产品化页面整改，拆分 `/products/:id`、`/search`、`/register`、`/checkout`、`/orders/:orderNo`、`/pay/:orderNo` 等路由 | 前端页面整改 |

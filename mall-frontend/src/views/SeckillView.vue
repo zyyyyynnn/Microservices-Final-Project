@@ -1,47 +1,71 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
+import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
+import { field, money, seckillStatusMap, statusText } from '../utils/format';
 
 const loading = ref(false);
+const error = ref('');
 const activities = ref<UnknownRecord[]>([]);
-const detail = ref<UnknownRecord | null>(null);
+const selected = ref<UnknownRecord | null>(null);
+const requestId = ref('');
 const result = ref<UnknownRecord | null>(null);
-const form = reactive({
-  activityId: 1,
-  skuId: 9001,
-  quantity: 1,
-  requestId: '',
-});
+const submitting = ref(false);
+const quantity = ref(1);
 
-function display(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
+const selectedActivityId = computed(() => Number(field(selected.value, ['id', 'activityId'], 0)));
+const selectedSkuId = computed(() => Number(field(selected.value, ['skuId'], 0)));
 
 async function loadActivities() {
   loading.value = true;
+  error.value = '';
   try {
     activities.value = await mallApi.seckillActivities();
+    selected.value = activities.value[0] || null;
+  } catch (err) {
+    activities.value = [];
+    selected.value = null;
+    error.value = err instanceof Error ? err.message : '秒杀服务暂不可用';
   } finally {
     loading.value = false;
   }
 }
 
-async function loadDetail() {
-  detail.value = await mallApi.seckillActivity(form.activityId);
+async function loadDetail(activity: UnknownRecord) {
+  selected.value = activity;
+  const id = Number(field(activity, ['id', 'activityId'], 0));
+  if (!id) return;
+  try {
+    selected.value = await mallApi.seckillActivity(id);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '活动详情加载失败';
+  }
 }
 
 async function createSeckill() {
-  const response = await mallApi.createSeckill(form.activityId, form.skuId, form.quantity);
-  result.value = response;
-  const requestId = String(response.requestId || response.id || '');
-  if (requestId) form.requestId = requestId;
-  ElMessage.success('秒杀请求已提交');
+  if (!selectedActivityId.value || !selectedSkuId.value) return;
+  submitting.value = true;
+  try {
+    const response = await mallApi.createSeckill(selectedActivityId.value, selectedSkuId.value, quantity.value);
+    result.value = response;
+    requestId.value = String(field(response, ['requestId'], ''));
+    ElMessage.success('秒杀请求已提交');
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '秒杀请求失败';
+  } finally {
+    submitting.value = false;
+  }
 }
 
 async function queryResult() {
-  result.value = await mallApi.seckillResult(form.requestId);
+  if (!requestId.value) return;
+  try {
+    result.value = await mallApi.seckillResult(requestId.value);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '秒杀结果查询失败';
+  }
 }
 
 onMounted(loadActivities);
@@ -53,41 +77,62 @@ onMounted(loadActivities);
       <template #header>
         <div class="panel-title">秒杀活动</div>
       </template>
-      <el-button type="primary" :loading="loading" @click="loadActivities">刷新活动</el-button>
-      <el-table v-if="activities.length" :data="activities" class="stable-table">
-        <el-table-column prop="id" label="活动 ID" width="110" />
-        <el-table-column prop="skuId" label="SKU" width="110" />
-        <el-table-column prop="title" label="标题" min-width="160" />
-        <el-table-column prop="status" label="状态" width="100" />
-      </el-table>
-      <el-empty v-else description="暂无活动或服务未启动" />
+      <PageState
+        :loading="loading"
+        :error="error"
+        :empty="!loading && !error && activities.length === 0"
+        empty-title="暂无秒杀活动"
+        empty-description="请确认 mall-seckill、Redis 和 Gateway 路由已启动。"
+        @retry="loadActivities"
+      />
+      <div class="activity-list" v-if="activities.length">
+        <button
+          v-for="activity in activities"
+          :key="String(field(activity, ['id', 'activityId']))"
+          class="activity-card"
+          :class="{ active: field(activity, ['id', 'activityId']) === selectedActivityId }"
+          @click="loadDetail(activity)"
+        >
+          <strong>{{ field(activity, ['title', 'name'], `活动 ${field(activity, ['id', 'activityId'])}`) }}</strong>
+          <span>SKU {{ field(activity, ['skuId'], '待联调') }}</span>
+          <span>秒杀价 {{ money(field(activity, ['seckillPrice', 'price'], 0)) }}</span>
+          <el-tag size="small" effect="plain">{{ field(activity, ['status'], '状态待联调') }}</el-tag>
+        </button>
+      </div>
     </el-card>
 
     <el-card class="panel">
       <template #header>
-        <div class="panel-title">发起与查询</div>
+        <div class="panel-title">活动详情与结果</div>
       </template>
-      <el-form class="inline-form" label-position="top">
-        <el-form-item label="活动 ID">
-          <el-input-number v-model="form.activityId" :min="1" />
-        </el-form-item>
-        <el-form-item label="SKU">
-          <el-input-number v-model="form.skuId" :min="1" />
-        </el-form-item>
-        <el-form-item label="数量">
-          <el-input-number v-model="form.quantity" :min="1" />
-        </el-form-item>
-        <el-button plain @click="loadDetail">活动详情</el-button>
-        <el-button type="primary" @click="createSeckill">发起秒杀</el-button>
-      </el-form>
+      <el-descriptions v-if="selected" border :column="1">
+        <el-descriptions-item label="活动 ID">{{ selectedActivityId || '待联调' }}</el-descriptions-item>
+        <el-descriptions-item label="SKU">{{ selectedSkuId || '待联调' }}</el-descriptions-item>
+        <el-descriptions-item label="活动库存">{{ field(selected, ['stock', 'available', 'totalStock'], '待联调') }}</el-descriptions-item>
+        <el-descriptions-item label="限购">{{ field(selected, ['limitCount', 'userLimit'], '待联调') }}</el-descriptions-item>
+        <el-descriptions-item label="时间">{{ field(selected, ['startTime'], '待联调') }} ~ {{ field(selected, ['endTime'], '待联调') }}</el-descriptions-item>
+      </el-descriptions>
+      <el-empty v-else description="请选择秒杀活动" />
+      <div class="button-row mt">
+        <el-input-number v-model="quantity" :min="1" aria-label="秒杀数量" />
+        <el-button type="primary" :loading="submitting" :disabled="!selected || submitting" @click="createSeckill">
+          发起秒杀
+        </el-button>
+      </div>
+      <el-divider />
       <el-form class="inline-form" label-position="top">
         <el-form-item label="requestId">
-          <el-input v-model="form.requestId" />
+          <el-input v-model="requestId" placeholder="发起秒杀后返回" />
         </el-form-item>
-        <el-button plain :disabled="!form.requestId" @click="queryResult">查询结果</el-button>
+        <el-button plain :disabled="!requestId" @click="queryResult">查询结果</el-button>
       </el-form>
-      <pre class="json-box compact">{{ display(detail) }}</pre>
-      <pre class="json-box compact">{{ display(result) }}</pre>
+      <el-descriptions v-if="result" border :column="1" class="mt">
+        <el-descriptions-item label="结果状态">
+          {{ statusText(field(result, ['status'], 0), seckillStatusMap, String(field(result, ['status'], '待确认'))) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="订单号">{{ field(result, ['orderNo'], '待生成') }}</el-descriptions-item>
+        <el-descriptions-item label="消息">{{ field(result, ['message'], '待返回') }}</el-descriptions-item>
+      </el-descriptions>
     </el-card>
   </section>
 </template>
