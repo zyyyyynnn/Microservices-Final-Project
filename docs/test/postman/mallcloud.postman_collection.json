@@ -1,0 +1,281 @@
+{
+  "info": {
+    "_postman_id": "2bbdf1fb-d3dc-4a2b-8f28-40590912d6fb",
+    "name": "MallCloud Gateway Regression",
+    "description": "MallCloud 本地 Gateway 回归集合。请求体来自当前 Controller/DTO；Token、orderNo、requestId 由前置请求动态写入环境变量，不提交固定业务 Token。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({ key: 'X-Trace-Id', value: `postman-${Date.now()}` });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "Login success",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"loginType\": \"PASSWORD\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/auth/login", "host": ["{{BaseURL}}"], "path": ["api", "v1", "auth", "login"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));",
+                "pm.test('access token returned', () => pm.expect(body.data.accessToken).to.be.a('string').and.not.empty);",
+                "pm.environment.set('token', body.data.accessToken);",
+                "pm.environment.set('refreshToken', body.data.refreshToken || '');"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login wrong password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"wrong-password\",\n  \"loginType\": \"PASSWORD\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/auth/login", "host": ["{{BaseURL}}"], "path": ["api", "v1", "auth", "login"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('request completed', () => pm.expect(pm.response.code).to.be.oneOf([200, 400, 401]));",
+              "const body = pm.response.json();",
+              "pm.test('login rejected', () => pm.expect(body.code).to.not.eql(200));"
+            ] }
+          }]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/auth/refresh", "host": ["{{BaseURL}}"], "path": ["api", "v1", "auth", "refresh"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.environment.set('token', body.data.accessToken);",
+              "pm.environment.set('refreshToken', body.data.refreshToken || pm.environment.get('refreshToken'));"
+            ] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "02 Public Product Search",
+      "item": [
+        {
+          "name": "Category tree",
+          "request": { "method": "GET", "url": { "raw": "{{BaseURL}}/api/v1/categories/tree", "host": ["{{BaseURL}}"], "path": ["api", "v1", "categories", "tree"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Product detail",
+          "request": { "method": "GET", "url": { "raw": "{{BaseURL}}/api/v1/products/{{spuId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "products", "{{spuId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));", "pm.test('product data returned', () => pm.expect(body.data).to.be.an('object'));"] } }]
+        },
+        {
+          "name": "Search products",
+          "request": { "method": "GET", "url": { "raw": "{{BaseURL}}/api/v1/search/products?keyword=iPhone&pageNum=1&pageSize=10", "host": ["{{BaseURL}}"], "path": ["api", "v1", "search", "products"], "query": [{ "key": "keyword", "value": "iPhone" }, { "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Hot words",
+          "request": { "method": "GET", "url": { "raw": "{{BaseURL}}/api/v1/search/hot-words", "host": ["{{BaseURL}}"], "path": ["api", "v1", "search", "hot-words"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "03 Gateway Auth Boundaries",
+      "item": [
+        {
+          "name": "Order without token",
+          "request": { "method": "GET", "url": { "raw": "{{BaseURL}}/api/v1/orders/UNKNOWN", "host": ["{{BaseURL}}"], "path": ["api", "v1", "orders", "UNKNOWN"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('unauthorized', () => pm.expect(pm.response.code).to.be.oneOf([200, 401]));", "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.be.oneOf([20100, 20101, 20102, 401]);"] } }]
+        },
+        {
+          "name": "Order with invalid token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{invalidToken}}" }],
+            "url": { "raw": "{{BaseURL}}/api/v1/orders/UNKNOWN", "host": ["{{BaseURL}}"], "path": ["api", "v1", "orders", "UNKNOWN"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('invalid token rejected', () => pm.expect(pm.response.code).to.be.oneOf([200, 401]));", "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.be.oneOf([20100, 20101, 20102, 401]);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "04 User Cart Order Pay",
+      "item": [
+        {
+          "name": "Current user",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/users/me", "host": ["{{BaseURL}}"], "path": ["api", "v1", "users", "me"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Address list",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/users/me/addresses", "host": ["{{BaseURL}}"], "path": ["api", "v1", "users", "me", "addresses"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Add cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"skuId\": {{skuId}},\n  \"quantity\": 1\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/carts", "host": ["{{BaseURL}}"], "path": ["api", "v1", "carts"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Get cart",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/carts", "host": ["{{BaseURL}}"], "path": ["api", "v1", "carts"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Update cart quantity",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 2\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/carts/{{skuId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "carts", "{{skuId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Update cart selected",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"selected\": true\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/carts/{{skuId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "carts", "{{skuId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Create order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"addressId\": {{addressId}},\n  \"items\": [\n    {\n      \"skuId\": {{skuId}},\n      \"quantity\": 1\n    }\n  ],\n  \"remark\": \"postman-regression\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/orders", "host": ["{{BaseURL}}"], "path": ["api", "v1", "orders"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('orderNo returned', () => pm.expect(body.data.orderNo).to.be.a('string').and.not.empty);",
+              "pm.environment.set('orderNo', body.data.orderNo);"
+            ] }
+          }]
+        },
+        {
+          "name": "Get order",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/orders/{{orderNo}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "orders", "{{orderNo}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Inventory insufficient order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"addressId\": {{addressId}},\n  \"items\": [\n    {\n      \"skuId\": {{skuId}},\n      \"quantity\": 999999\n    }\n  ],\n  \"remark\": \"inventory-insufficient\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/orders", "host": ["{{BaseURL}}"], "path": ["api", "v1", "orders"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('request completed', () => pm.expect(pm.response.code).to.be.oneOf([200, 400, 409, 500]));", "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.not.eql(200);"] } }]
+        },
+        {
+          "name": "Create pay",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"orderNo\": \"{{orderNo}}\",\n  \"payChannel\": \"{{payChannel}}\"\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/pay/create", "host": ["{{BaseURL}}"], "path": ["api", "v1", "pay", "create"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));", "if (body.data && body.data.payNo) pm.environment.set('payNo', body.data.payNo);"] } }]
+        },
+        {
+          "name": "Pay notify",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{BaseURL}}/api/v1/pay/notify?out_trade_no={{orderNo}}&trade_no=POSTMAN-{{$timestamp}}&trade_status=TRADE_SUCCESS", "host": ["{{BaseURL}}"], "path": ["api", "v1", "pay", "notify"], "query": [{ "key": "out_trade_no", "value": "{{orderNo}}" }, { "key": "trade_no", "value": "POSTMAN-{{$timestamp}}" }, { "key": "trade_status", "value": "TRADE_SUCCESS" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('notify accepted', () => pm.expect(pm.response.text()).to.be.oneOf(['success', 'fail']));"] } }]
+        },
+        {
+          "name": "Pay record",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/pay/record/{{orderNo}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "pay", "record", "{{orderNo}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Inventory stock",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/inventory/stock/{{skuId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "inventory", "stock", "{{skuId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "05 Seckill Admin",
+      "item": [
+        {
+          "name": "Seckill activities",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/seckill/activities", "host": ["{{BaseURL}}"], "path": ["api", "v1", "seckill", "activities"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Create seckill",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json;charset=UTF-8" }],
+            "body": { "mode": "raw", "raw": "{\n  \"skuId\": {{skuId}},\n  \"quantity\": 1\n}" },
+            "url": { "raw": "{{BaseURL}}/api/v1/seckill/{{activityId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "seckill", "{{activityId}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));", "if (body.data && body.data.requestId) pm.environment.set('requestId', body.data.requestId);"] } }]
+        },
+        {
+          "name": "Get seckill result",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/seckill/result/{{requestId}}", "host": ["{{BaseURL}}"], "path": ["api", "v1", "seckill", "result", "{{requestId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Admin dashboard",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/admin/dashboard", "host": ["{{BaseURL}}"], "path": ["api", "v1", "admin", "dashboard"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Admin orders",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/admin/orders?pageNum=1&pageSize=10", "host": ["{{BaseURL}}"], "path": ["api", "v1", "admin", "orders"], "query": [{ "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        },
+        {
+          "name": "Admin products",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{BaseURL}}/api/v1/admin/products?pageNum=1&pageSize=10", "host": ["{{BaseURL}}"], "path": ["api", "v1", "admin", "products"], "query": [{ "key": "pageNum", "value": "1" }, { "key": "pageSize", "value": "10" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('business code 200', () => pm.expect(pm.response.json().code).to.eql(200));"] } }]
+        }
+      ]
+    }
+  ]
+}
