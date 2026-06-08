@@ -465,6 +465,7 @@ rem  Subroutine: START_SERVICE
 rem  Args: %1=service-name %2=port
 rem ============================================================
 :START_SERVICE
+setlocal EnableDelayedExpansion
 set "_svc_name=%~1"
 set "_svc_port=%~2"
 set "_svc_jar="
@@ -475,6 +476,7 @@ for /f "tokens=*" %%j in ('pwsh.exe -NoProfile -Command "Get-ChildItem -Path '%R
 if not defined "_svc_jar" (
     echo [ERROR] %_svc_name% JAR not found
     echo [INFO] Run Maven build first, or check target directory
+    endlocal
     exit /b 1
 )
 
@@ -482,15 +484,16 @@ rem 检查状态文件中的已有记录
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; if ($s.ContainsKey('%_svc_name%') -and $s['%_svc_name%'].pid) { $s['%_svc_name%'].pid } else { '' }"') do set "_existing_pid=%%p"
 
 if defined "_existing_pid" (
-    if not "%_existing_pid%"=="" (
+    if not "!_existing_pid!"=="" (
         rem 检查 PID 是否仍存在且命令行匹配
-        for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command "$p = Get-Process -Id %_existing_pid% -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=%_existing_pid%').CommandLine; if ($cmd -match '%_svc_name%') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
-        if "%_pid_check%"=="MATCH" (
-            echo [SKIP] %_svc_name% already running, PID=%_existing_pid%, port=%_svc_port%
+        for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command "$p = Get-Process -Id !_existing_pid! -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_existing_pid!').CommandLine; if ($cmd -match '!_svc_name!') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
+        if "!_pid_check!"=="MATCH" (
+            echo [SKIP] !_svc_name! already running, PID=!_existing_pid!, port=!_svc_port!
+            endlocal
             exit /b 0
         )
-        if "%_pid_check%"=="MISMATCH" (
-            echo [WARN] %_svc_name% state PID=%_existing_pid% does not match, clearing
+        if "!_pid_check!"=="MISMATCH" (
+            echo [WARN] !_svc_name! state PID=!_existing_pid! does not match, clearing
             pwsh.exe -NoProfile -Command "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('%_svc_name%'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
     )
@@ -500,15 +503,17 @@ rem 检查端口是否已被占用
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command "$c = Get-NetTCPConnection -LocalPort %_svc_port% -State Listen -ErrorAction SilentlyContinue; if ($c) { $c[0].OwningProcess } else { '' }"') do set "_port_pid=%%p"
 
 if defined "_port_pid" (
-    if not "%_port_pid%"=="" (
-        if "%_port_pid%"=="%_existing_pid%" (
-            echo [SKIP] %_svc_name% port %_svc_port% already listened by PID=%_port_pid%
+    if not "!_port_pid!"=="" (
+        if "!_port_pid!"=="!_existing_pid!" (
+            echo [SKIP] !_svc_name! port !_svc_port! already listened by PID=!_port_pid!
+            endlocal
             exit /b 0
         )
-        for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=%_port_pid%' -ErrorAction SilentlyContinue).CommandLine"') do set "_port_cmd=%%c"
-        echo [ERROR] Port %_svc_port% already in use by another process
-        echo [PID]  %_port_pid%
-        echo [CMD]  %_port_cmd%
+        for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=!_port_pid!' -ErrorAction SilentlyContinue).CommandLine"') do set "_port_cmd=%%c"
+        echo [ERROR] Port !_svc_port! already in use by another process
+        echo [PID]  !_port_pid!
+        echo [CMD]  !_port_cmd!
+        endlocal
         exit /b 1
     )
 )
@@ -519,39 +524,43 @@ echo [START] %_svc_name% (port %_svc_port%) ...
 for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command "$p = Start-Process -FilePath 'java.exe' -ArgumentList '-jar','%_svc_jar%' -WorkingDirectory '%ROOT%%_svc_name%' -RedirectStandardOutput '%LOGS_DIR%\%_svc_name%.log' -RedirectStandardError '%LOGS_DIR%\%_svc_name%.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "_svc_pid=%%i"
 
 if not defined "_svc_pid" (
-    echo [ERROR] %_svc_name% process creation failed
+    echo [ERROR] !_svc_name! process creation failed
+    endlocal
     exit /b 1
 )
 
 rem 等待端口就绪
-echo [WAIT] %_svc_name% PID=%_svc_pid% waiting for port %_svc_port% ...
+echo [WAIT] !_svc_name! PID=!_svc_pid! waiting for port !_svc_port! ...
 set /a "_w=0"
 :WAIT_SVC
 set /a "_w+=1"
-if %_w% GTR 30 (
-    echo [WARN] %_svc_name% port %_svc_port% timeout
-    echo [LOG]  %LOGS_DIR%\%_svc_name%.log
-    echo [ERR]  %LOGS_DIR%\%_svc_name%.err.log
-    pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['%_svc_name%'] = @{name='%_svc_name%';type='backend';pid=%_svc_pid%;port=%_svc_port%;jar='%_svc_jar%';status='Timeout';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+if !_w! GTR 30 (
+    echo [WARN] !_svc_name! port !_svc_port! timeout
+    echo [LOG]  %LOGS_DIR%\!_svc_name!.log
+    echo [ERR]  %LOGS_DIR%\!_svc_name!.err.log
+    pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';status='Timeout';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+    endlocal
     exit /b 0
 )
 rem 检查进程是否提前退出
-tasklist /fi "PID eq %_svc_pid%" 2>nul | findstr /i "java" >nul 2>&1
+tasklist /fi "PID eq !_svc_pid!" 2>nul | findstr /i "java" >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] %_svc_name% process exited (PID=%_svc_pid%)
+    echo [ERROR] !_svc_name! process exited (PID=!_svc_pid!)
     echo [ERR]  Last 10 lines:
-    pwsh.exe -NoProfile -Command "Get-Content '%LOGS_DIR%\%_svc_name%.err.log' -Tail 10 -ErrorAction SilentlyContinue"
+    pwsh.exe -NoProfile -Command "Get-Content '%LOGS_DIR%\!_svc_name!.err.log' -Tail 10 -ErrorAction SilentlyContinue"
+    endlocal
     exit /b 1
 )
-pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',%_svc_port%,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
+pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',!_svc_port!,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
 if errorlevel 1 (
     timeout /t 3 /nobreak >nul
     goto :WAIT_SVC
 )
 
-echo [OK]   %_svc_name% PID=%_svc_pid% port=%_svc_port% ready
+echo [OK]   !_svc_name! PID=!_svc_pid! port=!_svc_port! ready
 
 rem 记录到状态文件
-pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['%_svc_name%'] = @{name='%_svc_name%';type='backend';pid=%_svc_pid%;port=%_svc_port%;jar='%_svc_jar%';workingDirectory='%ROOT%%_svc_name%';stdoutLog='%LOGS_DIR%\%_svc_name%.log';stderrLog='%LOGS_DIR%\%_svc_name%.err.log';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';workingDirectory='%ROOT%!_svc_name!';stdoutLog='%LOGS_DIR%\!_svc_name!.log';stderrLog='%LOGS_DIR%\!_svc_name!.err.log';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
 
+endlocal
 exit /b 0
