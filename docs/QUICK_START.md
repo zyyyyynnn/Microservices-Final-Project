@@ -398,7 +398,7 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 
 待完成：
 
-1. 前端完整演示系统（当前阶段）；
+1. 前端完整演示系统浏览器联调和截图证据；
 2. Elasticsearch 搜索完整验收；
 3. 秒杀完整链路验收；
 4. Sentinel 规则限流/熔断实测；
@@ -409,6 +409,20 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
 
 ---
 
-## 15. 前端启动（待实现）
+## 15. 前端启动
 
-当前仓库尚未提交前端工程。前端完整演示系统为下一阶段必做任务，计划使用 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。前端不得直接调用内部微服务端口，所有业务请求统一经 Gateway。
+当前仓库已新增 `mall-frontend`，技术栈为 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。
+
+```powershell
+Set-Location .\mall-frontend
+npm install
+npm run dev
+```
+
+默认访问：
+
+```text
+http://localhost:5173
+```
+
+Vite 开发服务器通过代理把 `/api/v1/**` 转发到 `http://localhost:9000`，前端不得直接调用内部微服务端口。后端核心服务未启动时，页面会展示接口错误，不使用 mock 数据伪造成功。

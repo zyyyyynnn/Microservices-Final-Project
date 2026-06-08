@@ -83,7 +83,7 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
-| 前端完整演示系统 | 未完成，当前阶段 | 待浏览器验证 |
+| 前端完整演示系统 | 已实现待后端联调 | `mall-frontend` 构建通过；浏览器基础验证截图见 `docs/test/screenshots/frontend-home-desktop.png`、`docs/test/screenshots/frontend-home-mobile.png`；后端接口联调待补充 |
 
 ---
 

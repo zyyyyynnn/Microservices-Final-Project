@@ -27,6 +27,8 @@ docs/test/
     ├── nacos-refresh-after.png
     ├── sentinel-limit.png
     ├── seata-rollback.png
+    ├── frontend-home-desktop.png
+    ├── frontend-home-mobile.png
     └── resource-monitoring.png
 ```
 
