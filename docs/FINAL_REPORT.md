@@ -83,6 +83,8 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
+| Postman 集合 | 已建立待运行 | `docs/test/postman/mallcloud.postman_collection.json`、`docs/test/postman/local.postman_environment.json`；Newman 报告待生成 |
+| JMeter 脚本 | 已建立待运行 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JTL/HTML 报告待生成 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化页面整改和浏览器基础验证；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
@@ -98,7 +100,7 @@ docs/test/postman/summary/newman-20260609.md
 | 指标 | 结果 |
 |---|---|
 | 核心接口数量 | 待填写，要求 ≥ 6 |
-| 请求总数 | 待填写，要求 ≥ 20 |
+| 请求总数 | 集合已建立，待 Newman 执行统计，要求 ≥ 20 |
 | 断言总数 | 待填写 |
 | 通过 | 待填写 |
 | 失败 | 待填写 |
@@ -143,6 +145,8 @@ docs/test/postman/summary/newman-20260609.md
 ## 7. JMeter 负载与压力测试
 
 ### 7.1 测试环境
+
+当前状态：JMeter 脚本已建立，尚未执行负载或压力测试；以下指标不得在运行前填写估算值。
 
 | 项目 | 内容 |
 |---|---|

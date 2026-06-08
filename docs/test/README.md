@@ -47,6 +47,16 @@ docs/test/
 
 不存在的文件不得写成已生成。
 
+当前已建立：
+
+- `docs/test/postman/mallcloud.postman_collection.json`
+- `docs/test/postman/local.postman_environment.json`
+- `docs/test/jmeter/search-load.jmx`
+- `docs/test/jmeter/order-load.jmx`
+- `docs/test/jmeter/seckill-stress.jmx`
+
+以上资产已完成 JSON/XML 静态解析校验；尚未在完整后端环境中执行，不代表接口、性能或 Sentinel 结果已通过。
+
 `frontend-home-desktop.png` 和 `frontend-home-mobile.png` 只能证明前端工程可渲染和基础响应式可用，不能证明完整前端页面已交付。前端页面验收必须补充逐页截图、主流程操作结果、状态反馈和未完成项说明。
 
 `frontend-*-error.png` 表示本轮在后端未完整可用或 Gateway 返回 502 时验证了页面错误状态，不代表对应业务成功态已完成。
@@ -88,6 +98,8 @@ git rev-parse HEAD
 - 至少验证一次 OpenFeign 调用链；
 - 不提交固定 Token；
 - 不使用 `dummy` 或 `bad_data` 机械填充请求体。
+
+当前集合已建立，包含登录、公共商品/搜索、Gateway 鉴权边界、用户/购物车/订单/支付、秒杀和后台请求。执行结果必须以 Newman 报告为准，未执行前不得填写通过数量。
 
 推荐环境变量：
 
@@ -142,6 +154,8 @@ newman run .\docs\test\postman\mallcloud.postman_collection.json `
 docs/test/jmeter/search-load.jmx
 ```
 
+当前脚本已建立，支持 `-JBaseURL`、`-Jusers`、`-Jrampup`、`-Jduration`、`-Jkeyword` 参数覆盖；尚未生成 JTL 或 HTML 报告。
+
 至少执行：
 
 - 50 用户；
@@ -156,6 +170,8 @@ docs/test/jmeter/search-load.jmx
 ```text
 docs/test/jmeter/order-load.jmx
 ```
+
+当前脚本已建立，登录后动态提取 Token，再创建订单并提取 `orderNo`；尚未执行负载测试。
 
 要求：
 
@@ -173,6 +189,8 @@ docs/test/jmeter/order-load.jmx
 ```text
 docs/test/jmeter/seckill-stress.jmx
 ```
+
+当前脚本已建立，登录后发起秒杀并查询结果，用于阶梯压力和 Sentinel 限流观察；尚未执行压力测试。
 
 阶梯并发：
 

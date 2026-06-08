@@ -48,8 +48,8 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Docker 中间件 | 已验证 | `docker-compose.middleware.yml` 已提供 |
 | Docker 全栈 | 规划项 | 构建文件和启动链路尚未完整 |
 | Kubernetes 全栈 | 规划项 | 当前仅提供部分示例 manifest |
-| Postman 测试 | 待重建 | 旧集合为模板生成，不能作为最终证据 |
-| JMeter 测试 | 未完成 | 需要新增可执行脚本和报告 |
+| Postman 测试 | 已建立待运行 | 已新增 `docs/test/postman/mallcloud.postman_collection.json` 和本地环境；Newman 报告待真实执行 |
+| JMeter 测试 | 已建立待运行 | 已新增搜索、订单、秒杀三套 JMeter 脚本；JTL 和 HTML 报告待真实执行 |
 | 前端演示系统 | 部分实现，受后端限制 | `mall-frontend` 已完成产品化页面整改，覆盖首页、商品详情、搜索、登录、注册、账户、购物车、结算、订单详情、支付、秒杀和后台；浏览器已验证 502/后端不可用错误状态，真实后端业务联调待补充 |
 
 状态含义见 `docs/PROJECT_STANDARD.md`。
