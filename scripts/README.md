@@ -1,31 +1,36 @@
 # MallCloud 启动脚本
 
-## 快速开始
+## 快速开始（推荐 BAT 版本）
 
-```powershell
-# 启动全部服务（基础设施 + 后端 + 前端）
-pwsh .\scripts\start-all.ps1
+```bat
+rem 启动全部服务（基础设施 + 后端 + 前端）
+start-all.bat
 
-# 停止全部服务
-pwsh .\scripts\stop-all.ps1
+rem 停止全部服务
+stop-all.bat
 ```
 
-## 启动选项
+双击 `start-all.bat` 或 `stop-all.bat` 即可运行。
+
+## BAT 启动选项
+
+```bat
+start-all.bat --skip-infrastructure    rem 跳过 Docker 基础设施
+start-all.bat --skip-backend           rem 只启动前端
+start-all.bat --skip-frontend          rem 只启动后端
+start-all.bat --clean-logs             rem 启动前清理旧日志
+start-all.bat --no-build               rem 跳过 Maven 构建
+start-all.bat --no-pause               rem 结束后不暂停（自动化用）
+```
+
+## PowerShell 版本（备选）
 
 ```powershell
-# 跳过前端，只启动后端
+pwsh .\scripts\start-all.ps1
+pwsh .\scripts\stop-all.ps1
+
 pwsh .\scripts\start-all.ps1 -SkipFrontend
-
-# 跳过后端，只启动前端
-pwsh .\scripts\start-all.ps1 -SkipBackend
-
-# 跳过 Docker 基础设施（MySQL/Redis/Nacos 等已手动启动时）
 pwsh .\scripts\start-all.ps1 -SkipInfrastructure
-
-# 前端依赖不存在时直接报错，不自动安装
-pwsh .\scripts\start-all.ps1 -NoInstall
-
-# 启动前清理旧日志
 pwsh .\scripts\start-all.ps1 -CleanLogs
 ```
 
@@ -33,12 +38,12 @@ pwsh .\scripts\start-all.ps1 -CleanLogs
 
 | 依赖 | 版本 | 说明 |
 |---|---|---|
-| PowerShell | 7+ | 脚本运行环境 |
 | JDK | 21 | 后端编译与运行 |
-| Maven | 3.9+ | 后端构建 |
+| Maven | 3.9+ | 后端构建（或使用 mvnw.cmd） |
 | Node.js | 18+ | 前端开发服务器 |
-| npm | - | 前端包管理（根据 package-lock.json 自动选择） |
-| Docker | - | 基础设施容器（使用 -SkipInfrastructure 可跳过） |
+| npm | - | 前端包管理 |
+| Docker Desktop | - | 基础设施容器 |
+| PowerShell | 7+ | BAT 脚本内部调用 |
 
 ## 服务端口
 
@@ -65,18 +70,43 @@ pwsh .\scripts\start-all.ps1 -CleanLogs
 - 状态文件：`.runtime/processes.json`
 - 每个服务有独立的 `.log` 和 `.err.log` 文件
 
-## 常见失败原因
+查看某个服务的错误日志：
 
-| 现象 | 原因 | 解决 |
-|---|---|---|
-| `未找到 java` | JDK 未安装或不在 PATH | 安装 JDK 21 |
-| `需要 JDK 21` | Java 版本不对 | 切换到 JDK 21 |
-| `未找到 mvn` | Maven 未安装或不在 PATH | 安装 Maven 3.9+ |
-| `Docker Compose 启动失败` | Docker 未运行 | 启动 Docker Desktop |
-| `Maven 构建失败` | 编译错误 | 检查 `.runtime/logs/build.log` |
-| `端口已被占用` | 上次进程未停止 | 执行 `pwsh .\scripts\stop-all.ps1` |
-| `node_modules 不存在` | 前端依赖未安装 | 脚本会自动执行 npm install |
-| `npm install 失败` | 网络问题 | 检查网络或使用镜像源 |
+```bat
+type .runtime\logs\mall-auth.err.log
+```
+
+## 双击运行行为
+
+- `start-all.bat` 双击后会在当前窗口执行，结束后显示 `pause` 等待按键
+- `stop-all.bat` 同理
+- 不会弹出额外的 PowerShell 窗口（除前端 Vite 进程外）
+
+## 常见闪退原因
+
+| 原因 | 说明 |
+|---|---|
+| 缺少 `call` | BAT 调用 `.cmd` 程序（npm/mvn）必须用 `call`，否则控制流不返回 |
+| 路径含空格或中文 | 脚本使用 `%~dp0` 和双引号处理，一般不会出问题 |
+| Docker daemon 未运行 | 启动 Docker Desktop 后重试 |
+| JAR 不存在 | 先执行 Maven 构建 |
+| 端口被占用 | 脚本会检测并报告冲突进程 |
+
+## 端口冲突处理
+
+如果某个端口被其他进程占用，脚本会输出：
+
+```
+[ERROR] 端口 9002 已被其他进程占用
+[PID]  5678
+[CMD]  java.exe ...
+```
+
+手动停止冲突进程：
+
+```bat
+taskkill /PID 5678 /F
+```
 
 ## 脚本不会自动安装
 
