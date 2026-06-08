@@ -172,10 +172,10 @@ SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
 ## 6. 初始化数据库
 
 ```powershell
-.\scripts\init-db.ps1
+.\scripts\init-db.ps1 -Force
 ```
 
-脚本通过 PowerShell 按 UTF-8 读取 SQL 并通过 stdin 传给 MySQL Client，避免中文路径下 `mysql source` 解析失败。脚本执行：
+脚本通过 PowerShell 按 UTF-8 读取 SQL 并通过 stdin 传给 MySQL Client，避免中文路径下 `mysql source` 解析失败。该脚本会重建业务表并写入演示数据，默认拒绝执行；确认允许重置数据后必须显式传入 `-Force`。脚本执行：
 
 1. `db/init/00-create-databases.sql`
 2. `db/init/seed.sql`
@@ -265,6 +265,8 @@ mvn clean test -DskipTests=false
 ```powershell
 .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
 ```
+
+默认存在失败服务时脚本返回 1；如需允许 `mall-job` 端口占用等非核心失败并继续联调，显式追加 `-AllowPartial`，并记录失败原因。
 
 核心链路 IDE 推荐顺序：
 

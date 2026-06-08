@@ -1,29 +1,6 @@
 # MallCloud 启动脚本
 
-## 快速开始（推荐 BAT 版本）
-
-```bat
-rem 启动全部服务（基础设施 + 后端 + 前端）
-start-all.bat
-
-rem 停止全部服务
-stop-all.bat
-```
-
-双击 `start-all.bat` 或 `stop-all.bat` 即可运行。
-
-## BAT 启动选项
-
-```bat
-start-all.bat --skip-infrastructure    rem 跳过 Docker 基础设施
-start-all.bat --skip-backend           rem 只启动前端
-start-all.bat --skip-frontend          rem 只启动后端
-start-all.bat --clean-logs             rem 启动前清理旧日志
-start-all.bat --no-build               rem 跳过 Maven 构建
-start-all.bat --no-pause               rem 结束后不暂停（自动化用）
-```
-
-## PowerShell 版本（备选）
+## 快速开始（PowerShell 7+）
 
 ```powershell
 pwsh .\scripts\start-all.ps1
@@ -32,11 +9,15 @@ pwsh .\scripts\stop-all.ps1
 pwsh .\scripts\start-all.ps1 -SkipFrontend
 pwsh .\scripts\start-all.ps1 -SkipInfrastructure
 pwsh .\scripts\start-all.ps1 -CleanLogs
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -SkipBuild
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -AllowPartial
 ```
+
+默认存在失败服务时 `start-all.ps1` 返回 1；只有显式使用 `-AllowPartial` 时才允许记录失败并返回 0。使用 `-SkipFrontend` 时不会检查 Node.js/npm；使用 `-SkipBuild` 时不会执行 Maven 构建，只复用已有 `target` 产物。
 
 2026-06-08 本地验证结果：
 
-- `init-db.ps1` 已在中文路径下通过 UTF-8 stdin 执行 SQL；
+- `init-db.ps1 -Force` 已在中文路径下通过 UTF-8 stdin 执行 SQL；
 - `start-all.ps1 -SkipInfrastructure -SkipFrontend` 可识别各模块 `target\<模块名>.jar`；
 - 后端 12 个业务服务可启动并注册到 Nacos `dev` 命名空间；
 - `mall-job` 若遇到本机 9012 被外部进程占用，会标记为 `PortOccupied`，不会写成已运行。

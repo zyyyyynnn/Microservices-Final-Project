@@ -1,6 +1,10 @@
 # =====================================================
 # MallCloud 初始化数据库 (Windows PowerShell)
 # =====================================================
+param(
+    [switch]$Force
+)
+
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -12,6 +16,10 @@ $mysqlPort = if ($env:MYSQL_PORT) { $env:MYSQL_PORT } else { "3306" }
 $mysqlUser = if ($env:MYSQL_USER) { $env:MYSQL_USER } else { "root" }
 $mysqlPwd  = if ($env:MYSQL_PWD)  { $env:MYSQL_PWD }  else { "root" }
 $mysqlArgs = @("-h$mysqlHost", "-P$mysqlPort", "-u$mysqlUser", "-p$mysqlPwd", "--default-character-set=utf8mb4")
+
+if (-not $Force) {
+    throw "init-db.ps1 会重建业务表并写入演示数据，seed.sql 不是幂等脚本。确认是新环境或允许重置数据后使用 -Force。"
+}
 
 function Invoke-MysqlFile {
     param(

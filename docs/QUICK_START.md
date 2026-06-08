@@ -94,7 +94,7 @@ seataio/seata-server:2.0.0
 ## 4. 初始化数据库
 
 ```powershell
-.\scripts\init-db.ps1
+.\scripts\init-db.ps1 -Force
 ```
 
 本机没有 MySQL Client 时：
@@ -188,7 +188,7 @@ mvn clean test -DskipTests=false
 .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
 ```
 
-脚本会执行 Maven 打包、启动后端、写入 `.runtime/processes.json`，并通过端口判断服务状态。本机 9012 若被外部进程占用，`mall-job` 会标记为 `PortOccupied`，不得写成已启动。
+脚本会执行 Maven 打包、启动后端、写入 `.runtime/processes.json`，并通过端口判断服务状态。本机 9012 若被外部进程占用，`mall-job` 会标记为 `PortOccupied`，不得写成已启动。默认存在失败服务时脚本返回 1；仅在明确允许部分失败并记录原因时使用 `-AllowPartial`。
 
 也可使用 IDE，按顺序启动：
 

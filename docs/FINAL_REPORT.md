@@ -75,7 +75,7 @@ mvn clean test -DskipTests=false
 | 能力 | 状态 | 证据 |
 |---|---|---|
 | Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
-| Nacos 注册 | 已验证 | 9 个服务 healthy=true |
+| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；本轮脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
 | Nacos 配置热更新 | 待验证 | |
 | Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
 | OpenFeign | 已验证 | order→product、order→inventory |
@@ -86,7 +86,7 @@ mvn clean test -DskipTests=false
 | Postman 集合 | 已建立，当前后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
 | JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，当前 Sentinel Dashboard 与 Elasticsearch 不可达 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
-| 技术专项冒烟入口 | 已建立，当前环境部分通过 | `scripts/run-special-checks.ps1 -AllowFailures` 已执行：Nacos、Gateway health、搜索热词、搜索商品为 200，秒杀活动无 Token 返回 401；Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
+| 技术专项冒烟入口 | 已建立，当前环境部分通过 | `scripts/run-special-checks.ps1 -AllowFailures` 已执行：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化页面整改和浏览器基础验证；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---

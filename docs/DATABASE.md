@@ -283,7 +283,7 @@ CREATE TABLE `undo_log` (
 推荐使用：
 
 ```powershell
-.\scripts\init-db.ps1
+.\scripts\init-db.ps1 -Force
 ```
 
 手动方式：

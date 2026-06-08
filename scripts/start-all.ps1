@@ -8,7 +8,9 @@ param(
     [switch]$SkipInfrastructure,
     [switch]$SkipFrontend,
     [switch]$SkipBackend,
-    [switch]$CleanLogs
+    [switch]$SkipBuild,
+    [switch]$CleanLogs,
+    [switch]$AllowPartial
 )
 
 $ErrorActionPreference = "Stop"
@@ -129,18 +131,32 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 }
 
 # Java
-$javaExe = Get-Command java -ErrorAction SilentlyContinue
-if (-not $javaExe) {
+$javaHomeExe = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME "bin\java.exe" } else { $null }
+if ($javaHomeExe -and (Test-Path $javaHomeExe)) {
+    $JavaCmd = $javaHomeExe
+} else {
+    $javaExe = Get-Command java -ErrorAction SilentlyContinue
+    $JavaCmd = if ($javaExe) { $javaExe.Source } else { $null }
+}
+if (-not $JavaCmd) {
     Write-Err "未找到 java，请安装 JDK 21"
     exit 1
 }
-$javaVersion = & java -version 2>&1 | Select-Object -First 1
-if ($javaVersion -match '"(\d+)') {
-    $javaMajor = [int]$Matches[1]
+$javaVersion = & $JavaCmd -version 2>&1 | Select-Object -First 1
+$javaMajor = $null
+if ($javaVersion -match '"([^"]+)"') {
+    $rawJavaVersion = $Matches[1]
+    if ($rawJavaVersion -match '^1\.(\d+)') {
+        $javaMajor = [int]$Matches[1]
+    } elseif ($rawJavaVersion -match '^(\d+)') {
+        $javaMajor = [int]$Matches[1]
+    }
+}
+if ($javaMajor) {
     if ($javaMajor -eq 21) {
-        Write-Ok "JDK $javaMajor"
+        Write-Ok "JDK $javaMajor ($JavaCmd)"
     } else {
-        Write-Err "需要 JDK 21，当前: JDK $javaMajor"
+        Write-Err "需要 JDK 21，当前: JDK $javaMajor ($JavaCmd)"
         exit 1
     }
 } else {
@@ -156,23 +172,26 @@ if (-not $mvnExe) {
 $mvnVersion = & mvn -version 2>&1 | Select-Object -First 1
 Write-Ok "Maven: $mvnVersion"
 
-# Node.js
-$nodeExe = Get-Command node -ErrorAction SilentlyContinue
-if (-not $nodeExe) {
-    Write-Err "未找到 node，请安装 Node.js"
-    exit 1
-}
-$nodeVersion = & node --version 2>&1
-Write-Ok "Node.js $nodeVersion"
+# Node.js / npm (仅启动前端时需要)
+if (-not $SkipFrontend) {
+    $nodeExe = Get-Command node -ErrorAction SilentlyContinue
+    if (-not $nodeExe) {
+        Write-Err "未找到 node，请安装 Node.js，或使用 -SkipFrontend 仅启动后端"
+        exit 1
+    }
+    $nodeVersion = & node --version 2>&1
+    Write-Ok "Node.js $nodeVersion"
 
-# npm
-$npmExe = Get-Command npm -ErrorAction SilentlyContinue
-if (-not $npmExe) {
-    Write-Err "未找到 npm"
-    exit 1
+    $npmExe = Get-Command npm -ErrorAction SilentlyContinue
+    if (-not $npmExe) {
+        Write-Err "未找到 npm，或使用 -SkipFrontend 仅启动后端"
+        exit 1
+    }
+    $npmVersion = & npm --version 2>&1
+    Write-Ok "npm $npmVersion"
+} else {
+    Write-Info "已跳过前端，跳过 Node.js/npm 检查"
 }
-$npmVersion = & npm --version 2>&1
-Write-Ok "npm $npmVersion"
 
 # Docker (如需启动基础设施)
 if (-not $SkipInfrastructure) {
@@ -229,7 +248,7 @@ if (-not $SkipInfrastructure) {
 }
 
 # ── 构建后端 ──────────────────────────────────────────
-if (-not $SkipBackend) {
+if (-not $SkipBackend -and -not $SkipBuild) {
     Write-Banner "构建后端项目"
     Push-Location $ProjectRoot
     try {
@@ -245,10 +264,25 @@ if (-not $SkipBackend) {
         Pop-Location
     }
     Write-Host ""
+} elseif (-not $SkipBackend) {
+    Write-Info "已跳过 Maven 构建"
 }
 
 # ── 启动后端服务 ──────────────────────────────────────
 $Results = [System.Collections.ArrayList]::new()
+
+function Save-ResultsState {
+    $stateObj = @{}
+    foreach ($r in $script:Results) {
+        $stateObj[$r.Name] = $r
+    }
+    $stateObj | ConvertTo-Json -Depth 5 | Set-Content -Path $StateFile -Encoding UTF8
+}
+
+function Add-Result([hashtable]$Result) {
+    [void]$script:Results.Add($Result)
+    Save-ResultsState
+}
 
 if (-not $SkipBackend) {
     Write-Banner "启动后端服务"
@@ -272,17 +306,17 @@ if (-not $SkipBackend) {
 
             if ($isKnownService) {
                 Write-Warn "$name 端口 $port 已由记录中的 PID $existingPid 占用，跳过"
-                [void]$Results.Add(@{
+                Add-Result @{
                     Name = $name; PID = $existingPid; Port = $port
                     Status = "AlreadyRunning"; Type = "backend"; Log = $logFile
-                })
+                }
             } else {
                 $procName = if ($existingProc) { $existingProc.ProcessName } else { "unknown" }
                 Write-Err "$name 端口 $port 已被非本服务进程 PID $existingPid ($procName) 占用"
-                [void]$Results.Add(@{
+                Add-Result @{
                     Name = $name; PID = $existingPid; Port = $port
                     Status = "PortOccupied"; Type = "backend"; Log = $null
-                })
+                }
             }
             continue
         }
@@ -294,10 +328,10 @@ if (-not $SkipBackend) {
         }
         if (-not $jar) {
             Write-Err "$name 未找到 jar: $jarPath 或 $jarPattern"
-            [void]$Results.Add(@{
+            Add-Result @{
                 Name = $name; PID = $null; Port = $port
                 Status = "JarNotFound"; Type = "backend"; Log = $null
-            })
+            }
             continue
         }
 
@@ -311,7 +345,7 @@ if (-not $SkipBackend) {
         $env:ES_PORT            = "9200"
         $env:SENTINEL_DASHBOARD = "127.0.0.1:8080"
 
-        $proc = Start-Process -FilePath "java" `
+        $proc = Start-Process -FilePath $JavaCmd `
             -ArgumentList "-jar", $jar.FullName `
             -WorkingDirectory $moduleDir `
             -RedirectStandardOutput $logFile `
@@ -321,10 +355,10 @@ if (-not $SkipBackend) {
 
         if (-not $proc) {
             Write-Err "$name 进程创建失败"
-            [void]$Results.Add(@{
+            Add-Result @{
                 Name = $name; PID = $null; Port = $port
                 Status = "ProcessFailed"; Type = "backend"; Log = $logFile
-            })
+            }
             continue
         }
 
@@ -332,19 +366,19 @@ if (-not $SkipBackend) {
         $portOk = Wait-Port $port $name 90 3 $proc
         if ($portOk) {
             Write-Ok "$name PID=$($proc.Id) 端口=$port 已就绪"
-            [void]$Results.Add(@{
+            Add-Result @{
                 Name = $name; PID = $proc.Id; Port = $port
                 Status = "Running"; Type = "backend"
                 Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-            })
+            }
         } else {
             $status = if ($proc.HasExited) { "Exited" } else { "Timeout" }
             Write-Warn "$name PID=$($proc.Id) 端口 $port 未就绪，状态=$status，请检查日志"
-            [void]$Results.Add(@{
+            Add-Result @{
                 Name = $name; PID = $proc.Id; Port = $port
                 Status = $status; Type = "backend"
                 Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-            })
+            }
         }
     }
     Write-Host ""
@@ -389,11 +423,11 @@ if (-not $SkipFrontend) {
             $existingPid = Get-ExistingPid $FrontendPort
             if ($existingPid) {
                 Write-Warn "前端端口 $FrontendPort 已被 PID $existingPid 占用，跳过"
-                [void]$Results.Add(@{
+                Add-Result @{
                     Name = "frontend"; PID = $existingPid; Port = $FrontendPort
                     Status = "AlreadyRunning"; Type = "frontend"
                     Log = (Join-Path $LogsDir "frontend.log")
-                })
+                }
             } else {
                 # 启动
                 Write-Info "启动前端开发服务器 (端口 $FrontendPort) ..."
@@ -414,20 +448,20 @@ if (-not $SkipFrontend) {
                     $portOk = Wait-Port $FrontendPort "frontend" 60
                     if ($portOk) {
                         Write-Ok "前端 PID=$($proc.Id) 端口=$FrontendPort 已就绪"
-                        [void]$Results.Add(@{
+                        Add-Result @{
                             Name = "frontend"; PID = $proc.Id; Port = $FrontendPort
                             Status = "Running"; Type = "frontend"
                             Log = $frontendLog
                             StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                        })
+                        }
                     } else {
                         Write-Warn "前端 PID=$($proc.Id) 端口 $FrontendPort 未就绪"
-                        [void]$Results.Add(@{
+                        Add-Result @{
                             Name = "frontend"; PID = $proc.Id; Port = $FrontendPort
                             Status = "Timeout"; Type = "frontend"
                             Log = $frontendLog
                             StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                        })
+                        }
                     }
                 }
             }
@@ -437,11 +471,7 @@ if (-not $SkipFrontend) {
 }
 
 # ── 保存状态 ──────────────────────────────────────────
-$stateObj = @{}
-foreach ($r in $Results) {
-    $stateObj[$r.Name] = $r
-}
-$stateObj | ConvertTo-Json -Depth 5 | Set-Content -Path $StateFile -Encoding UTF8
+Save-ResultsState
 
 # ── 输出摘要 ──────────────────────────────────────────
 Write-Banner "MallCloud 启动结果"
@@ -489,3 +519,9 @@ Write-Host "  日志目录: $LogsDir" -ForegroundColor Gray
 Write-Host "  状态文件: $StateFile" -ForegroundColor Gray
 Write-Host "  停止命令: pwsh .\scripts\stop-all.ps1" -ForegroundColor Gray
 Write-Host ""
+
+if ($failedCount -gt 0 -and -not $AllowPartial) {
+    exit 1
+}
+
+exit 0

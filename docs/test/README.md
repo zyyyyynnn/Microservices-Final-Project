@@ -234,7 +234,7 @@ pwsh .\scripts\run-special-checks.ps1
 - 搜索热词和商品搜索；
 - 秒杀活动接口。
 
-如果 Gateway、业务服务或中间件未启动，脚本会返回失败。可使用 `-AllowFailures` 保留失败输出但不让命令返回非 0，便于记录当前环境状态。2026-06-08 当前环境结果：Nacos、Gateway health、搜索热词、搜索商品为 200，秒杀活动无 Token 返回 401；Sentinel Dashboard 和 Elasticsearch health 连接失败。该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
+如果 Gateway、业务服务或中间件未启动，脚本会返回失败。可使用 `-AllowFailures` 保留失败输出但不让命令返回非 0，便于记录当前环境状态。2026-06-08 当前环境结果：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败。该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
 
 ---
 
