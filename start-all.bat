@@ -46,9 +46,7 @@ if "%ARG_CLEAN_LOGS%"=="1" (
 )
 
 rem -- 初始化状态文件 --
-if not exist "%STATE_FILE%" (
-    echo {} > "%STATE_FILE%"
-)
+if not exist "%STATE_FILE%" echo {} > "%STATE_FILE%"
 
 echo.
 echo ============================================================
@@ -80,10 +78,7 @@ if errorlevel 1 (
 )
 set "JAVA_MAJOR="
 for /f "usebackq tokens=*" %%v in (`pwsh.exe -NoProfile -NoLogo -Command "([regex]::Match((& java -version 2>&1 | Select-Object -First 1), '(\d+)')).Groups[1].Value"`) do set "JAVA_MAJOR=%%v"
-if "%JAVA_MAJOR%"=="" (
-    echo [WARN] Cannot detect Java version, assuming JDK 21
-    set "JAVA_MAJOR=21"
-)
+if "%JAVA_MAJOR%"=="" set "JAVA_MAJOR=21"
 if not "%JAVA_MAJOR%"=="21" (
     echo [ERROR] JDK 21 required, found: JDK %JAVA_MAJOR%
     echo [FIX]   https://adoptium.net/temurin/releases/?version=21
@@ -122,7 +117,7 @@ if errorlevel 1 (
 for /f "tokens=*" %%v in ('node --version 2^>nul') do set "NODE_VER=%%v"
 echo [OK]   Node.js %NODE_VER%
 
-rem npm
+rem npm (仅用于安装依赖)
 where npm.cmd >nul 2>&1
 if errorlevel 1 (
     where npm >nul 2>&1
@@ -133,7 +128,7 @@ if errorlevel 1 (
 )
 echo [OK]   npm
 
-rem Docker (only when infrastructure is needed)
+rem Docker (仅在需要启动基础设施时检查)
 if "%ARG_SKIP_INFRA%"=="1" (
     echo [SKIP] Docker check (--skip-infrastructure)
     goto :SKIP_DOCKER_CHECK
@@ -181,6 +176,12 @@ if not exist "%COMPOSE_FILE%" (
     goto :FAIL
 )
 
+rem 记录启动前已运行的容器
+set "PRE_EXISTING="
+for /f "tokens=*" %%c in ('docker ps --format "{{.Names}}" 2^>nul') do (
+    if defined PRE_EXISTING (set "PRE_EXISTING=!PRE_EXISTING!,%%c") else (set "PRE_EXISTING=%%c")
+)
+
 echo [INFO] docker compose up -d ...
 docker compose -f "%COMPOSE_FILE%" up -d >"%LOGS_DIR%\infra-compose.log" 2>&1
 if errorlevel 1 (
@@ -190,66 +191,42 @@ if errorlevel 1 (
 )
 echo [OK]   Docker Compose executed
 
-rem 等待 MySQL
-echo [WAIT] MySQL (port 3306) ...
-set /a "_w=0"
-:WAIT_MYSQL
-set /a "_w+=1"
-if %_w% GTR 30 (
-    echo [WARN] MySQL timeout, continuing
-    goto :MYSQL_DONE
-)
-pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',3306,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
-if errorlevel 1 (
-    timeout /t 2 /nobreak >nul
-    goto :WAIT_MYSQL
-)
-echo [OK]   MySQL ready
-:MYSQL_DONE
+rem 记录本次由脚本拉起的容器（排除启动前已运行的）
+pwsh.exe -NoProfile -Command ^
+    "$pre = '%PRE_EXISTING%' -split ','; $now = docker ps --format '{{.Names}}' 2>$null; $started = $now | Where-Object { $_ -notin $pre }; $started | ConvertTo-Json | Set-Content '%INFRA_STATE%' -Encoding UTF8" >nul 2>&1
 
-rem 等待 Nacos
-echo [WAIT] Nacos (port 8848) ...
-set /a "_w=0"
-:WAIT_NACOS
-set /a "_w+=1"
-if %_w% GTR 40 (
-    echo [WARN] Nacos timeout, continuing
-    goto :NACOS_DONE
-)
-pwsh.exe -NoProfile -Command "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:8848/nacos/' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; exit ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) } catch { exit 0 }" >nul 2>&1
-if errorlevel 1 (
-    timeout /t 3 /nobreak >nul
-    goto :WAIT_NACOS
-)
-echo [OK]   Nacos ready
-:NACOS_DONE
+rem 等待关键中间件（TCP 探测，exit 0=成功）
+echo [WAIT] MySQL (3306) ...
+call :WAIT_TCP 127.0.0.1 3306 30 "MySQL"
+if errorlevel 1 echo [WARN] MySQL timeout, continuing
 
-rem 检查 Redis
-echo [WAIT] Redis (port 6379) ...
-pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',6379,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
-if errorlevel 1 (
-    echo [WARN] Redis not ready
-) else (
-    echo [OK]   Redis ready
-)
+echo [WAIT] Nacos (8848) ...
+call :WAIT_HTTP "http://127.0.0.1:8848/nacos/" 40 "Nacos"
+if errorlevel 1 echo [WARN] Nacos timeout, continuing
 
-rem 检查 Elasticsearch
-echo [WAIT] Elasticsearch (port 9200) ...
-set /a "_w=0"
-:WAIT_ES
-set /a "_w+=1"
-if %_w% GTR 20 (
-    echo [WARN] Elasticsearch timeout, continuing
-    goto :ES_DONE
-)
-pwsh.exe -NoProfile -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:9200/_cluster/health' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop | Out-Null; exit 1 } catch { exit 0 }" >nul 2>&1
-if errorlevel 1 (
-    echo [OK]   Elasticsearch ready
-    goto :ES_DONE
-)
-timeout /t 3 /nobreak >nul
-goto :WAIT_ES
-:ES_DONE
+echo [WAIT] Redis (6379) ...
+call :WAIT_TCP 127.0.0.1 6379 10 "Redis"
+if errorlevel 1 echo [WARN] Redis not ready
+
+echo [WAIT] RocketMQ NameServer (9876) ...
+call :WAIT_TCP 127.0.0.1 9876 20 "RocketMQ NameServer"
+if errorlevel 1 echo [WARN] RocketMQ NameServer timeout
+
+echo [WAIT] RocketMQ Broker (10911) ...
+call :WAIT_TCP 127.0.0.1 10911 20 "RocketMQ Broker"
+if errorlevel 1 echo [WARN] RocketMQ Broker timeout
+
+echo [WAIT] Seata (8091) ...
+call :WAIT_TCP 127.0.0.1 8091 20 "Seata"
+if errorlevel 1 echo [WARN] Seata timeout
+
+echo [WAIT] Sentinel (8080) ...
+call :WAIT_TCP 127.0.0.1 8080 15 "Sentinel"
+if errorlevel 1 echo [WARN] Sentinel timeout
+
+echo [WAIT] Elasticsearch (9200) ...
+call :WAIT_HTTP "http://127.0.0.1:9200/_cluster/health" 20 "Elasticsearch"
+if errorlevel 1 echo [WARN] Elasticsearch timeout
 
 echo.
 :SKIP_INFRA
@@ -364,13 +341,45 @@ if not exist "%FRONTEND_DIR%\package.json" (
     goto :FAIL
 )
 
-rem 检查端口冲突
-pwsh.exe -NoProfile -Command "$s = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 5173); try { $s.Start(); $s.Stop(); exit 0 } catch { exit 1 }" >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Port 5173 already in use
-    for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command "(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1).OwningProcess"') do set "OCC_PID=%%p"
-    echo [PID]  %OCC_PID%
-    goto :FAIL
+rem 检查是否已在运行（读取 processes.json）
+set "_fe_existing_pid="
+for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
+    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; if ($s.ContainsKey('frontend') -and $s['frontend'].pid) { $s['frontend'].pid } else { '' }"') do set "_fe_existing_pid=%%p"
+
+if defined "_fe_existing_pid" (
+    if not "%_fe_existing_pid%"=="" (
+        rem 检查 PID 存在且命令行包含 mall-frontend
+        for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command ^
+            "$p = Get-Process -Id %_fe_existing_pid% -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'node') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=%_fe_existing_pid%').CommandLine; if ($cmd -match 'mall-frontend|vite') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_fe_check=%%m"
+        if "%_fe_check%"=="MATCH" (
+            rem 进一步验证端口
+            pwsh.exe -NoProfile -Command ^
+                "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('127.0.0.1',5173,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
+            if not errorlevel 1 (
+                echo [SKIP] Frontend already running, PID=%_fe_existing_pid%, port=5173
+                goto :SKIP_FRONTEND
+            )
+        )
+        rem PID 不匹配或端口未监听，清理状态
+        pwsh.exe -NoProfile -Command ^
+            "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('frontend'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+    )
+)
+
+rem 检查端口冲突（排除我们自己记录的 PID）
+for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
+    "$c = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue; if ($c) { $c[0].OwningProcess } else { '' }"') do set "_fe_port_pid=%%p"
+
+if defined "_fe_port_pid" (
+    if not "%_fe_port_pid%"=="" (
+        if not "%_fe_port_pid%"=="%_fe_existing_pid%" (
+            for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=%_fe_port_pid%' -ErrorAction SilentlyContinue).CommandLine"') do set "_fe_port_cmd=%%c"
+            echo [ERROR] Port 5173 already in use by another process
+            echo [PID]  %_fe_port_pid%
+            echo [CMD]  %_fe_port_cmd%
+            goto :FAIL
+        )
+    )
 )
 
 rem 安装依赖
@@ -393,9 +402,16 @@ if not exist "%FRONTEND_DIR%\node_modules" (
     echo [OK]   node_modules exists
 )
 
-rem 启动前端
-echo [INFO] Starting frontend dev server (port 5173) ...
-for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command "$p = Start-Process -FilePath 'npm.cmd' -ArgumentList 'run','dev' -WorkingDirectory '%FRONTEND_DIR%' -RedirectStandardOutput '%LOGS_DIR%\mall-frontend.log' -RedirectStandardError '%LOGS_DIR%\mall-frontend.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "FE_PID=%%i"
+rem 直接启动 node vite（不经过 npm.cmd，确保记录真实 node PID）
+set "_vite_bin=%FRONTEND_DIR%\node_modules\vite\bin\vite.js"
+if not exist "%_vite_bin%" (
+    echo [ERROR] Vite not found: %_vite_bin%
+    goto :FAIL
+)
+
+echo [INFO] Starting frontend (port 5173) ...
+for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command ^
+    "$p = Start-Process -FilePath 'node.exe' -ArgumentList '%_vite_bin%','--host','127.0.0.1','--port','5173' -WorkingDirectory '%FRONTEND_DIR%' -RedirectStandardOutput '%LOGS_DIR%\mall-frontend.log' -RedirectStandardError '%LOGS_DIR%\mall-frontend.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "FE_PID=%%i"
 
 if not defined FE_PID (
     echo [ERROR] Frontend process creation failed
@@ -404,29 +420,23 @@ if not defined FE_PID (
 
 rem 等待前端端口
 echo [WAIT] Frontend PID=%FE_PID% port=5173 ...
-set /a "_w=0"
-:WAIT_FE
-set /a "_w+=1"
-if %_w% GTR 20 (
-    echo [WARN] Frontend port 5173 not ready. Log: %LOGS_DIR%\mall-frontend.log
-    goto :FE_DONE
-)
-pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',5173,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
+call :WAIT_TCP 127.0.0.1 5173 20 "Frontend"
 if errorlevel 1 (
+    rem 检查进程是否还在
     tasklist /fi "PID eq %FE_PID%" 2>nul | findstr /i "node" >nul 2>&1
     if errorlevel 1 (
         echo [ERROR] Frontend process exited. Log: %LOGS_DIR%\mall-frontend.err.log
         goto :FAIL
     )
-    timeout /t 3 /nobreak >nul
-    goto :WAIT_FE
+    echo [WARN] Frontend port 5173 timeout, process still running
 )
-echo [OK]   Frontend PID=%FE_PID% port=5173 ready
+
+echo [OK]   Frontend PID=%FE_PID% port=5173
 
 rem 记录前端到状态文件
-pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['frontend'] = @{name='frontend';type='frontend';pid=%FE_PID%;port=5173;status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+pwsh.exe -NoProfile -Command ^
+    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['frontend'] = @{name='frontend';type='frontend';pid=%FE_PID%;port=5173;command='%_vite_bin%';workingDirectory='%FRONTEND_DIR%';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
 
-:FE_DONE
 echo.
 :SKIP_FRONTEND
 
@@ -439,7 +449,8 @@ echo  MallCloud Startup Result
 echo ============================================================
 echo.
 
-pwsh.exe -NoProfile -Command "$fmt = '{0,-22} {1,-10} {2,-10} {3,-12}'; Write-Host ($fmt -f 'Service','PID','Port','Status') -ForegroundColor White; Write-Host ($fmt -f '-------','---','----','------') -ForegroundColor Gray; $s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; foreach ($k in ($s.Keys | Sort-Object)) { $e = $s[$k]; $pidStr = if ($e.pid) { [string]$e.pid } else { '-' }; $portStr = if ($e.port) { [string]$e.port } else { '-' }; $color = if ($e.status -eq 'Ready' -or $e.status -eq 'Healthy') { 'Green' } elseif ($e.status -eq 'Timeout') { 'Yellow' } else { 'Red' }; Write-Host ($fmt -f $e.name, $pidStr, $portStr, $e.status) -ForegroundColor $color }"
+pwsh.exe -NoProfile -Command ^
+    "$fmt = '{0,-22} {1,-10} {2,-10} {3,-12}'; Write-Host ($fmt -f 'Service','PID','Port','Status') -ForegroundColor White; Write-Host ($fmt -f '-------','---','----','------') -ForegroundColor Gray; $s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; foreach ($k in ($s.Keys | Sort-Object)) { $e = $s[$k]; $pidStr = if ($e.pid) { [string]$e.pid } else { '-' }; $portStr = if ($e.port) { [string]$e.port } else { '-' }; $color = if ($e.status -eq 'Ready' -or $e.status -eq 'Healthy') { 'Green' } elseif ($e.status -eq 'Timeout') { 'Yellow' } else { 'Red' }; Write-Host ($fmt -f $e.name, $pidStr, $portStr, $e.status) -ForegroundColor $color }"
 
 echo.
 echo [INFO] Logs:     %LOGS_DIR%
@@ -461,106 +472,172 @@ pause
 exit /b 1
 
 rem ============================================================
+rem  Subroutine: WAIT_TCP
+rem  Args: %1=host %2=port %3=timeout-seconds %4=label
+rem  Returns: 0=success, 1=timeout
+rem ============================================================
+:WAIT_TCP
+set "_wt_host=%~1"
+set "_wt_port=%~2"
+set "_wt_timeout=%~3"
+set "_wt_label=%~4"
+set /a "_wt_i=0"
+:WAIT_TCP_LOOP
+set /a "_wt_i+=1"
+if %_wt_i% GTR %_wt_timeout% exit /b 1
+pwsh.exe -NoProfile -Command ^
+    "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('%_wt_host%',%_wt_port%,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
+if not errorlevel 1 exit /b 0
+timeout /t 1 /nobreak >nul
+goto :WAIT_TCP_LOOP
+
+rem ============================================================
+rem  Subroutine: WAIT_HTTP
+rem  Args: %1=url %2=timeout-seconds %3=label
+rem  Returns: 0=success, 1=timeout
+rem ============================================================
+:WAIT_HTTP
+set "_wh_url=%~1"
+set "_wh_timeout=%~2"
+set "_wh_label=%~3"
+set /a "_wh_i=0"
+:WAIT_HTTP_LOOP
+set /a "_wh_i+=1"
+if %_wh_i% GTR %_wh_timeout% exit /b 1
+pwsh.exe -NoProfile -Command ^
+    "try { $r=Invoke-WebRequest -Uri '%_wh_url%' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; if($r.StatusCode -ge 200 -and $r.StatusCode -lt 500){exit 0}else{exit 1} } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 exit /b 0
+timeout /t 1 /nobreak >nul
+goto :WAIT_HTTP_LOOP
+
+rem ============================================================
 rem  Subroutine: START_SERVICE
 rem  Args: %1=service-name %2=port
+rem  Returns: 0=success, 1=failure
 rem ============================================================
 :START_SERVICE
 setlocal EnableDelayedExpansion
 set "_svc_name=%~1"
 set "_svc_port=%~2"
 set "_svc_jar="
+set "_existing_pid="
+set "_port_pid="
 
-rem 查找 JAR
-for /f "tokens=*" %%j in ('pwsh.exe -NoProfile -Command "Get-ChildItem -Path '%ROOT%%_svc_name%\target\%_svc_name%-*.jar' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '^original-|sources\.jar$|javadoc\.jar$' } | Select-Object -First 1 -ExpandProperty FullName"') do set "_svc_jar=%%j"
-
-if not defined "_svc_jar" (
-    echo [ERROR] %_svc_name% JAR not found
-    echo [INFO] Run Maven build first, or check target directory
-    endlocal
-    exit /b 1
+rem -- 查找 JAR（严格 0/1/多候选） --
+set "_jar_count=0"
+for /f "tokens=*" %%j in ('pwsh.exe -NoProfile -Command ^
+    "Get-ChildItem -Path '%ROOT%%_svc_name%\target\%_svc_name%-*.jar' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '^original-|sources\.jar$|javadoc\.jar$' } | ForEach-Object { $_.FullName }"') do (
+    set "_svc_jar=%%j"
+    set /a "_jar_count+=1"
+)
+if "!_jar_count!"=="0" (
+    echo [ERROR] !_svc_name! JAR not found in target/
+    echo [INFO] Run Maven build first, or use --no-build after building
+    endlocal & exit /b 1
+)
+if not "!_jar_count!"=="1" (
+    echo [ERROR] !_svc_name! found !_jar_count! candidate JARs, expected 1
+    pwsh.exe -NoProfile -Command "Get-ChildItem -Path '%ROOT%!_svc_name!\target\!_svc_name!-*.jar' | ForEach-Object { $_.FullName }"
+    endlocal & exit /b 1
 )
 
-rem 检查状态文件中的已有记录
-for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; if ($s.ContainsKey('%_svc_name%') -and $s['%_svc_name%'].pid) { $s['%_svc_name%'].pid } else { '' }"') do set "_existing_pid=%%p"
+rem -- 检查状态文件中的已有记录 --
+for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
+    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; if ($s.ContainsKey('!_svc_name!') -and $s['!_svc_name!'].pid) { $s['!_svc_name!'].pid } else { '' }"') do set "_existing_pid=%%p"
 
 if defined "_existing_pid" (
     if not "!_existing_pid!"=="" (
-        rem 检查 PID 是否仍存在且命令行匹配
-        for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command "$p = Get-Process -Id !_existing_pid! -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_existing_pid!').CommandLine; if ($cmd -match '!_svc_name!') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
+        rem 检查 PID 存在且命令行匹配
+        for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command ^
+            "$p = Get-Process -Id !_existing_pid! -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_existing_pid!').CommandLine; if ($cmd -match '!_svc_name!') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
+
         if "!_pid_check!"=="MATCH" (
-            echo [SKIP] !_svc_name! already running, PID=!_existing_pid!, port=!_svc_port!
-            endlocal
-            exit /b 0
+            rem PID 和命令行匹配，进一步验证端口
+            pwsh.exe -NoProfile -Command ^
+                "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('127.0.0.1',!_svc_port!,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
+            if not errorlevel 1 (
+                echo [SKIP] !_svc_name! already running, PID=!_existing_pid!, port=!_svc_port!
+                endlocal & exit /b 0
+            )
+            rem PID 存在但端口未监听，清理状态并重新启动
+            echo [WARN] !_svc_name! PID=!_existing_pid! exists but port !_svc_port! not listening, restarting
+            pwsh.exe -NoProfile -Command ^
+                "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+            taskkill /PID !_existing_pid! /T /F >nul 2>&1
         )
         if "!_pid_check!"=="MISMATCH" (
-            echo [WARN] !_svc_name! state PID=!_existing_pid! does not match, clearing
-            pwsh.exe -NoProfile -Command "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('%_svc_name%'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+            echo [WARN] !_svc_name! state PID=!_existing_pid! command mismatch, clearing
+            pwsh.exe -NoProfile -Command ^
+                "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
     )
 )
 
-rem 检查端口是否已被占用
-for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command "$c = Get-NetTCPConnection -LocalPort %_svc_port% -State Listen -ErrorAction SilentlyContinue; if ($c) { $c[0].OwningProcess } else { '' }"') do set "_port_pid=%%p"
+rem -- 检查端口是否已被未知进程占用 --
+for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
+    "$c = Get-NetTCPConnection -LocalPort !_svc_port! -State Listen -ErrorAction SilentlyContinue; if ($c) { $c[0].OwningProcess } else { '' }"') do set "_port_pid=%%p"
 
 if defined "_port_pid" (
     if not "!_port_pid!"=="" (
-        if "!_port_pid!"=="!_existing_pid!" (
-            echo [SKIP] !_svc_name! port !_svc_port! already listened by PID=!_port_pid!
-            endlocal
-            exit /b 0
-        )
         for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=!_port_pid!' -ErrorAction SilentlyContinue).CommandLine"') do set "_port_cmd=%%c"
         echo [ERROR] Port !_svc_port! already in use by another process
         echo [PID]  !_port_pid!
         echo [CMD]  !_port_cmd!
-        endlocal
-        exit /b 1
+        endlocal & exit /b 1
     )
 )
 
-rem 启动 Java 进程
-echo [START] %_svc_name% (port %_svc_port%) ...
+rem -- 启动 Java 进程 --
+echo [START] !_svc_name! (port !_svc_port!) ...
 
-for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command "$p = Start-Process -FilePath 'java.exe' -ArgumentList '-jar','%_svc_jar%' -WorkingDirectory '%ROOT%%_svc_name%' -RedirectStandardOutput '%LOGS_DIR%\%_svc_name%.log' -RedirectStandardError '%LOGS_DIR%\%_svc_name%.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "_svc_pid=%%i"
+for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command ^
+    "$p = Start-Process -FilePath 'java.exe' -ArgumentList '-jar','!_svc_jar!' -WorkingDirectory '%ROOT%!_svc_name!' -RedirectStandardOutput '%LOGS_DIR%\!_svc_name!.log' -RedirectStandardError '%LOGS_DIR%\!_svc_name!.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "_svc_pid=%%i"
 
 if not defined "_svc_pid" (
     echo [ERROR] !_svc_name! process creation failed
-    endlocal
-    exit /b 1
+    endlocal & exit /b 1
 )
 
-rem 等待端口就绪
+rem -- 等待端口就绪 --
 echo [WAIT] !_svc_name! PID=!_svc_pid! waiting for port !_svc_port! ...
 set /a "_w=0"
 :WAIT_SVC
 set /a "_w+=1"
-if !_w! GTR 30 (
-    echo [WARN] !_svc_name! port !_svc_port! timeout
+if !_w! GTR 60 (
+    echo [ERROR] !_svc_name! port !_svc_port! timeout (60s)
     echo [LOG]  %LOGS_DIR%\!_svc_name!.log
     echo [ERR]  %LOGS_DIR%\!_svc_name!.err.log
-    pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';status='Timeout';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
-    endlocal
-    exit /b 0
+    pwsh.exe -NoProfile -Command ^
+        "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';status='Timeout';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+    endlocal & exit /b 1
 )
+
 rem 检查进程是否提前退出
 tasklist /fi "PID eq !_svc_pid!" 2>nul | findstr /i "java" >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] !_svc_name! process exited (PID=!_svc_pid!)
+    echo [ERROR] !_svc_name! process exited prematurely (PID=!_svc_pid!)
     echo [ERR]  Last 10 lines:
     pwsh.exe -NoProfile -Command "Get-Content '%LOGS_DIR%\!_svc_name!.err.log' -Tail 10 -ErrorAction SilentlyContinue"
-    endlocal
-    exit /b 1
+    endlocal & exit /b 1
 )
-pwsh.exe -NoProfile -Command "exit ([System.Net.Sockets.TcpClient]::new().BeginConnect('127.0.0.1',!_svc_port!,$null,$null).AsyncWaitHandle.WaitOne(2000))" >nul 2>&1
+
+pwsh.exe -NoProfile -Command ^
+    "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('127.0.0.1',!_svc_port!,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
 if errorlevel 1 (
-    timeout /t 3 /nobreak >nul
+    timeout /t 2 /nobreak >nul
     goto :WAIT_SVC
 )
 
-echo [OK]   !_svc_name! PID=!_svc_pid! port=!_svc_port! ready
+rem -- 尝试健康检查 --
+set "_svc_status=Ready"
+pwsh.exe -NoProfile -Command ^
+    "try { $r=Invoke-WebRequest -Uri 'http://127.0.0.1:!_svc_port!/actuator/health' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; if($r.StatusCode -eq 200){exit 0}else{exit 1} } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 set "_svc_status=Healthy"
 
-rem 记录到状态文件
-pwsh.exe -NoProfile -Command "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';workingDirectory='%ROOT%!_svc_name!';stdoutLog='%LOGS_DIR%\!_svc_name!.log';stderrLog='%LOGS_DIR%\!_svc_name!.err.log';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+echo [OK]   !_svc_name! PID=!_svc_pid! port=!_svc_port! !_svc_status!
 
-endlocal
-exit /b 0
+rem -- 记录到状态文件 --
+pwsh.exe -NoProfile -Command ^
+    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';workingDirectory='%ROOT%!_svc_name!';stdoutLog='%LOGS_DIR%\!_svc_name!.log';stderrLog='%LOGS_DIR%\!_svc_name!.err.log';status='!_svc_status!';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+
+endlocal & exit /b 0
