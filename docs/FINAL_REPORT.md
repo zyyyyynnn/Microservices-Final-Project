@@ -13,10 +13,10 @@
 |---|---|
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
-| 代码分支/Commit | main（本轮提交信息以最终 Git 输出为准） |
+| 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
 | 测试日期 | 2026-06-08 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
-| 部署方式 | Docker 中间件 + 本地 IDE 服务 |
+| 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
 ### 1.1 团队分工
 
@@ -75,7 +75,7 @@ mvn clean test -DskipTests=false
 | 能力 | 状态 | 证据 |
 |---|---|---|
 | Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
-| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；本轮脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
+| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
 | Nacos 配置热更新 | 待验证 | |
 | Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
 | OpenFeign | 已验证 | order→product、order→inventory |
@@ -148,7 +148,7 @@ docs/test/postman/summary/newman-20260609.md
 
 ### 7.1 测试环境
 
-当前状态：JMeter 5.6.3 命令已验证可执行；本轮已恢复 Gateway 和 12 个后端服务启动，但 Sentinel Dashboard 与 Elasticsearch 当前不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
+当前状态：JMeter 5.6.3 命令已验证可执行；Gateway 和 12 个后端服务启动能力已恢复，但 Sentinel Dashboard 与 Elasticsearch 当前不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -239,7 +239,8 @@ docs/test/postman/summary/newman-20260609.md
 如实记录：
 
 - Docker 全栈尚未完成；
-- 本地一键后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
+- 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
+- 本地脚本后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；

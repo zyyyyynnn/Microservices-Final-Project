@@ -1,13 +1,35 @@
 # MallCloud 快速启动
 
-> 团队规模：5 人
-> 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21
-> 当前正式路径：Docker 中间件 + 本地脚本或 IDE 启动微服务
-> 目标：先跑通核心交易链路，再补齐专项验证证据
+> 目标：新环境从零启动、完成最小验证，并为失败定位提供入口。
+> 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21、Maven 3.9+
 
 ---
 
-## 1. 准备
+## 1. 启动入口
+
+普通启动、完整启动测试和人工验收优先使用根目录 BAT：
+
+```bat
+start-all.bat
+stop-all.bat
+```
+
+BAT 面向人工双击、答辩演示和完整启动测试，是当前主要验收入口。
+
+需要精确参数控制、自动化调用或故障排查时使用 PowerShell：
+
+```powershell
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -SkipBuild
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -AllowPartial
+pwsh .\scripts\stop-all.ps1
+```
+
+IDE 仅作为单服务开发调试补充入口。
+
+---
+
+## 2. 准备检查
 
 ```powershell
 java -version
@@ -20,112 +42,38 @@ $PSVersionTable.PSVersion
 要求：
 
 - JDK 21；
-- Maven 3.9+；
-- Docker Desktop；
+- Maven 使用 Java 21；
+- Docker Desktop 可用；
 - PowerShell 7+；
 - Docker 可用内存至少 8 GB。
 
-`java -version` 与 `mvn -version` 输出中的 Java 版本均应为 21。
-
 ---
 
-## 2. 进入项目目录
+## 3. 进入项目目录
 
 ```powershell
 Set-Location <项目根目录>
 ```
 
-可选：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-`.env` 不会自动注入 IDE 启动的 Spring Boot 服务。需要的变量应配置到 IDE Run Configuration。
-
----
-
-## 3. 启动中间件
-
-```powershell
-.\scripts\start-middleware.ps1
-```
-
-检查：
-
-```powershell
-docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
-```
-
-至少确认：
-
-- MySQL；
-- Redis；
-- Nacos 2.3.2；
-- RocketMQ 5.1.4 NameServer/Broker；
-- Sentinel 1.8.6 Dashboard；
-- Seata Server 2.0.0。
-
-验证 Seata 镜像：
-
-```powershell
-docker inspect mall-seata --format '{{.Config.Image}}'
-```
-
-预期：
-
-```text
-seataio/seata-server:2.0.0
-```
-
-常用地址：
-
-| 服务 | 地址 |
-|---|---|
-| Nacos | `http://localhost:8848/nacos` |
-| Sentinel | `http://localhost:8080` |
-| RocketMQ Console | `http://localhost:8180` |
-| Elasticsearch | `http://localhost:9200` |
-| Kibana | `http://localhost:5601` |
-| Zipkin | `http://localhost:9411` |
+`.env` 不会自动注入 IDE 启动的 Spring Boot 服务。需要的变量应配置到 IDE Run Configuration 或启动脚本环境中。
 
 ---
 
 ## 4. 初始化数据库
 
-```powershell
-.\scripts\init-db.ps1 -Force
-```
-
-本机没有 MySQL Client 时：
+数据库初始化会重建业务表并写入演示数据，必须显式确认：
 
 ```powershell
-Get-Content .\db\init\00-create-databases.sql -Raw -Encoding UTF8 |
-  docker exec -i mall-mysql mysql -uroot -proot
-
-Get-Content .\db\init\seed.sql -Raw -Encoding UTF8 |
-  docker exec -i mall-mysql mysql -uroot -proot
+pwsh .\scripts\init-db.ps1 -Force
 ```
 
-验证：
+验证演示数据：
 
 ```powershell
 docker exec mall-mysql mysql -uroot -proot -e "SELECT COUNT(*) AS users FROM mall_user.user; SELECT COUNT(*) AS spu FROM mall_product.spu; SELECT COUNT(*) AS sku FROM mall_product.sku;"
 ```
 
-预期：
-
-```text
-users = 10
-spu = 5
-sku = 7
-```
-
----
-
-## 5. 测试账号
-
-所有演示账号统一密码：
+演示账号统一密码：
 
 ```text
 123456
@@ -134,105 +82,65 @@ sku = 7
 | 用户名 | 密码 | 角色 |
 |---|---|---|
 | zhangsan | 123456 | USER |
-| lisi | 123456 | USER |
 | merchant01 | 123456 | MERCHANT |
 | admin | 123456 | ADMIN |
 
-密码摘要以 `db/init/seed.sql` 为准。若登录失败，应修复种子数据，不得只修改文档。
+密码摘要以 `db/init/seed.sql` 为准。若登录失败，应修复种子数据或配置，不得只修改文档。
 
 ---
 
-## 6. 检查 Nacos 配置
+## 5. 完整启动
 
-启动业务服务前确认：
+优先使用 BAT：
 
-- `deploy/nacos/*.yaml` 中没有 `--` 注释；
-- Namespace 与服务配置一致；
-- Auth 和 Gateway 的 `JWT_SECRET` 一致；
-- MySQL、Redis、RocketMQ、Seata 地址正确；
-- Seata Server 和客户端配置兼容 2.0.0。
+```bat
+start-all.bat
+```
 
-Nacos 配置导入尚未自动化。没有导入远程配置时，应确认本地 `application.yaml` 是否能提供完整启动配置。2026-06-08 已修复 `mall-search`、`mall-seckill`、`mall-admin-biz` 的 Nacos import 与 discovery namespace，使其可注册到 `dev` 命名空间。
+常用参数：
+
+```bat
+start-all.bat --skip-infrastructure
+start-all.bat --skip-frontend
+start-all.bat --no-build
+start-all.bat --no-pause
+```
+
+启动失败不得写成成功。若 `mall-job` 端口 9012 被外部进程占用，应如实记录为端口冲突或未启动。
+
+停止：
+
+```bat
+stop-all.bat
+```
 
 ---
 
-## 7. 编译
+## 6. 高级启动与故障排查
+
+PowerShell 用于参数化启动、自动化复测和故障排查：
 
 ```powershell
-java -version
-mvn -version
-mvn clean package -DskipTests
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -SkipBuild
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -AllowPartial
+pwsh .\scripts\stop-all.ps1
 ```
 
-通过标准：
+语义：
 
-```text
-BUILD SUCCESS
-```
-
-运行测试：
-
-```powershell
-mvn clean test -DskipTests=false
-```
-
-测试失败时不要用 `-DskipTests` 掩盖问题，应区分测试缺陷、配置缺陷和业务缺陷。
+- 默认存在失败服务时返回非 0；
+- `-AllowPartial` 仅用于允许记录非核心失败并继续联调；
+- `-SkipBuild` 复用已有 `target` 产物；
+- `-SkipFrontend` 时不要求 Node/npm；
+- 日志位于 `.runtime/logs/`；
+- 状态文件位于 `.runtime/processes.json`。
 
 ---
 
-## 8. 启动核心服务
+## 7. 最小验证
 
-可使用脚本启动后端：
-
-```powershell
-.\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
-```
-
-脚本会执行 Maven 打包、启动后端、写入 `.runtime/processes.json`，并通过端口判断服务状态。本机 9012 若被外部进程占用，`mall-job` 会标记为 `PortOccupied`，不得写成已启动。默认存在失败服务时脚本返回 1；仅在明确允许部分失败并记录原因时使用 `-AllowPartial`。
-
-也可使用 IDE，按顺序启动：
-
-Windows + Docker Desktop 本地启动服务时，IDE Run Configuration 至少配置：
-
-```text
-NACOS_SERVER=127.0.0.1:8848
-MYSQL_HOST=host.docker.internal
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PWD=root
-REDIS_HOST=127.0.0.1
-JWT_SECRET=mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key
-```
-
-| 顺序 | 服务 | 端口 |
-|---:|---|---:|
-| 1 | mall-user | 9002 |
-| 2 | mall-auth | 9001 |
-| 3 | mall-product | 9003 |
-| 4 | mall-inventory | 9004 |
-| 5 | mall-cart | 9005 |
-| 6 | mall-order | 9006 |
-| 7 | mall-pay | 9007 |
-| 8 | mall-message | 9010 |
-| 9 | mall-gateway | 9000 |
-
-搜索或秒杀测试时再启动：
-
-| 服务 | 端口 |
-|---|---:|
-| mall-search | 9008 |
-| mall-seckill | 9009 |
-
-后台和任务服务最后启动：
-
-| 服务 | 端口 |
-|---|---:|
-| mall-admin-biz | 9011 |
-| mall-job | 9012 |
-
----
-
-## 9. 验证服务注册
+### 7.1 服务注册
 
 打开：
 
@@ -240,7 +148,7 @@ JWT_SECRET=mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me
 http://localhost:8848/nacos
 ```
 
-核心链路至少应看到：
+至少确认核心服务已注册：
 
 ```text
 mall-gateway
@@ -254,15 +162,9 @@ mall-pay
 mall-message
 ```
 
-当前完整后端验证应在 `dev` 命名空间看到除 `mall-job` 外的 12 个业务服务；`mall-job` 是否可用取决于本机 9012 是否空闲。
+搜索、秒杀、后台和任务服务按实际启动结果记录，不得补写。
 
-Seata Server 也应按项目配置正确注册或连接。
-
----
-
-## 10. 最小接口验证
-
-### 10.1 登录
+### 7.2 登录
 
 ```powershell
 $loginBody = @{
@@ -280,25 +182,13 @@ $login = Invoke-RestMethod `
 $token = $login.data.accessToken
 ```
 
-### 10.2 商品详情
+### 7.3 商品详情
 
 ```powershell
 Invoke-RestMethod "http://localhost:9000/api/v1/products/1001"
 ```
 
-### 10.3 无 Token 鉴权
-
-```powershell
-try {
-  Invoke-WebRequest "http://localhost:9000/api/v1/orders/UNKNOWN" -UseBasicParsing
-} catch {
-  $_.Exception.Response.StatusCode.value__
-}
-```
-
-预期为 401 或项目统一的未授权响应。
-
-### 10.4 创建订单
+### 7.4 创建订单
 
 ```powershell
 $orderBody = @{
@@ -322,7 +212,7 @@ $order = Invoke-RestMethod `
 $orderNo = $order.data.orderNo
 ```
 
-### 10.5 查询订单
+### 7.5 查询订单
 
 ```powershell
 Invoke-RestMethod `
@@ -334,96 +224,7 @@ Invoke-RestMethod `
 
 ---
 
-## 11. Postman 与 JMeter
-
-最终测试资产：
-
-```text
-docs/test/
-├── README.md
-├── postman/
-└── jmeter/
-```
-
-目标文件：
-
-```text
-docs/test/postman/mallcloud.postman_collection.json
-docs/test/postman/local.postman_environment.json
-docs/test/postman/summary/newman-20260609.md
-docs/test/jmeter/search-load.jmx
-docs/test/jmeter/order-load.jmx
-docs/test/jmeter/seckill-stress.jmx
-```
-
-Postman 环境中的登录密码统一使用 `123456`，不得保存固定 Token。
-
----
-
-## 12. 当前不使用的启动方式
-
-以下方式尚未满足正式可用标准：
-
-```powershell
-docker compose -f .\deploy\docker\docker-compose.all.yml up -d
-```
-
-原因：后端 Dockerfile、组合依赖和镜像构建链路尚未完整验证。
-
-Kubernetes 只作为部分示例，不执行不存在的 13 服务循环部署。
-
----
-
-## 13. 停止环境
-
-```powershell
-docker compose -f .\deploy\docker\docker-compose.middleware.yml down
-```
-
-清空数据卷：
-
-```powershell
-docker compose -f .\deploy\docker\docker-compose.middleware.yml down -v
-```
-
-该命令会删除演示数据，仅在明确需要重置环境时使用。
-
----
-
-## 14. 下一步
-
-当前已验收通过的完整链路：
-
-```text
-登录
-→ 商品详情
-→ 购物车
-→ 创建订单
-→ 库存锁定
-→ 支付通知
-→ 消息消费
-→ 订单已支付
-→ 库存扣减
-```
-
-待完成：
-
-1. 后端真实成功态联调和前端逐页成功截图证据；
-2. Elasticsearch 搜索完整验收；
-3. 秒杀完整链路验收；
-4. Sentinel 规则限流/熔断实测；
-5. Nacos 热更新实测；
-6. Postman/Newman 剩余失败项修复或说明；
-7. JMeter 负载、压力和 HTML 报告；
-8. 最终答辩材料。
-
----
-
-## 15. 前端启动
-
-当前仓库已新增 `mall-frontend`，技术栈为 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。
-
-当前前端已完成一轮产品化页面整改，覆盖商品、搜索、账户、购物车、订单、支付、秒杀和后台页面。完整交付仍需在后端真实可用环境中补充成功态联调、逐页截图和主流程操作证据。
+## 8. 前端启动
 
 ```powershell
 Set-Location .\mall-frontend
@@ -437,4 +238,25 @@ npm run dev
 http://localhost:5173
 ```
 
-Vite 开发服务器通过代理把 `/api/v1/**` 转发到 `http://localhost:9000`，前端不得直接调用内部微服务端口。后端核心服务未启动时，页面会展示接口错误，不使用 mock 数据伪造成功。
+前端通过 Vite 代理把 `/api/v1/**` 转发到 Gateway `http://localhost:9000`。后端核心服务未启动时，页面应展示明确错误，不使用 mock 数据伪造成功。
+
+---
+
+## 9. 常见失败定位
+
+| 问题 | 定位入口 |
+|---|---|
+| Java 版本不一致 | `java -version`、`mvn -version` |
+| 中间件未启动 | `docker compose -f .\deploy\docker\docker-compose.middleware.yml ps` |
+| 服务启动失败 | `.runtime/logs/*.err.log` |
+| 端口占用 | BAT 输出或 `Get-NetTCPConnection` |
+| Nacos 未注册 | Nacos 控制台服务列表 |
+| 登录失败 | 种子数据、JWT 密钥、Auth/Gateway 配置 |
+| 搜索失败 | Elasticsearch 健康和 `mall-search` 日志 |
+| 秒杀失败 | Redis、RocketMQ、`mall-seckill` 日志 |
+
+---
+
+## 10. 下一步
+
+当前阶段任务以 [../DEVELOPMENT_PROMPT.md](../DEVELOPMENT_PROMPT.md) 为准。当前真实测试结果和未完成项以 [FINAL_REPORT.md](FINAL_REPORT.md) 为准。

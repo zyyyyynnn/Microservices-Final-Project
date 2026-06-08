@@ -1,112 +1,75 @@
 # MallCloud 部署与运行指南
 
-> 文档版本：v2.1
-> 团队规模：5 人
-> 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21
-> 当前正式路径：Docker 中间件 + 本地 IDE 启动微服务
+> 职责：部署结构、中间件、环境变量、数据库初始化、服务端口、配置来源、启动细节和故障排查。
 > 上位标准：`docs/PROJECT_STANDARD.md`
 
 ---
 
-## 1. 当前支持范围
+## 1. 支持范围
 
 | 方式 | 状态 | 用途 |
 |---|---|---|
-| PowerShell 启动中间件 | 已提供，部分受镜像拉取限制 | 本地开发与答辩 |
-| BAT/PowerShell 一键启停脚本 | 已提供，后端启动已验证 | 本地联调和演示辅助 |
-| PowerShell 初始化数据库 | 已提供，已验证 | 初始化业务库和演示数据 |
-| IDE 启动微服务 | 当前推荐 | 开发、联调、演示 |
-| `docker-compose.all.yml` 全栈 | 实验性 | 构建文件和组合启动链路待修复 |
-| Kubernetes 全栈 | 规划项 | 当前仅有部分中间件和 Gateway 示例 |
+| 根目录 BAT 一键启停 | 已提供 | 人工启动、答辩演示、完整启动测试 |
+| PowerShell 启停脚本 | 已提供 | 参数化启动、自动化调用、故障排查 |
+| PowerShell 中间件脚本 | 已提供 | 本地中间件启动 |
+| IDE 单服务启动 | 补充入口 | 单服务开发调试 |
+| `docker-compose.all.yml` 全栈 | 实验性 | 构建和组合启动链路待验证 |
+| Kubernetes 全栈 | 规划项 | 当前仅有部分示例 |
 
-本文件不引用不存在的 `dev-up.sh`、`test-up.sh`、`demo-up.sh` 或分库 SQL 文件。`start-all.bat`、`stop-all.bat` 及对应 PowerShell 脚本已存在；2026-06-08 本地验证中，PowerShell 后端启动可拉起 12 个业务服务，`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用标记为 `PortOccupied`。
+正式人工启动路径以根目录 `start-all.bat` / `stop-all.bat` 为准。PowerShell 脚本保留为高级入口和脚本内部能力，不承担普通人工启动主入口职责。
 
 ---
 
 ## 2. 前置要求
 
-| 软件 | 版本 | 检查命令 |
+| 软件 | 要求 | 检查命令 |
 |---|---|---|
 | PowerShell | 7+ | `$PSVersionTable.PSVersion` |
 | JDK | 21 | `java -version` |
 | Maven | 3.9+ | `mvn -version` |
-| Docker Desktop | 当前稳定版 | `docker version` |
+| Docker Desktop | 可用 | `docker version` |
 | Docker Compose | v2 | `docker compose version` |
-| MySQL Client | 8.x，可选 | `mysql --version` |
-| Node.js | 20+ | `node --version` |
-| Git | 2.30+ | `git --version` |
-| Newman | 测试阶段 | `newman --version` |
-| JMeter | 5.6+ | `jmeter --version` |
+| Node.js / npm | 前端启动需要 | `node --version`、`npm --version` |
+| MySQL Client | 可选 | `mysql --version` |
 
-要求：
-
-- `java -version` 输出 Java 21；
-- `mvn -version` 显示 Maven 使用 Java 21；
-- Docker 可用内存至少 8 GB；
-- 建议物理内存至少 16 GB。
+完整技术版本矩阵见 `docs/PROJECT_STANDARD.md`。
 
 ---
 
-## 3. 技术版本
+## 3. 环境变量
 
-| 组件 | 版本 |
-|---|---:|
-| Spring Boot | 3.2.4 |
-| Spring Cloud | 2023.0.1 |
-| Spring Cloud Alibaba | 2023.0.1.0 |
-| Nacos | 2.3.2 |
-| Sentinel | 1.8.6 |
-| RocketMQ | 5.1.4 |
-| Seata Server | 2.0.0 |
-| Redis | 7 |
-| Elasticsearch/Kibana | 8.11.0 |
-| MySQL | 8.0 |
-
-Java 21 升级不伴随 Spring 框架整体升级。本期不采用 Java 24。
-
----
-
-## 4. 环境变量
-
-复制模板：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Spring Boot 不会自动读取根目录 `.env`。IDE 启动时应把必要变量配置到 Run Configuration。
+Spring Boot 不会自动读取根目录 `.env`。IDE 启动时应把必要变量配置到 Run Configuration；脚本启动时由脚本设置或继承环境变量。
 
 | 变量 | 示例 | 说明 |
 |---|---|---|
 | `NACOS_SERVER` | `127.0.0.1:8848` | Nacos 地址 |
-| `MYSQL_HOST` | `host.docker.internal` | MySQL 地址；Windows + Docker Desktop + IDE 启动服务时优先使用该值 |
+| `MYSQL_HOST` | `127.0.0.1` 或 `host.docker.internal` | MySQL 地址 |
 | `MYSQL_PORT` | `3306` | MySQL 端口 |
 | `MYSQL_USER` | `root` | MySQL 用户 |
 | `MYSQL_PWD` | `root` | MySQL 密码 |
 | `REDIS_HOST` | `127.0.0.1` | Redis 地址 |
-| `ROCKETMQ_NAMESRV` | `127.0.0.1:9876` | NameServer |
+| `ROCKETMQ_NAMESRV` | `127.0.0.1:9876` | RocketMQ NameServer |
 | `ES_HOST` | `127.0.0.1` | Elasticsearch 地址 |
 | `SEATA_TC_URL` | `127.0.0.1:8091` | Seata TC |
 | `SENTINEL_DASHBOARD` | `127.0.0.1:8080` | Sentinel Dashboard |
 | `JWT_SECRET` | 自定义长密钥 | Auth 与 Gateway 必须一致 |
 
-若本机 `127.0.0.1:3306` 命中 MySQL 的 `root@localhost` 授权导致 JDBC 认证失败，可改用 `MYSQL_HOST=host.docker.internal`。
-
 开发默认密钥只能用于本地演示。
 
 ---
 
-## 5. 启动中间件
+## 4. 中间件
+
+BAT 完整启动会按自身流程启动中间件。单独启动中间件可用：
 
 ```powershell
-.\scripts\start-middleware.ps1
+pwsh .\scripts\start-middleware.ps1
 ```
 
 手动方式：
 
 ```powershell
-Set-Location .\deploy\docker
-docker compose -f docker-compose.middleware.yml up -d
+docker compose -f .\deploy\docker\docker-compose.middleware.yml up -d
 ```
 
 检查：
@@ -116,13 +79,7 @@ docker compose -f .\deploy\docker\docker-compose.middleware.yml ps
 docker inspect mall-seata --format '{{.Config.Image}}'
 ```
 
-Seata 预期镜像：
-
-```text
-seataio/seata-server:2.0.0
-```
-
-当前中间件：
+中间件包括：
 
 - MySQL；
 - Redis；
@@ -135,58 +92,22 @@ seataio/seata-server:2.0.0
 
 Docker `depends_on` 不等于业务已可用。脚本执行后仍需检查容器状态和日志。
 
-### Seata Server 验证
-
-Seata Server 2.0.0 配置来自 Docker 挂载的 `deploy/docker/seata/conf/application.yml`，注册到 Nacos `dev / SEATA_GROUP`，存储模式为 MySQL DB（`mall_seata` 库）。
-
-验证命令：
-
-```powershell
-# 容器状态
-docker compose -f .\deploy\docker\docker-compose.middleware.yml ps seata
-
-# 日志确认 DB Store
-docker logs mall-seata --tail 50 2>&1 | Select-String 'store mode'
-# 预期：use lock store mode: db / use session store mode: db
-
-# Nacos 注册确认
-curl "http://localhost:8848/nacos/v1/ns/instance/list?serviceName=seata-server&namespaceId=dev&groupName=SEATA_GROUP"
-
-# 数据库表确认
-docker exec mall-mysql mysql -uroot -proot -e "
-USE mall_seata;
-SHOW TABLES;
-SELECT lock_key, lock_value, expire FROM distributed_lock ORDER BY lock_key;
-"
-# 预期：4 张 Server 表。
-# distributed_lock 初始化后至少 4 行（AsyncCommitting/RetryCommitting/RetryRollbacking/TxTimeoutCheck）；
-# Seata Server 启动后自动增加 UndologDelete，运行期可能为 5 行。
-```
-
-> Seata Server 表（`mall_seata` 库）与业务 AT 分支 undo_log（`mall_order`、`mall_inventory` 等业务库）是不同层级，不要混淆。
-
-当前数据库基线只保留 `db/init/`，不再支持旧数据库环境升级。如需重建演示数据，应先明确备份或重建数据库容器。
-
 ---
 
-## 6. 初始化数据库
+## 5. 数据库初始化
+
+数据库初始化会重建业务表并写入演示数据，必须显式确认：
 
 ```powershell
-.\scripts\init-db.ps1 -Force
+pwsh .\scripts\init-db.ps1 -Force
 ```
 
-脚本通过 PowerShell 按 UTF-8 读取 SQL 并通过 stdin 传给 MySQL Client，避免中文路径下 `mysql source` 解析失败。该脚本会重建业务表并写入演示数据，默认拒绝执行；确认允许重置数据后必须显式传入 `-Force`。脚本执行：
+脚本执行：
 
 1. `db/init/00-create-databases.sql`
 2. `db/init/seed.sql`
 
-所有演示账号密码统一为：
-
-```text
-123456
-```
-
-容器内执行：
+手动容器内执行：
 
 ```powershell
 Get-Content .\db\init\00-create-databases.sql -Raw -Encoding UTF8 |
@@ -202,17 +123,15 @@ Get-Content .\db\init\seed.sql -Raw -Encoding UTF8 |
 docker exec mall-mysql mysql -uroot -proot -e "SELECT COUNT(*) AS users FROM mall_user.user; SELECT COUNT(*) AS spu FROM mall_product.spu; SELECT COUNT(*) AS sku FROM mall_product.sku;"
 ```
 
-预期用户 10、SPU 5、SKU 7。
-
 ---
 
-## 7. Nacos 配置
+## 6. Nacos 配置
 
 导入前确认：
 
 - YAML 注释使用 `#`；
 - DataId 与引用一致；
-- Namespace 为实际使用值；
+- Namespace 与服务配置一致；
 - Group 明确；
 - 环境变量名称统一；
 - Seata 客户端和服务端配置兼容 2.0.0。
@@ -230,11 +149,11 @@ mall-auth.yaml
 其他服务配置
 ```
 
-配置导入尚未自动化，答辩前应保存实际步骤和截图。
+配置导入和热更新验收需保存实际步骤和截图。未验证热更新不得写成通过。
 
 ---
 
-## 8. 编译与测试
+## 7. 编译
 
 ```powershell
 java -version
@@ -254,21 +173,51 @@ mvn clean package -DskipTests
 mvn clean test -DskipTests=false
 ```
 
-父 POM 当前默认跳过测试的配置仍需在后续代码整改阶段处理。
+测试失败时记录原因，不用跳过测试掩盖问题。
 
 ---
 
-## 9. 启动微服务
+## 8. 启动微服务
 
-可使用脚本启动：
+### 8.1 BAT 主入口
 
-```powershell
-.\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+人工启动、完整启动测试和答辩演示优先使用：
+
+```bat
+start-all.bat
+stop-all.bat
 ```
 
-默认存在失败服务时脚本返回 1；如需允许 `mall-job` 端口占用等非核心失败并继续联调，显式追加 `-AllowPartial`，并记录失败原因。
+常用参数：
 
-核心链路 IDE 推荐顺序：
+```bat
+start-all.bat --skip-infrastructure
+start-all.bat --skip-backend
+start-all.bat --skip-frontend
+start-all.bat --clean-logs
+start-all.bat --no-build
+start-all.bat --no-pause
+stop-all.bat --no-pause
+```
+
+BAT 结束后会输出状态摘要。失败服务、端口占用、超时或 JAR 缺失必须如实记录。
+
+### 8.2 PowerShell 高级入口
+
+用于参数化启动、自动化调用和故障排查：
+
+```powershell
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -SkipBuild
+pwsh .\scripts\start-all.ps1 -SkipInfrastructure -SkipFrontend -AllowPartial
+pwsh .\scripts\stop-all.ps1
+```
+
+默认存在失败服务时返回非 0；只有显式使用 `-AllowPartial` 时才允许记录失败并返回 0。
+
+### 8.3 IDE 补充入口
+
+IDE 适合单服务调试。核心链路推荐顺序：
 
 1. `mall-user`
 2. `mall-auth`
@@ -280,7 +229,7 @@ mvn clean test -DskipTests=false
 8. `mall-message`
 9. `mall-gateway`
 
-搜索和秒杀测试时再启动：
+搜索和秒杀专项再启动：
 
 - `mall-search`
 - `mall-seckill`
@@ -294,17 +243,7 @@ mvn clean test -DskipTests=false
 
 ---
 
-## 10. 启动前端
-
-前端工程位于：
-
-```text
-mall-frontend
-```
-
-首次启动：
-
-当前前端工程已完成一轮产品化页面整改，可用于本地启动、构建、Gateway 代理和页面错误状态验证；完整交付仍需补充后端真实成功态联调、逐页成功截图和主流程操作证据。
+## 9. 前端
 
 ```powershell
 Set-Location .\mall-frontend
@@ -312,22 +251,17 @@ npm install
 npm run dev
 ```
 
-生产构建验证：
+构建验证：
 
 ```powershell
 npm run build
 ```
 
-开发环境默认使用 `http://localhost:5173`，Vite 代理将 `/api/v1/**` 转发到 Gateway `http://localhost:9000`。如需指定远程 Gateway，可设置：
-
-```powershell
-$env:VITE_API_BASE_URL="http://localhost:9000"
-npm run dev
-```
+开发环境默认使用 `http://localhost:5173`，Vite 代理将 `/api/v1/**` 转发到 Gateway `http://localhost:9000`。
 
 ---
 
-## 11. 端口
+## 10. 端口
 
 | 服务 | 端口 |
 |---|---:|
@@ -348,6 +282,18 @@ npm run dev
 
 ---
 
+## 11. 日志与状态
+
+| 内容 | 路径 |
+|---|---|
+| 运行日志 | `.runtime/logs/` |
+| 进程状态 | `.runtime/processes.json` |
+| 中间件状态 | `.runtime/infrastructure.json` |
+
+服务启动失败时优先查看对应 `.err.log`。端口占用时按脚本输出记录 PID 和命令行，不得写成服务已启动。
+
+---
+
 ## 12. 注册与健康检查
 
 Nacos：
@@ -356,12 +302,10 @@ Nacos：
 http://localhost:8848/nacos
 ```
 
-健康检查：
+Gateway 健康：
 
 ```powershell
 Invoke-RestMethod http://localhost:9000/actuator/health
-Invoke-RestMethod http://localhost:9001/actuator/health
-Invoke-RestMethod http://localhost:9006/actuator/health
 ```
 
 最终演示需保存：
@@ -377,62 +321,21 @@ Invoke-RestMethod http://localhost:9006/actuator/health
 
 `docker-compose.all.yml` 当前不是正式一键启动方式，原因：
 
-- 业务服务构建目录缺少完整 Dockerfile；
+- 业务服务镜像构建链路尚未完整验收；
 - 组合依赖尚未验证；
-- 部分前端镜像路径未验证。
+- 前端镜像路径未形成交付证据。
 
-Kubernetes 当前提供部分中间件和 Gateway 示例，完整 13 服务部署尚未完成。
+Kubernetes 当前提供部分示例，不作为正式验收路径。
 
 ---
 
 ## 14. 常见问题
 
-### 13.1 Java 版本不一致
-
-```powershell
-Get-Command java
-java -version
-mvn -version
-```
-
-确保 `JAVA_HOME` 和 IDE Project SDK 都指向 JDK 21。
-
-### 13.2 Seata 不能启动或回滚
-
-检查：
-
-- 镜像是否为 2.0.0；
-- `mall_seata` 表是否存在；
-- Nacos Namespace、Group；
-- 服务端和客户端事务组；
-- XID 是否透传；
-- 数据源代理；
-- `undo_log`；
-- 异常是否被吞掉。
-
-### 13.3 JWT 登录失败
-
-检查：
-
-- 种子数据已重新初始化；
-- 测试密码为 `123456`；
-- Auth 与 Gateway 使用相同 JWT 密钥（默认值已统一）；
-- Header 格式正确。
-
-### 13.4 角色字段
-
-`sys_user_auth.role` 字段已在 `db/init/00-create-databases.sql` 中包含，无需单独迁移。
-
----
-
-## 15. 答辩演示建议
-
-1. 展示 5 人分工和项目范围；
-2. 展示 Java 21、Spring 版本和中间件版本；
-3. 展示 Nacos 核心服务注册；
-4. 使用 `zhangsan / 123456` 登录；
-5. 商品、购物车、下单；
-6. Feign、Seata 2.0.0、MQ 链路；
-7. JMeter 与 Sentinel；
-8. 服务停止/恢复或配置热更新；
-9. 总结实测数据和已知限制。
+| 问题 | 检查项 |
+|---|---|
+| Java 版本不一致 | `Get-Command java`、`java -version`、`mvn -version` |
+| Docker 不可用 | Docker Desktop 状态、`docker info` |
+| Seata 不能启动或回滚 | 镜像、`mall_seata` 表、Nacos Namespace/Group、XID、数据源代理、`undo_log` |
+| JWT 登录失败 | 种子数据、测试密码、Auth/Gateway JWT 密钥、Header 格式 |
+| 搜索失败 | Elasticsearch 健康、索引、`mall-search` 日志 |
+| 秒杀失败 | Redis、RocketMQ、`mall-seckill` 日志 |
