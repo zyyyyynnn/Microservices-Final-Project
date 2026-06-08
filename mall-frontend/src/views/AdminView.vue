@@ -124,7 +124,8 @@ onMounted(loadAdmin);
           empty-description="后台订单接口当前未返回订单。"
           @retry="loadAdmin"
         />
-        <el-table v-if="!ordersError && orders.length" :data="orders" class="stable-table">
+        <div v-if="!ordersError && orders.length" class="table-scroll">
+        <el-table :data="orders" class="stable-table">
           <el-table-column prop="orderNo" label="订单号" min-width="180" />
           <el-table-column prop="userId" label="用户" width="100" />
           <el-table-column label="金额" width="120">
@@ -135,6 +136,7 @@ onMounted(loadAdmin);
           </el-table-column>
           <el-table-column prop="gmtCreate" label="创建时间" min-width="170" />
         </el-table>
+        </div>
         <el-form class="inline-form mt" label-position="top">
           <el-form-item label="发货订单号">
             <el-input v-model="shipOrderNo" placeholder="SO..." />
@@ -155,7 +157,8 @@ onMounted(loadAdmin);
           empty-description="后台商品接口当前未返回商品。"
           @retry="loadAdmin"
         />
-        <el-table v-if="!productsError && products.length" :data="products" class="stable-table">
+        <div v-if="!productsError && products.length" class="table-scroll">
+        <el-table :data="products" class="stable-table">
           <el-table-column prop="spuId" label="SPU" width="100" />
           <el-table-column prop="name" label="商品" min-width="160" />
           <el-table-column prop="brand" label="品牌" width="100" />
@@ -164,6 +167,7 @@ onMounted(loadAdmin);
           </el-table-column>
           <el-table-column prop="sales" label="销量" width="90" />
         </el-table>
+        </div>
         <el-alert
           class="mt"
           title="新增、编辑、删除、上下架外部接口未在 AdminController 中确认，当前只展示状态说明，不伪造操作成功。"

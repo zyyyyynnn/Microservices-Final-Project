@@ -41,16 +41,6 @@ async function submitLogin() {
         <div class="panel-title">登录 MallCloud</div>
       </template>
       <el-alert v-if="error" :title="error" type="error" :closable="false" class="mb" />
-      <el-descriptions border :column="1" class="mb">
-        <el-descriptions-item label="Token 状态">
-          <el-tag :type="auth.isAuthenticated ? 'success' : 'info'" effect="plain">
-            {{ auth.isAuthenticated ? '已保存 Access Token' : '未登录' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="跳转来源">
-          {{ route.query.redirect || '首页' }}
-        </el-descriptions-item>
-      </el-descriptions>
 
       <el-form label-position="top" @submit.prevent="submitLogin">
         <el-form-item label="用户名">

@@ -13,8 +13,11 @@ body {
   color: var(--color-text-primary);
   background: var(--color-bg);
   font-family: Inter, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 14px;
+  font-size: var(--font-sm);
+  line-height: var(--leading-normal);
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -34,4 +37,19 @@ select {
 *::after {
   transition: none !important;
   animation: none !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-brand-light);
+  color: var(--color-text-primary);
+}
+
+img {
+  display: block;
+  max-width: 100%;
 }

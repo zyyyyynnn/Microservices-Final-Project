@@ -20,6 +20,10 @@ const remark = ref('frontend-checkout');
 
 const directItem = computed(() => Number(route.query.skuId || 0) > 0);
 
+function selectAddress(id: number) {
+  selectedAddressId.value = id;
+}
+
 async function load() {
   loading.value = true;
   error.value = '';
@@ -82,27 +86,34 @@ onMounted(load);
 
       <div v-if="!loading && items.length" class="checkout-section">
         <h2 class="section-title">收货地址</h2>
-        <el-radio-group v-model="selectedAddressId" class="address-grid">
-          <el-radio
+        <div class="address-card-grid" v-if="addresses.length">
+          <div
             v-for="address in addresses"
             :key="address.id"
-            :label="address.id || 1"
-            border
+            class="address-option"
+            :class="{ active: address.id === selectedAddressId }"
+            @click="selectAddress(address.id || 1)"
           >
-            {{ address.receiver }} {{ address.phone }} / {{ address.province }}{{ address.city }}{{ address.district }} {{ address.detail }}
-          </el-radio>
-        </el-radio-group>
+            <el-radio :model-value="selectedAddressId" :label="address.id || 1" />
+            <div class="address-info">
+              <strong>{{ address.receiver }} {{ address.phone }}</strong>
+              <span>{{ address.province }}{{ address.city }}{{ address.district }} {{ address.detail }}</span>
+            </div>
+          </div>
+        </div>
         <el-alert v-if="!addresses.length" title="地址接口未返回数据，默认使用地址 ID 1 创建订单。" type="warning" :closable="false" />
 
         <h2 class="section-title">订单商品</h2>
-        <el-table :data="items" class="stable-table">
-          <el-table-column prop="skuName" label="商品" min-width="220" />
-          <el-table-column prop="skuId" label="SKU" width="120" />
-          <el-table-column label="单价" width="120">
-            <template #default="{ row }">{{ row.price ? money(row.price) : '以订单服务为准' }}</template>
-          </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="100" />
-        </el-table>
+        <div class="table-scroll">
+          <el-table :data="items" class="stable-table">
+            <el-table-column prop="skuName" label="商品" min-width="220" />
+            <el-table-column prop="skuId" label="SKU" width="120" />
+            <el-table-column label="单价" width="120">
+              <template #default="{ row }">{{ row.price ? money(row.price) : '以订单服务为准' }}</template>
+            </el-table-column>
+            <el-table-column prop="quantity" label="数量" width="100" />
+          </el-table>
+        </div>
         <el-form label-position="top" class="mt">
           <el-form-item label="订单备注">
             <el-input v-model="remark" maxlength="255" show-word-limit />
