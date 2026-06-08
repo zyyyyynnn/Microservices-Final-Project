@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
@@ -14,9 +14,62 @@ const requestId = ref('');
 const result = ref<UnknownRecord | null>(null);
 const submitting = ref(false);
 const quantity = ref(1);
+const polling = ref(false);
+const pollCount = ref(0);
+const pollMessage = ref('');
+const maxPollCount = 10;
+let pollTimer: ReturnType<typeof window.setInterval> | null = null;
 
 const selectedActivityId = computed(() => Number(field(selected.value, ['id', 'activityId'], 0)));
 const selectedSkuId = computed(() => Number(field(selected.value, ['skuId'], 0)));
+
+function isFinalResult(value: UnknownRecord | null) {
+  if (!value) return false;
+  const status = Number(field(value, ['status'], 0));
+  const orderNo = String(field(value, ['orderNo'], ''));
+  const message = String(field(value, ['message'], ''));
+  return status === 1 || status === 2 || Boolean(orderNo) || /成功|失败|售罄|结束|限购|限流/.test(message);
+}
+
+function stopPolling(message = '') {
+  if (pollTimer) {
+    window.clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  polling.value = false;
+  pollMessage.value = message;
+}
+
+async function pollOnce() {
+  if (!requestId.value) return;
+  pollCount.value += 1;
+  try {
+    const response = await mallApi.seckillResult(requestId.value);
+    result.value = response;
+    if (isFinalResult(response)) {
+      stopPolling();
+      return;
+    }
+    if (pollCount.value >= maxPollCount) {
+      stopPolling('结果仍在处理中，请稍后手动查询');
+    }
+  } catch (err) {
+    stopPolling();
+    error.value = err instanceof Error ? err.message : '秒杀结果查询失败';
+  }
+}
+
+function startPolling(id: string) {
+  stopPolling();
+  requestId.value = id;
+  pollCount.value = 0;
+  pollMessage.value = '秒杀请求处理中，正在轮询结果';
+  polling.value = true;
+  pollTimer = window.setInterval(() => {
+    void pollOnce();
+  }, 2000);
+  void pollOnce();
+}
 
 async function loadActivities() {
   loading.value = true;
@@ -47,11 +100,19 @@ async function loadDetail(activity: UnknownRecord) {
 async function createSeckill() {
   if (!selectedActivityId.value || !selectedSkuId.value) return;
   submitting.value = true;
+  error.value = '';
+  pollMessage.value = '';
   try {
     const response = await mallApi.createSeckill(selectedActivityId.value, selectedSkuId.value, quantity.value);
     result.value = response;
-    requestId.value = String(field(response, ['requestId'], ''));
+    const id = String(field(response, ['requestId'], ''));
+    requestId.value = id;
     ElMessage.success('秒杀请求已提交');
+    if (id) {
+      startPolling(id);
+    } else {
+      pollMessage.value = '接口未返回 requestId，请稍后手动查询';
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '秒杀请求失败';
   } finally {
@@ -61,14 +122,20 @@ async function createSeckill() {
 
 async function queryResult() {
   if (!requestId.value) return;
+  stopPolling();
+  pollMessage.value = '';
   try {
     result.value = await mallApi.seckillResult(requestId.value);
+    if (!isFinalResult(result.value)) {
+      pollMessage.value = '结果仍在处理中，请稍后手动查询';
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '秒杀结果查询失败';
   }
 }
 
 onMounted(loadActivities);
+onBeforeUnmount(() => stopPolling());
 </script>
 
 <template>
@@ -115,10 +182,11 @@ onMounted(loadActivities);
       <el-empty v-else description="请选择秒杀活动" />
       <div class="button-row mt">
         <el-input-number v-model="quantity" :min="1" aria-label="秒杀数量" />
-        <el-button type="primary" :loading="submitting" :disabled="!selected || submitting" @click="createSeckill">
-          发起秒杀
+        <el-button type="primary" :loading="submitting" :disabled="!selected || submitting || polling" @click="createSeckill">
+          {{ polling ? '处理中' : '发起秒杀' }}
         </el-button>
       </div>
+      <el-alert v-if="polling || pollMessage" class="mt" :title="pollMessage" type="info" :closable="false" />
       <el-divider />
       <el-form class="inline-form" label-position="top">
         <el-form-item label="requestId">

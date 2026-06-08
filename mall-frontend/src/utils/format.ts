@@ -69,7 +69,16 @@ export function productName(value: unknown) {
   return String(field(value, ['name', 'title', 'spuName', 'skuName'], '未命名商品'));
 }
 
+export function skuList(product: unknown) {
+  const record = asRecord(product);
+  const candidates = [record.skus, record.skuList, record.skuVOList, record.skuInfos];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate as UnknownRecord[];
+  }
+  return [];
+}
+
 export function firstSku(product: unknown) {
-  const skus = field<UnknownRecord[]>(product, ['skus'], []);
-  return Array.isArray(skus) && skus.length ? skus[0] : null;
+  const skus = skuList(product);
+  return skus.length ? skus[0] : null;
 }

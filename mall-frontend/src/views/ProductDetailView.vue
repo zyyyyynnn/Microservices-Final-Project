@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
-import { field, money, productImage, productName, productStatusMap, statusText } from '../utils/format';
+import { field, money, productImage, productName, productStatusMap, skuList, statusText } from '../utils/format';
 
 const route = useRoute();
 const router = useRouter();
@@ -16,10 +16,7 @@ const selectedSkuId = ref<number | null>(null);
 const quantity = ref(1);
 const adding = ref(false);
 
-const skus = computed(() => {
-  const items = product.value?.skus;
-  return Array.isArray(items) ? (items as UnknownRecord[]) : [];
-});
+const skus = computed(() => skuList(product.value));
 const selectedSku = computed(() => skus.value.find((sku) => Number(field(sku, ['skuId'])) === selectedSkuId.value) || skus.value[0]);
 const stock = computed(() => Number(field(selectedSku.value, ['stock'], 0)));
 const disabled = computed(() => !selectedSku.value || stock.value <= 0 || adding.value);
@@ -30,8 +27,8 @@ async function loadProduct() {
   try {
     const data = await mallApi.product(Number(route.params.id || 1001));
     product.value = data;
-    const dataSkus = Array.isArray(data.skus) ? (data.skus as UnknownRecord[]) : [];
-    selectedSkuId.value = Number(field(dataSkus[0], ['skuId'], null));
+    const dataSkus = skuList(data);
+    selectedSkuId.value = dataSkus.length ? Number(field(dataSkus[0], ['skuId'], null)) : null;
   } catch (err) {
     product.value = null;
     error.value = err instanceof Error ? err.message : '商品详情加载失败';
@@ -102,7 +99,14 @@ onMounted(loadProduct);
           <el-button plain :disabled="disabled" @click="checkoutNow">立即结算</el-button>
         </div>
         <el-alert
-          v-if="stock <= 0"
+          v-if="skus.length === 0"
+          title="SKU 数据待联调，加入购物车和立即结算已禁用。"
+          type="warning"
+          :closable="false"
+          class="mt"
+        />
+        <el-alert
+          v-else-if="stock <= 0"
           title="当前 SKU 库存不足或库存字段未返回，购买操作已禁用。"
           type="warning"
           :closable="false"

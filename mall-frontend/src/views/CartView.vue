@@ -100,7 +100,10 @@ onMounted(load);
         <el-table-column prop="skuName" label="商品" min-width="220">
           <template #default="{ row }">
             <div class="line-item">
-              <div class="thumb">{{ row.skuImage ? '' : 'SKU' }}</div>
+              <div class="thumb">
+                <img v-if="row.skuImage" :src="row.skuImage" :alt="row.skuName || '商品图片'" />
+                <span v-else>SKU</span>
+              </div>
               <div>
                 <strong>{{ row.skuName || '商品名称待联调' }}</strong>
                 <span>SKU {{ row.skuId }}</span>
