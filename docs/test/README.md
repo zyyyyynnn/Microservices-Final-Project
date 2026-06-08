@@ -212,7 +212,7 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50
 pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 ```
 
-脚本优先使用本机已安装的 `jmeter`；未安装时按需下载 Apache JMeter 到 `.tools/`，并生成 JTL 与 HTML 报告。输出目录必须不存在或为空。
+脚本优先使用本机已安装的 `jmeter`；未安装时按需下载 Apache JMeter 到 `.tools/`，并按时间戳生成 JTL 与 HTML 报告目录；同名目录存在时失败。`search/order` 使用 `-Duration` 控制运行时间，`-Loops` 仅对 `seckill` 生效。
 
 ---
 

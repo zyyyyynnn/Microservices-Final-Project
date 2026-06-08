@@ -92,6 +92,10 @@ if (Test-Path -LiteralPath $reportDir) {
     throw "JMeter HTML 报告目录已存在：$reportDir"
 }
 
+if ($Scenario -ne "seckill" -and $PSBoundParameters.ContainsKey("Loops")) {
+    Write-Warning "-Loops only applies to seckill scenario; search/order use -Duration."
+}
+
 $args = @(
     "-n",
     "-t", $scriptPath.Path,
@@ -101,9 +105,12 @@ $args = @(
     "-JBaseURL=$BaseURL",
     "-Jusers=$Users",
     "-Jrampup=$RampUp",
-    "-Jduration=$Duration",
-    "-Jloops=$Loops"
+    "-Jduration=$Duration"
 )
+
+if ($Scenario -eq "seckill") {
+    $args += "-Jloops=$Loops"
+}
 
 & $jmeterCommand @args
 exit $LASTEXITCODE
