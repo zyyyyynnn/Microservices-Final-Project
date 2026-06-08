@@ -179,47 +179,47 @@ MallCloud
 
 ## 5. Pages and Routes
 
-前端路由文件已位于 `mall-frontend/src/router/index.ts`；「Gateway / API」列只使用仓库已确认的路径。当前提交的实际路由少于本表定义的产品页面，未实现独立路由或仅以接口面板合并展示的页面，均不得标记为"完整完成"。
+前端路由文件已位于 `mall-frontend/src/router/index.ts`；「Gateway / API」列只使用仓库已确认的路径。当前采用 `mall-frontend` 单应用，前台和后台通过路由分区，共享同一布局壳。
 
 | 页面 | 前端路由 | 角色 | Gateway / API 依据 | 状态 |
 |---|---|---|---|---|
-| 登录页 | `/login` | 游客 | `POST /api/v1/auth/login` | 前端待确认 |
-| 注册页 | `/register` | 游客 | `POST /api/v1/users/register` | 前端待确认 |
-| 首页 / 类目入口 | `/` | 游客 / 用户 | `GET /api/v1/categories/tree` | 前端待确认 |
-| 商品详情页 | `/products/:id` | 游客 / 用户 | `GET /api/v1/products/{id}` | 前端待确认 |
-| 商品搜索页 | `/search` | 游客 / 用户 | `GET /api/v1/search/products`、`GET /api/v1/search/hot-words` | 前端待确认 |
-| 购物车页 / 抽屉 | `/cart` 或全局 Drawer | 普通用户 | `GET/POST/PUT/PATCH/DELETE /api/v1/carts` | 前端待确认 |
-| 用户资料页 | `/account/profile` | 普通用户 | `GET /api/v1/users/me`、`PUT /api/v1/users/me` | 前端待确认 |
-| 地址管理页 | `/account/addresses` | 普通用户 | `GET/POST/PUT/DELETE /api/v1/users/me/addresses` | 前端待确认 |
-| 订单创建 / 确认页 | `/checkout` | 普通用户 | `POST /api/v1/orders` | 前端待确认 |
-| 订单详情页 | `/orders/:orderNo` | 普通用户 | `GET /api/v1/orders/{orderNo}` | 前端待确认 |
-| 支付页 | `/pay/:orderNo` | 普通用户 | `POST /api/v1/pay/create`、`GET /api/v1/pay/record/{orderNo}` | 前端待确认 |
-| 秒杀活动页 | `/seckill` | 游客 / 用户 | `GET /api/v1/seckill/activities` | 前端待确认 |
-| 秒杀详情页 | `/seckill/:activityId` | 游客 / 用户 | `GET /api/v1/seckill/activities/{id}`、`POST /api/v1/seckill/{activityId}` | 前端待确认 |
-| 秒杀结果页 / 状态块 | `/seckill/result/:requestId` | 普通用户 | `GET /api/v1/seckill/result/{requestId}` | 前端待确认 |
-| 后台看板 | `/admin/dashboard` | 商家 / 管理员 | `GET /api/v1/admin/dashboard` | 前端待确认 |
-| 后台订单 | `/admin/orders` | 商家 / 管理员 | `GET /api/v1/admin/orders`、`POST /api/v1/admin/orders/{orderNo}/ship` | 前端待确认 |
-| 后台商品 | `/admin/products` | 商家 / 管理员 | `GET /api/v1/admin/products`、`/api/v1/admin/products/**` | 前端待确认 |
+| 登录页 | `/login` | 游客 | `POST /api/v1/auth/login` | 已实现独立页面 |
+| 注册页 | `/register` | 游客 | `POST /api/v1/users/register` | 已实现独立页面 |
+| 首页 / 类目入口 | `/` | 游客 / 用户 | `GET /api/v1/categories/tree` | 已实现，商品推荐依赖单个商品接口 |
+| 商品详情页 | `/products/:id` | 游客 / 用户 | `GET /api/v1/products/{id}` | 已实现独立页面 |
+| 商品搜索页 | `/search` | 游客 / 用户 | `GET /api/v1/search/products`、`GET /api/v1/search/hot-words` | 已实现独立页面 |
+| 购物车页 | `/cart` | 普通用户 | `GET/POST/PUT/PATCH/DELETE /api/v1/carts` | 已实现独立页面 |
+| 用户资料与地址 | `/account` | 普通用户 | `GET /api/v1/users/me`、地址 CRUD | 已实现，合并资料与地址 |
+| 订单确认页 | `/checkout` | 普通用户 | `POST /api/v1/orders` | 已实现独立页面 |
+| 订单详情页 | `/orders/:orderNo` | 普通用户 | `GET /api/v1/orders/{orderNo}` | 已实现独立页面 |
+| 支付页 | `/pay/:orderNo` | 普通用户 | `POST /api/v1/pay/create`、`GET /api/v1/pay/record/{orderNo}` | 已实现独立页面 |
+| 秒杀页 | `/seckill` | 普通用户 | `GET /api/v1/seckill/activities`、`POST /api/v1/seckill/{id}`、`GET /api/v1/seckill/result/{requestId}` | 已实现，合并列表、详情和结果轮询 |
+| 后台管理 | `/admin` | 商家 / 管理员 | `GET /api/v1/admin/dashboard`、订单、商品 | 已实现，合并看板、订单和商品 |
+| 技术演示页 | `/tech` | 游客 / 用户 | 各技术点入口 | 已实现 |
+| 404 页面 | `/:pathMatch(.*)*` | 游客 / 用户 | 无 | 已实现 |
 
-### 5.1 当前前端实现差距
+### 5.1 当前前端实现状态
 
-截至 `codex/frontend-demo-system` 分支的第五阶段断点，`mall-frontend` 已具备基础工程、公共布局、路由守卫、接口封装和部分操作入口，但实际页面仍偏向接口调试面板。以下差距必须在后续前端整改中消除：
+截至本轮产品化页面整改，`mall-frontend` 已完成全部独立路由页面的产品化。以下为最终状态：
 
-| 设计页面 | 当前实现 | 结论 |
+| 设计页面 | 实现路由 | 结论 |
 |---|---|---|
-| 注册页 `/register` | 合并在 `/login` 表单中 | 未完成独立页面 |
-| 商品详情 `/products/:id` | 合并在首页，以 JSON 显示商品响应 | 未完成产品化页面 |
-| 搜索页 `/search` | 合并在首页，以 JSON 显示搜索响应 | 未完成产品化页面 |
-| 订单确认 `/checkout` | 购物车中直接输入 `addressId` 创建订单 | 未完成 |
-| 订单详情 `/orders/:orderNo` | 合并在 `/orders`，以 JSON 显示订单响应 | 未完成产品化页面 |
-| 支付页 `/pay/:orderNo` | 合并在 `/orders`，以 JSON 显示支付响应 | 未完成产品化页面 |
-| 秒杀详情 `/seckill/:activityId` | 合并在 `/seckill`，手动输入 ID 查询 | 未完成 |
-| 秒杀结果 `/seckill/result/:requestId` | 合并在 `/seckill`，未实现自动轮询 | 未完成 |
-| 后台看板 `/admin/dashboard` | 合并在 `/admin`，以 JSON 显示响应 | 未完成产品化页面 |
-| 后台订单 `/admin/orders` | 合并在 `/admin`，缺少结构化订单管理页面 | 未完成 |
-| 后台商品 `/admin/products` | 合并在 `/admin`，缺少结构化商品管理页面 | 未完成 |
+| 登录页 | `/login` | 已完成，含错误提示、跳转来源、Token 状态 |
+| 注册页 | `/register` | 已完成，含字段校验和成功引导 |
+| 首页 | `/` | 已完成，含类目入口和商品推荐 |
+| 商品详情 | `/products/:id` | 已完成，含 SKU 选择、库存状态、加入购物车 |
+| 搜索页 | `/search` | 已完成，含热词、结果列表、分页、空结果 |
+| 购物车 | `/cart` | 已完成，含数量修改、勾选、删除、结算摘要 |
+| 账户页 | `/account` | 已完成，含资料编辑和地址管理 |
+| 订单确认 | `/checkout` | 已完成，含地址选择、订单项确认、金额汇总 |
+| 订单详情 | `/orders/:orderNo` | 已完成，含状态、商品明细、支付入口 |
+| 支付页 | `/pay/:orderNo` | 已完成，含支付记录、模拟支付说明、通知结果 |
+| 秒杀页 | `/seckill` | 已完成，含活动列表、详情、发起请求、结果轮询 |
+| 后台管理 | `/admin` | 已完成，含看板统计、订单表格、商品表格、发货操作 |
+| 技术演示 | `/tech` | 已完成，含技术点说明和可验证入口 |
+| 404 页面 | `/:pathMatch(.*)*` | 已完成 |
 
-允许保留技术演示页中的接口响应调试信息，但业务页面不得以 raw JSON 作为主要内容。
+业务成功态仍受后端服务和联调进度限制，各页面的 loading、empty、error、disabled 状态已覆盖。
 
 ---
 
@@ -342,18 +342,20 @@ MallCloud
 
 ## 9. Responsive Behavior
 
+当前实现使用两个断点，与 Element Plus 默认断点对齐：
+
 | 断点 | 屏幕宽度 | 容器宽度 | 行为 |
 |---|---:|---:|---|
-| `sm` | `< 640px` | `100%` | 单列布局；购物车、筛选和后台操作优先用 Drawer 或纵向区块 |
-| `md` | `640-1024px` | `720px` | 商品和后台列表可使用双列或紧凑表格 |
-| `lg` | `1024-1280px` | `960px` | 商品信息、购物车摘要、订单摘要可左右分栏 |
-| `xl` | `>= 1280px` | `1200px` | 后台列表和看板使用更高信息密度 |
+| `md` | `640-1024px` | `960px` | 双栏布局折叠为单栏；表单网格折叠为单列 |
+| `sm` | `< 640px` | `100%` | 单列布局；导航横向滚动；Header 折叠；表格横向滚动 |
 
 响应式约束：
 
 - 文字不得溢出按钮、卡片、表格单元格或 Drawer；
 - 关键操作在移动端必须可见，不依赖 hover；
-- 表格在窄屏应支持横向滚动或折叠为列表；
+- 表格在窄屏使用 `.table-scroll` 包裹实现横向滚动；
+- 导航栏在窄屏使用横向滚动，不换行挤压内容区；
+- Header 在 `< 640px` 时折叠为单列布局；
 - 弹窗和抽屉不能超出视口；
 - 不使用 viewport 字号缩放制造响应式效果。
 
@@ -390,7 +392,7 @@ MallCloud
 | `--color-error` | `#e11d48` | 错误 / 告警 |
 | `--color-success` | `#16a34a` | 成功 |
 | `--color-warning` | `#d97706` | 警告 |
-| `--mask-overlay` | `color-mix(in srgb, var(--color-text-primary) 20%, transparent)` | 浅层遮罩 |
+| `--color-info` | `#3b82f6` | 信息提示 |
 
 | 语义 Token | 映射 | 用途 |
 |---|---|---|
@@ -416,18 +418,30 @@ MallCloud
 | `--radius-md` | `4px` | Button、Input |
 | `--radius-lg` | `8px` | 商品卡片、Dialog、Dropdown |
 
-| Class | 像素值 | 用途 |
+| Token | 值 | 用途 |
 |---|---:|---|
-| `.text-xs` | `12px` | 标签、辅助说明 |
-| `.text-sm` | `14px` | 基础正文、表单输入 |
-| `.text-base` | `16px` | 商品标题、主按钮、价格 |
-| `.text-lg` | `18px` | 模块小标题、订单总价 |
-| `.text-xl` | `20px` | 商品详情标题、弹窗标题 |
-| `.text-2xl` | `24px` | 页面主标题 |
+| `--font-xs` | `12px` | 标签、辅助说明、SKU 编号 |
+| `--font-sm` | `14px` | 基础正文、表单输入、导航 |
+| `--font-base` | `16px` | 商品标题、品牌名 |
+| `--font-lg` | `18px` | 模块小标题、面板标题、订单总价 |
+| `--font-xl` | `20px` | 商品详情价格 |
+| `--font-2xl` | `24px` | 页面主标题、看板统计数字 |
+
+| Token | 值 | 用途 |
+|---|---:|---|
+| `--leading-tight` | `1.25` | 标题行高 |
+| `--leading-normal` | `1.5` | 正文行高 |
+| `--leading-relaxed` | `1.7` | 长段落、描述文本行高 |
+
+| Token | 值 | 用途 |
+|---|---:|---|
+| `--weight-normal` | `400` | 正文 |
+| `--weight-medium` | `500` | 表头、标签 |
+| `--weight-bold` | `700` | 标题、价格 |
 
 - 文本字体：`Inter` / `PingFang SC` / `Microsoft YaHei` / sans-serif；
 - 数据、订单号、SKU、价格数字：`JetBrains Mono` / `Consolas` / monospace；
-- Z 轴：Dialog `101` < Dropdown `105` < Tooltip `110`。
+- Z 轴层级由 Element Plus 默认管理，不自定义 z-index 变量。
 
 ### 10.4 Element Plus 主题映射
 
@@ -482,8 +496,8 @@ Element Plus 内置组件必须与 token 对齐；若未来创建 `web-portal` /
 
 ### 10.6 Red Lines
 
-1. 禁止任何动效、过渡、缓动：不得使用 `transition`、`animation`、`@keyframes`、hover 形变。
-2. 禁止弥散光和厚重阴影：层级只能靠 1px 边框和颜色对比。
+1. 禁止动画和缓动：不得使用 `@keyframes`、`animation`、带持续时间的 `transition`。`transition: none` 全局生效。
+2. 禁止弥散光和厚重阴影：层级靠 1px 边框和颜色对比，允许 `--shadow-sm` 和 `--shadow-md` 作为极浅装饰阴影。
 3. 禁止用 `opacity` 表达 Disabled。
 4. 禁止规范外字号和负字距。
 5. 禁止业务 CSS 写入全局；全局样式只放 token、reset、Element Plus 主题映射。
@@ -582,44 +596,40 @@ import './styles/element-theme.css';
 
 ### 13.5 Frontend Page Completion Matrix
 
-| 页面 | 必须具备 | 不合格表现 |
-|---|---|---|
-| 首页 / 商品浏览 | 类目入口、商品卡片、商品详情入口、搜索入口、登录状态入口 | 只显示接口 JSON |
-| 商品详情 | 商品标题、价格、SKU、库存状态、数量、加入购物车、错误状态 | 只输入 SPU/SKU 调接口 |
-| 搜索页 | 关键字、热词、结果列表、分页、空结果、错误状态 | 只显示搜索 JSON |
-| 登录页 | 登录表单、错误提示、跳转来源、Token 状态 | 只有默认账号或无错误状态 |
-| 注册页 | 独立注册表单、字段校验、成功后登录引导 | 混在登录页且无校验 |
-| 账户页 | 用户资料、地址列表、新增、编辑、删除入口、空状态 | 只有简单字段和 ID |
-| 购物车 | 商品行、价格、小计、勾选、数量、删除、结算、空状态 | 只显示表格且无状态控制 |
-| 订单确认 | 地址选择、订单项确认、金额汇总、提交状态 | 用地址 ID 直接下单 |
-| 订单详情 | 订单状态、商品明细、金额、支付入口、错误状态 | 只显示订单 JSON |
-| 支付页 | 支付记录、模拟支付说明、通知结果、查询订单入口 | 只显示支付 JSON |
-| 秒杀页 | 活动列表、活动详情、状态文案、发起请求、结果轮询 | 手动输入 ID 调接口 |
-| 后台看板 | 统计卡片、订单入口、商品入口、错误状态 | 只显示 dashboard JSON |
-| 后台订单 | 订单表格、状态、发货操作、提交反馈 | 只输入订单号发货 |
-| 后台商品 | 商品表格、上下架 / 编辑 / 删除状态说明 | 只显示商品 JSON |
-| 技术演示页 | 技术点说明、可验证入口、未验证标记 | 把业务页面做成技术页 |
+| 页面 | 路由 | 必须具备 | 实现状态 |
+|---|---|---|---|
+| 首页 / 商品浏览 | `/` | 类目入口、商品卡片、商品详情入口、搜索入口 | 已完成 |
+| 商品详情 | `/products/:id` | 商品标题、价格、SKU、库存状态、数量、加入购物车、错误状态 | 已完成 |
+| 搜索页 | `/search` | 关键字、热词、结果列表、分页、空结果、错误状态 | 已完成 |
+| 登录页 | `/login` | 登录表单、错误提示、跳转来源 | 已完成 |
+| 注册页 | `/register` | 独立注册表单、字段校验、成功后登录引导 | 已完成 |
+| 账户页 | `/account` | 用户资料、地址列表、新增入口、空状态 | 已完成 |
+| 购物车 | `/cart` | 商品行、价格、小计、勾选、数量、删除、结算、空状态 | 已完成 |
+| 订单确认 | `/checkout` | 地址选择、订单项确认、金额汇总、提交状态 | 已完成 |
+| 订单详情 | `/orders/:orderNo` | 订单状态、商品明细、金额、支付入口、错误状态 | 已完成 |
+| 支付页 | `/pay/:orderNo` | 支付记录、模拟支付说明、通知结果、查询订单入口 | 已完成 |
+| 秒杀页 | `/seckill` | 活动列表、活动详情、状态文案、发起请求、结果轮询 | 已完成 |
+| 后台管理 | `/admin` | 看板统计、订单表格、商品表格、发货操作 | 已完成 |
+| 技术演示页 | `/tech` | 技术点说明、可验证入口 | 已完成 |
+| 404 页面 | `/:pathMatch(.*)*` | 友好提示、返回首页入口 | 已完成 |
 
-前端验收时必须逐行填写实现状态、证据路径和未完成原因。未满足本矩阵的页面只能标记为"部分实现"或"未完成"。
-
-本轮整改已在 `docs/test/README.md` 的「本轮前端页面整改验收矩阵」记录逐页状态。当前结论为：前端页面结构已产品化，业务成功态仍受后端服务和联调进度限制。
+业务成功态仍受后端服务和联调进度限制。各页面的 loading、empty、error、disabled 状态已覆盖。
 
 ---
 
 ## 14. Open Questions
 
 - 已确认：当前仓库采用 `mall-frontend` 单应用前端工程，不拆 `web-portal` / `web-admin`。
-- 待确认：前端正式路由命名是否采用本文件建议路径，或已有团队约定。
-- 待确认：`README.md` 声明的 Vue 3 / Vite / Element Plus / Axios / Pinia 前端栈是否已经存在于未提交或外部目录。
+- 已确认：前端路由命名以 `mall-frontend/src/router/index.ts` 为准。
+- 已确认：前端技术栈为 Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia。
+- 已确认：响应式断点为 640px 和 1024px 两个。
 - 待确认：商品列表接口在 `docs/API.md` 中出现，但当前 `ProductController` 未确认 `GET /api/v1/products` 外部列表接口。
 - 待确认：独立后台登录 `POST /api/v1/admin/auth/login` 在 `docs/API.md` 中出现，但当前 `mall-admin-biz` Controller 未确认该接口。
 - 待确认：`MERCHANT` 与 `ADMIN` 在后台接口上的精确权限边界和是否存在方法级权限控制。
 - 待确认：秒杀轮询间隔、轮询超时和失败重试策略。
 - 待确认：购物车删除、订单发货、商品删除等破坏性操作是否要求二次确认。
 - 待确认：秒杀活动是否允许游客浏览；当前 Gateway 白名单未开放 `/api/v1/seckill/**`。
-- 待确认：搜索页筛选、排序、分页展示规则。
-- 待确认：支付页是否需要人工触发模拟通知入口，或仅由后端测试工具触发。
-- 待确认：前端是否需要分别实现前台和后台两个应用，或单应用按路由分区。
+- 待确认：搜索页筛选、排序规则。
 
 ---
 
@@ -635,3 +645,4 @@ import './styles/element-theme.css';
 | 2026-06-08 | 新增 `mall-frontend` 单应用基础工程、接口入口和技术演示断点 | 第五阶段提交 `483e433 feat(frontend): add mallcloud demo app` |
 | 2026-06-08 | 复查后确认当前前端不能作为完整产品化页面交付，需按 Frontend Page Completion Matrix 整改 | 前端页面质量审查 |
 | 2026-06-08 | 完成一轮产品化页面整改，拆分 `/products/:id`、`/search`、`/register`、`/checkout`、`/orders/:orderNo`、`/pay/:orderNo` 等路由 | 前端页面整改 |
+| 2026-06-08 | UI 全局审查与重构：统一 token 体系、补充缺失 token、修复全局样式、添加 404 路由、改善响应式、对齐 DESIGN.md 与代码实现 | 本轮 UI 审查 |

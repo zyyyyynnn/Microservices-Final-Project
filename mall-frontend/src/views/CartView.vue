@@ -87,7 +87,8 @@ onMounted(load);
         empty-description="从商品详情页加入商品后再进行结算。"
         @retry="load"
       />
-      <el-table v-if="cart.items.length" :data="cart.items" class="stable-table">
+      <div v-if="cart.items.length" class="table-scroll">
+      <el-table :data="cart.items" class="stable-table">
         <el-table-column label="选中" width="90">
           <template #default="{ row }">
             <el-switch
@@ -135,7 +136,8 @@ onMounted(load);
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
     </el-card>
 
     <el-card class="panel">
