@@ -231,15 +231,18 @@ mall-message
 
 ### 完成标准
 
-- 新建 Vue 3 + Vite + TypeScript 前端工程；
-- 使用 Element Plus、Axios、Pinia；
+- 保留现有 Vue 3 + Vite + TypeScript 前端工程；
+- 继续使用 Element Plus、Axios、Pinia，不引入平行组件库或设计系统；
+- 按 `DESIGN.md` 的 Frontend Page Completion Matrix 逐页整改；
+- 商品详情、搜索、结算、订单详情、支付、秒杀轮询、后台看板 / 订单 / 商品等页面达到产品化展示标准；
 - 能通过 Gateway 调用后端接口；
 - 登录后保存并携带 Access Token；
 - 支持 Token 失效、无权限和接口错误提示；
-- 覆盖公共端、用户端、秒杀端、商家/管理员端和技术演示页；
+- 覆盖公共端、用户端、秒杀端、商家/管理员端和技术演示页，并逐页记录完成状态；
+- 业务页面不得以 raw JSON、接口调试面板或基础渲染截图作为主要完成证据；
 - 不使用 mock 伪造未完成后端能力；
-- 浏览器真实验证通过；
-- 保存截图或录屏证据；
+- 浏览器真实验证必须覆盖桌面端、移动端、主流程、状态反馈和错误状态；
+- 保存逐页截图或录屏证据；
 - 同步 README、DESIGN、FINAL_REPORT 和测试文档。
 
 ### 功能范围
