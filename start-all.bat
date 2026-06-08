@@ -44,8 +44,6 @@ if "%ARG_CLEAN_LOGS%"=="1" (
     echo [INFO] Cleaning old logs...
     if exist "%LOGS_DIR%\*" del /q "%LOGS_DIR%\*" 2>nul
 )
-
-rem -- 初始化状态文件 --
 if not exist "%STATE_FILE%" echo {} > "%STATE_FILE%"
 
 echo.
@@ -60,7 +58,6 @@ rem ============================================================
 echo [ENV] Checking prerequisites...
 echo.
 
-rem PowerShell 7+
 where pwsh.exe >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] pwsh.exe not found. Install PowerShell 7+
@@ -69,7 +66,6 @@ if errorlevel 1 (
 )
 echo [OK]   PowerShell 7+
 
-rem Java
 where java.exe >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] java.exe not found. Install JDK 21
@@ -78,7 +74,11 @@ if errorlevel 1 (
 )
 set "JAVA_MAJOR="
 for /f "usebackq tokens=*" %%v in (`pwsh.exe -NoProfile -NoLogo -Command "([regex]::Match((& java -version 2>&1 | Select-Object -First 1), '(\d+)')).Groups[1].Value"`) do set "JAVA_MAJOR=%%v"
-if "%JAVA_MAJOR%"=="" set "JAVA_MAJOR=21"
+if "%JAVA_MAJOR%"=="" (
+    echo [ERROR] Cannot detect Java version
+    echo [FIX]   Ensure JDK 21 is installed and java.exe is on PATH
+    goto :FAIL
+)
 if not "%JAVA_MAJOR%"=="21" (
     echo [ERROR] JDK 21 required, found: JDK %JAVA_MAJOR%
     echo [FIX]   https://adoptium.net/temurin/releases/?version=21
@@ -86,7 +86,6 @@ if not "%JAVA_MAJOR%"=="21" (
 )
 echo [OK]   JDK %JAVA_MAJOR%
 
-rem Maven
 set "MVN_CMD="
 if exist "%ROOT%mvnw.cmd" (
     set "MVN_CMD=call "%ROOT%mvnw.cmd""
@@ -107,7 +106,6 @@ if exist "%ROOT%mvnw.cmd" (
     echo [OK]   Maven
 )
 
-rem Node.js
 where node.exe >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] node.exe not found. Install Node.js 18+
@@ -117,7 +115,6 @@ if errorlevel 1 (
 for /f "tokens=*" %%v in ('node --version 2^>nul') do set "NODE_VER=%%v"
 echo [OK]   Node.js %NODE_VER%
 
-rem npm (仅用于安装依赖)
 where npm.cmd >nul 2>&1
 if errorlevel 1 (
     where npm >nul 2>&1
@@ -128,7 +125,6 @@ if errorlevel 1 (
 )
 echo [OK]   npm
 
-rem Docker (仅在需要启动基础设施时检查)
 if "%ARG_SKIP_INFRA%"=="1" (
     echo [SKIP] Docker check (--skip-infrastructure)
     goto :SKIP_DOCKER_CHECK
@@ -176,11 +172,9 @@ if not exist "%COMPOSE_FILE%" (
     goto :FAIL
 )
 
-rem 记录启动前已运行的容器
-set "PRE_EXISTING="
-for /f "tokens=*" %%c in ('docker ps --format "{{.Names}}" 2^>nul') do (
-    if defined PRE_EXISTING (set "PRE_EXISTING=!PRE_EXISTING!,%%c") else (set "PRE_EXISTING=%%c")
-)
+rem 记录启动前已运行的容器到文件
+pwsh.exe -NoProfile -Command ^
+    "docker ps --format '{{.Names}}' 2>$null | Set-Content '%RUNTIME_DIR%\containers.before.txt' -Encoding UTF8"
 
 echo [INFO] docker compose up -d ...
 docker compose -f "%COMPOSE_FILE%" up -d >"%LOGS_DIR%\infra-compose.log" 2>&1
@@ -191,42 +185,68 @@ if errorlevel 1 (
 )
 echo [OK]   Docker Compose executed
 
-rem 记录本次由脚本拉起的容器（排除启动前已运行的）
+rem 计算差集：只记录本次新启动的容器
 pwsh.exe -NoProfile -Command ^
-    "$pre = '%PRE_EXISTING%' -split ','; $now = docker ps --format '{{.Names}}' 2>$null; $started = $now | Where-Object { $_ -notin $pre }; $started | ConvertTo-Json | Set-Content '%INFRA_STATE%' -Encoding UTF8" >nul 2>&1
+    "$before = if (Test-Path '%RUNTIME_DIR%\containers.before.txt') { Get-Content '%RUNTIME_DIR%\containers.before.txt' -Encoding UTF8 } else { @() };" ^
+    "$after = docker ps --format '{{.Names}}' 2>$null;" ^
+    "$started = $after | Where-Object { $_ -and ($_ -notin $before) };" ^
+    "if ($started) { $started | ConvertTo-Json | Set-Content '%INFRA_STATE%' -Encoding UTF8 } else { '[]' | Set-Content '%INFRA_STATE%' -Encoding UTF8 }"
 
-rem 等待关键中间件（TCP 探测，exit 0=成功）
+rem 等待关键中间件
 echo [WAIT] MySQL (3306) ...
 call :WAIT_TCP 127.0.0.1 3306 30 "MySQL"
-if errorlevel 1 echo [WARN] MySQL timeout, continuing
+if errorlevel 1 (
+    echo [ERROR] MySQL not ready
+    goto :FAIL
+)
+
+echo [WAIT] Redis (6379) ...
+call :WAIT_TCP 127.0.0.1 6379 20 "Redis"
+if errorlevel 1 (
+    echo [ERROR] Redis not ready
+    goto :FAIL
+)
 
 echo [WAIT] Nacos (8848) ...
 call :WAIT_HTTP "http://127.0.0.1:8848/nacos/" 40 "Nacos"
-if errorlevel 1 echo [WARN] Nacos timeout, continuing
-
-echo [WAIT] Redis (6379) ...
-call :WAIT_TCP 127.0.0.1 6379 10 "Redis"
-if errorlevel 1 echo [WARN] Redis not ready
+if errorlevel 1 (
+    echo [ERROR] Nacos not ready
+    goto :FAIL
+)
 
 echo [WAIT] RocketMQ NameServer (9876) ...
-call :WAIT_TCP 127.0.0.1 9876 20 "RocketMQ NameServer"
-if errorlevel 1 echo [WARN] RocketMQ NameServer timeout
+call :WAIT_TCP 127.0.0.1 9876 30 "RocketMQ NameServer"
+if errorlevel 1 (
+    echo [ERROR] RocketMQ NameServer not ready
+    goto :FAIL
+)
 
 echo [WAIT] RocketMQ Broker (10911) ...
-call :WAIT_TCP 127.0.0.1 10911 20 "RocketMQ Broker"
-if errorlevel 1 echo [WARN] RocketMQ Broker timeout
+call :WAIT_TCP 127.0.0.1 10911 30 "RocketMQ Broker"
+if errorlevel 1 (
+    echo [ERROR] RocketMQ Broker not ready
+    goto :FAIL
+)
 
 echo [WAIT] Seata (8091) ...
-call :WAIT_TCP 127.0.0.1 8091 20 "Seata"
-if errorlevel 1 echo [WARN] Seata timeout
+call :WAIT_TCP 127.0.0.1 8091 30 "Seata"
+if errorlevel 1 (
+    echo [ERROR] Seata not ready
+    goto :FAIL
+)
+
+echo [WAIT] Elasticsearch (9200) ...
+call :WAIT_HTTP "http://127.0.0.1:9200/_cluster/health" 30 "Elasticsearch"
+if errorlevel 1 (
+    echo [ERROR] Elasticsearch not ready
+    goto :FAIL
+)
 
 echo [WAIT] Sentinel (8080) ...
 call :WAIT_TCP 127.0.0.1 8080 15 "Sentinel"
-if errorlevel 1 echo [WARN] Sentinel timeout
-
-echo [WAIT] Elasticsearch (9200) ...
-call :WAIT_HTTP "http://127.0.0.1:9200/_cluster/health" 20 "Elasticsearch"
-if errorlevel 1 echo [WARN] Elasticsearch timeout
+if errorlevel 1 (
+    echo [WARN] Sentinel not ready, continuing
+)
 
 echo.
 :SKIP_INFRA
@@ -280,43 +300,30 @@ set "MYSQL_HOST=127.0.0.1"
 set "REDIS_HOST=127.0.0.1"
 set "ROCKETMQ_NAMESRV=127.0.0.1:9876"
 
-rem Group 1: mall-user
 call :START_SERVICE mall-user 9002
 if errorlevel 1 goto :FAIL
-
-rem Group 2: mall-auth
 call :START_SERVICE mall-auth 9001
 if errorlevel 1 goto :FAIL
-
-rem Group 3: mall-product, mall-inventory
 call :START_SERVICE mall-product 9003
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-inventory 9004
 if errorlevel 1 goto :FAIL
-
-rem Group 4: mall-cart, mall-order, mall-pay
 call :START_SERVICE mall-cart 9005
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-order 9006
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-pay 9007
 if errorlevel 1 goto :FAIL
-
-rem Group 5: mall-message, mall-search, mall-seckill
 call :START_SERVICE mall-message 9010
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-search 9008
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-seckill 9009
 if errorlevel 1 goto :FAIL
-
-rem Group 6: mall-admin-biz, mall-job
 call :START_SERVICE mall-admin-biz 9011
 if errorlevel 1 goto :FAIL
 call :START_SERVICE mall-job 9012
 if errorlevel 1 goto :FAIL
-
-rem Group 7: mall-gateway
 call :START_SERVICE mall-gateway 9000
 if errorlevel 1 goto :FAIL
 
@@ -342,17 +349,14 @@ if not exist "%FRONTEND_DIR%\package.json" (
 )
 
 rem 检查是否已在运行（读取 processes.json）
-set "_fe_existing_pid="
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
     "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; if ($s.ContainsKey('frontend') -and $s['frontend'].pid) { $s['frontend'].pid } else { '' }"') do set "_fe_existing_pid=%%p"
 
 if defined "_fe_existing_pid" (
     if not "%_fe_existing_pid%"=="" (
-        rem 检查 PID 存在且命令行包含 mall-frontend
         for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command ^
             "$p = Get-Process -Id %_fe_existing_pid% -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'node') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=%_fe_existing_pid%').CommandLine; if ($cmd -match 'mall-frontend|vite') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_fe_check=%%m"
         if "%_fe_check%"=="MATCH" (
-            rem 进一步验证端口
             pwsh.exe -NoProfile -Command ^
                 "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('127.0.0.1',5173,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
             if not errorlevel 1 (
@@ -360,13 +364,12 @@ if defined "_fe_existing_pid" (
                 goto :SKIP_FRONTEND
             )
         )
-        rem PID 不匹配或端口未监听，清理状态
         pwsh.exe -NoProfile -Command ^
             "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('frontend'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
     )
 )
 
-rem 检查端口冲突（排除我们自己记录的 PID）
+rem 检查端口冲突
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
     "$c = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue; if ($c) { $c[0].OwningProcess } else { '' }"') do set "_fe_port_pid=%%p"
 
@@ -402,7 +405,6 @@ if not exist "%FRONTEND_DIR%\node_modules" (
     echo [OK]   node_modules exists
 )
 
-rem 直接启动 node vite（不经过 npm.cmd，确保记录真实 node PID）
 set "_vite_bin=%FRONTEND_DIR%\node_modules\vite\bin\vite.js"
 if not exist "%_vite_bin%" (
     echo [ERROR] Vite not found: %_vite_bin%
@@ -418,24 +420,25 @@ if not defined FE_PID (
     goto :FAIL
 )
 
-rem 等待前端端口
 echo [WAIT] Frontend PID=%FE_PID% port=5173 ...
 call :WAIT_TCP 127.0.0.1 5173 20 "Frontend"
 if errorlevel 1 (
-    rem 检查进程是否还在
     tasklist /fi "PID eq %FE_PID%" 2>nul | findstr /i "node" >nul 2>&1
     if errorlevel 1 (
         echo [ERROR] Frontend process exited. Log: %LOGS_DIR%\mall-frontend.err.log
-        goto :FAIL
+    ) else (
+        echo [ERROR] Frontend port 5173 timeout
+        echo [LOG] %LOGS_DIR%\mall-frontend.log
+        echo [ERR] %LOGS_DIR%\mall-frontend.err.log
+        pwsh.exe -NoProfile -Command "Get-Content '%LOGS_DIR%\mall-frontend.err.log' -Tail 20 -ErrorAction SilentlyContinue"
     )
-    echo [WARN] Frontend port 5173 timeout, process still running
+    goto :FAIL
 )
 
 echo [OK]   Frontend PID=%FE_PID% port=5173
 
-rem 记录前端到状态文件
 pwsh.exe -NoProfile -Command ^
-    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['frontend'] = @{name='frontend';type='frontend';pid=%FE_PID%;port=5173;command='%_vite_bin%';workingDirectory='%FRONTEND_DIR%';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+    "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['frontend'] = @{name='frontend';type='frontend';pid=%FE_PID%;port=5173;command='%_vite_bin%';workingDirectory='%FRONTEND_DIR%';stdoutLog='%LOGS_DIR%\mall-frontend.log';stderrLog='%LOGS_DIR%\mall-frontend.err.log';status='Ready';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
 
 echo.
 :SKIP_FRONTEND
@@ -472,46 +475,39 @@ pause
 exit /b 1
 
 rem ============================================================
-rem  Subroutine: WAIT_TCP
+rem  WAIT_TCP: TCP 端口探测
 rem  Args: %1=host %2=port %3=timeout-seconds %4=label
 rem  Returns: 0=success, 1=timeout
 rem ============================================================
 :WAIT_TCP
-set "_wt_host=%~1"
-set "_wt_port=%~2"
-set "_wt_timeout=%~3"
-set "_wt_label=%~4"
 set /a "_wt_i=0"
 :WAIT_TCP_LOOP
 set /a "_wt_i+=1"
-if %_wt_i% GTR %_wt_timeout% exit /b 1
+if %_wt_i% GTR %~3 exit /b 1
 pwsh.exe -NoProfile -Command ^
-    "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('%_wt_host%',%_wt_port%,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
+    "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('%~1',%~2,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
 if not errorlevel 1 exit /b 0
 timeout /t 1 /nobreak >nul
 goto :WAIT_TCP_LOOP
 
 rem ============================================================
-rem  Subroutine: WAIT_HTTP
+rem  WAIT_HTTP: HTTP 探测（仅接受 2xx/3xx）
 rem  Args: %1=url %2=timeout-seconds %3=label
 rem  Returns: 0=success, 1=timeout
 rem ============================================================
 :WAIT_HTTP
-set "_wh_url=%~1"
-set "_wh_timeout=%~2"
-set "_wh_label=%~3"
 set /a "_wh_i=0"
 :WAIT_HTTP_LOOP
 set /a "_wh_i+=1"
-if %_wh_i% GTR %_wh_timeout% exit /b 1
+if %_wh_i% GTR %~2 exit /b 1
 pwsh.exe -NoProfile -Command ^
-    "try { $r=Invoke-WebRequest -Uri '%_wh_url%' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; if($r.StatusCode -ge 200 -and $r.StatusCode -lt 500){exit 0}else{exit 1} } catch { exit 1 }" >nul 2>&1
+    "try { $r=Invoke-WebRequest -Uri '%~1' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; if($r.StatusCode -ge 200 -and $r.StatusCode -lt 400){exit 0}else{exit 1} } catch { exit 1 }" >nul 2>&1
 if not errorlevel 1 exit /b 0
 timeout /t 1 /nobreak >nul
 goto :WAIT_HTTP_LOOP
 
 rem ============================================================
-rem  Subroutine: START_SERVICE
+rem  START_SERVICE: 启动单个后端服务
 rem  Args: %1=service-name %2=port
 rem  Returns: 0=success, 1=failure
 rem ============================================================
@@ -547,26 +543,30 @@ for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
 
 if defined "_existing_pid" (
     if not "!_existing_pid!"=="" (
-        rem 检查 PID 存在且命令行匹配
+        rem 校验：PID存在 + 进程名java + 命令行包含完整JAR路径
         for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command ^
-            "$p = Get-Process -Id !_existing_pid! -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_existing_pid!').CommandLine; if ($cmd -match '!_svc_name!') { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
+            "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $e = $s['!_svc_name!']; $p = Get-Process -Id !_existing_pid! -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'java') { $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_existing_pid!').CommandLine; if ($e.jar -and $cmd -match [regex]::Escape($e.jar)) { 'MATCH' } else { 'MISMATCH' } } else { 'GONE' }"') do set "_pid_check=%%m"
 
         if "!_pid_check!"=="MATCH" (
-            rem PID 和命令行匹配，进一步验证端口
+            rem 命令行匹配，进一步验证端口
             pwsh.exe -NoProfile -Command ^
                 "$c=[Net.Sockets.TcpClient]::new(); try { $iar=$c.BeginConnect('127.0.0.1',!_svc_port!,$null,$null); if(-not $iar.AsyncWaitHandle.WaitOne(2000,$false)){exit 1}; $c.EndConnect($iar); exit 0 } catch { exit 1 } finally { $c.Close() }" >nul 2>&1
             if not errorlevel 1 (
                 echo [SKIP] !_svc_name! already running, PID=!_existing_pid!, port=!_svc_port!
                 endlocal & exit /b 0
             )
-            rem PID 存在但端口未监听，清理状态并重新启动
-            echo [WARN] !_svc_name! PID=!_existing_pid! exists but port !_svc_port! not listening, restarting
+            rem PID+JAR 匹配但端口未监听，安全清理状态
+            echo [WARN] !_svc_name! PID=!_existsing_pid! exists but port !_svc_port! not listening
             pwsh.exe -NoProfile -Command ^
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
-            taskkill /PID !_existing_pid! /T /F >nul 2>&1
         )
         if "!_pid_check!"=="MISMATCH" (
-            echo [WARN] !_svc_name! state PID=!_existing_pid! command mismatch, clearing
+            echo [WARN] !_svc_name! state PID=!_existing_pid! command mismatch, clearing state
+            pwsh.exe -NoProfile -Command ^
+                "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
+        )
+        if "!_pid_check!"=="GONE" (
+            echo [INFO] !_svc_name! state PID=!_expired_pid! already gone, clearing state
             pwsh.exe -NoProfile -Command ^
                 "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $s.Remove('!_svc_name!'); $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
         )
@@ -612,7 +612,6 @@ if !_w! GTR 60 (
     endlocal & exit /b 1
 )
 
-rem 检查进程是否提前退出
 tasklist /fi "PID eq !_svc_pid!" 2>nul | findstr /i "java" >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] !_svc_name! process exited prematurely (PID=!_svc_pid!)
@@ -628,7 +627,7 @@ if errorlevel 1 (
     goto :WAIT_SVC
 )
 
-rem -- 尝试健康检查 --
+rem -- 健康检查 --
 set "_svc_status=Ready"
 pwsh.exe -NoProfile -Command ^
     "try { $r=Invoke-WebRequest -Uri 'http://127.0.0.1:!_svc_port!/actuator/health' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop; if($r.StatusCode -eq 200){exit 0}else{exit 1} } catch { exit 1 }" >nul 2>&1
@@ -636,7 +635,6 @@ if not errorlevel 1 set "_svc_status=Healthy"
 
 echo [OK]   !_svc_name! PID=!_svc_pid! port=!_svc_port! !_svc_status!
 
-rem -- 记录到状态文件 --
 pwsh.exe -NoProfile -Command ^
     "$s = if (Test-Path '%STATE_FILE%') { Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable } else { @{} }; $s['!_svc_name!'] = @{name='!_svc_name!';type='backend';pid=!_svc_pid!;port=!_svc_port!;jar='!_svc_jar!';workingDirectory='%ROOT%!_svc_name!';stdoutLog='%LOGS_DIR%\!_svc_name!.log';stderrLog='%LOGS_DIR%\!_svc_name!.err.log';status='!_svc_status!';startedAt=(Get-Date -Format 'o')}; $s | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8" >nul 2>&1
 

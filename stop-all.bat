@@ -84,75 +84,77 @@ pause
 exit /b 0
 
 rem ============================================================
-rem  Subroutine: STOP_ONE
+rem  STOP_ONE: 停止单个服务
 rem  Args: %1=service-name
+rem  安全校验：PID存在 + 进程名匹配 + 命令行包含记录的JAR/vite路径
 rem ============================================================
 :STOP_ONE
+setlocal EnableDelayedExpansion
 set "_name=%~1"
 
 rem 获取 PID
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
-    "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['%_name%']; if ($e -and $e.pid) { $e.pid } else { '' }"') do set "_pid=%%p"
+    "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; if ($e -and $e.pid) { $e.pid } else { '' }"') do set "_pid=%%p"
 
 if not defined _pid (
-    echo [WARN] %_name% has no PID, skip
+    echo [WARN] !_name! has no PID, skip
     set /a "_skipped+=1"
-    exit /b 0
+    endlocal & exit /b 0
 )
-if "%_pid%"=="" (
-    echo [WARN] %_name% has no PID, skip
+if "!_pid!"=="" (
+    echo [WARN] !_name! has no PID, skip
     set /a "_skipped+=1"
-    exit /b 0
+    endlocal & exit /b 0
 )
 
 rem 检查 PID 是否存在
-tasklist /fi "PID eq %_pid%" 2>nul | findstr /i "%_pid%" >nul 2>&1
+tasklist /fi "PID eq !_pid!" 2>nul | findstr /i "!_pid!" >nul 2>&1
 if errorlevel 1 (
-    echo [WARN] %_name% PID=%_pid% already exited
+    echo [WARN] !_name! PID=!_pid! already exited
     set /a "_skipped+=1"
-    exit /b 0
+    endlocal & exit /b 0
 )
 
 rem 获取当前进程名
-for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command "(Get-Process -Id %_pid% -ErrorAction SilentlyContinue).ProcessName"') do set "_pname=%%m"
+for /f "tokens=*" %%m in ('pwsh.exe -NoProfile -Command "(Get-Process -Id !_pid! -ErrorAction SilentlyContinue).ProcessName"') do set "_pname=%%m"
 
 rem 校验命令行（防止 PID 复用误杀）
 set "_cmd_valid=0"
-if "%_pname%"=="java" (
+if "!_pname!"=="java" (
     for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command ^
-        "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['%_name%']; $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=%_pid%' -ErrorAction SilentlyContinue).CommandLine; if ($e.jar -and $cmd -match [regex]::Escape($e.jar)) { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
+        "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_pid!' -ErrorAction SilentlyContinue).CommandLine; if ($e.jar -and $cmd -match [regex]::Escape($e.jar)) { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
     if "!_cmd_valid_str!"=="VALID" set "_cmd_valid=1"
 )
-if "%_pname%"=="node" (
+if "!_pname!"=="node" (
     for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command ^
-        "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['%_name%']; $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=%_pid%' -ErrorAction SilentlyContinue).CommandLine; if ($cmd -match 'mall-frontend|vite') { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
+        "$cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_pid!' -ErrorAction SilentlyContinue).CommandLine; if ($cmd -match 'mall-frontend|vite') { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
     if "!_cmd_valid_str!"=="VALID" set "_cmd_valid=1"
 )
 
-if "%_cmd_valid%"=="0" (
-    echo [WARN] %_name% PID=%_pid% command line does not match recorded service, skip
+if "!_cmd_valid!"=="0" (
+    echo [WARN] !_name! PID=!_pid! command line does not match recorded service, skip
     echo [INFO] This PID may have been reused by another process.
     set /a "_skipped+=1"
-    exit /b 0
+    endlocal & exit /b 0
 )
 
-echo [STOP] %_name% PID=%_pid% ...
+echo [STOP] !_name! PID=!_pid! ...
 
 rem 尝试正常终止进程树
-taskkill /PID %_pid% /T >nul 2>&1
+taskkill /PID !_pid! /T >nul 2>&1
 if errorlevel 1 (
-    echo [INFO] %_name% graceful stop failed, force killing...
-    taskkill /PID %_pid% /T /F >nul 2>&1
+    echo [INFO] !_name! graceful stop failed, force killing...
+    taskkill /PID !_pid! /T /F >nul 2>&1
     if errorlevel 1 (
-        echo [FAIL] %_name% PID=%_pid% force kill failed
+        echo [FAIL] !_name! PID=!_pid! force kill failed
         set /a "_failed+=1"
     ) else (
-        echo [OK]   %_name% force killed
+        echo [OK]   !_name! force killed
         set /a "_stopped+=1"
     )
 ) else (
-    echo [OK]   %_name% stopped
+    echo [OK]   !_name! stopped
     set /a "_stopped+=1"
 )
 
-exit /b 0
+endlocal & exit /b 0
