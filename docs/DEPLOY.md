@@ -295,6 +295,8 @@ mall-frontend
 
 首次启动：
 
+当前前端工程可用于本地启动、构建、Gateway 代理和接口入口验证；完整产品化页面尚未验收，不得把基础渲染截图作为最终前端交付证据。
+
 ```powershell
 Set-Location .\mall-frontend
 npm install

@@ -6,6 +6,7 @@
 > 设计语言：白蓝线条极简风（White-Blue Lineart Minimalist）
 > 核心原则：零动效（no transition / no animation / no easing）
 > 最后更新：2026-06-08
+> 当前前端状态：`mall-frontend` 已完成基础工程、接口入口和技术演示断点；完整产品化页面仍需整改，不得作为最终前端交付完成。
 
 ---
 
@@ -178,7 +179,7 @@ MallCloud
 
 ## 5. Pages and Routes
 
-前端路由文件已位于 `mall-frontend/src/router/index.ts`；「Gateway / API」列只使用仓库已确认的路径。
+前端路由文件已位于 `mall-frontend/src/router/index.ts`；「Gateway / API」列只使用仓库已确认的路径。当前提交的实际路由少于本表定义的产品页面，未实现独立路由或仅以接口面板合并展示的页面，均不得标记为"完整完成"。
 
 | 页面 | 前端路由 | 角色 | Gateway / API 依据 | 状态 |
 |---|---|---|---|---|
@@ -200,9 +201,27 @@ MallCloud
 | 后台订单 | `/admin/orders` | 商家 / 管理员 | `GET /api/v1/admin/orders`、`POST /api/v1/admin/orders/{orderNo}/ship` | 前端待确认 |
 | 后台商品 | `/admin/products` | 商家 / 管理员 | `GET /api/v1/admin/products`、`/api/v1/admin/products/**` | 前端待确认 |
 
----
+### 5.1 当前前端实现差距
 
-## 6. Page-level Interactions
+截至 `codex/frontend-demo-system` 分支的第五阶段断点，`mall-frontend` 已具备基础工程、公共布局、路由守卫、接口封装和部分操作入口，但实际页面仍偏向接口调试面板。以下差距必须在后续前端整改中消除：
+
+| 设计页面 | 当前实现 | 结论 |
+|---|---|---|
+| 注册页 `/register` | 合并在 `/login` 表单中 | 未完成独立页面 |
+| 商品详情 `/products/:id` | 合并在首页，以 JSON 显示商品响应 | 未完成产品化页面 |
+| 搜索页 `/search` | 合并在首页，以 JSON 显示搜索响应 | 未完成产品化页面 |
+| 订单确认 `/checkout` | 购物车中直接输入 `addressId` 创建订单 | 未完成 |
+| 订单详情 `/orders/:orderNo` | 合并在 `/orders`，以 JSON 显示订单响应 | 未完成产品化页面 |
+| 支付页 `/pay/:orderNo` | 合并在 `/orders`，以 JSON 显示支付响应 | 未完成产品化页面 |
+| 秒杀详情 `/seckill/:activityId` | 合并在 `/seckill`，手动输入 ID 查询 | 未完成 |
+| 秒杀结果 `/seckill/result/:requestId` | 合并在 `/seckill`，未实现自动轮询 | 未完成 |
+| 后台看板 `/admin/dashboard` | 合并在 `/admin`，以 JSON 显示响应 | 未完成产品化页面 |
+| 后台订单 `/admin/orders` | 合并在 `/admin`，缺少结构化订单管理页面 | 未完成 |
+| 后台商品 `/admin/products` | 合并在 `/admin`，缺少结构化商品管理页面 | 未完成 |
+
+允许保留技术演示页中的接口响应调试信息，但业务页面不得以 raw JSON 作为主要内容。
+
+---
 
 ### 6.1 登录页
 
@@ -561,6 +580,28 @@ import './styles/element-theme.css';
 - Disabled 不用 `opacity` 表达；
 - 文本、按钮、表格、弹窗、Drawer 在移动端和桌面端不重叠、不溢出。
 
+### 13.5 Frontend Page Completion Matrix
+
+| 页面 | 必须具备 | 不合格表现 |
+|---|---|---|
+| 首页 / 商品浏览 | 类目入口、商品卡片、商品详情入口、搜索入口、登录状态入口 | 只显示接口 JSON |
+| 商品详情 | 商品标题、价格、SKU、库存状态、数量、加入购物车、错误状态 | 只输入 SPU/SKU 调接口 |
+| 搜索页 | 关键字、热词、结果列表、分页、空结果、错误状态 | 只显示搜索 JSON |
+| 登录页 | 登录表单、错误提示、跳转来源、Token 状态 | 只有默认账号或无错误状态 |
+| 注册页 | 独立注册表单、字段校验、成功后登录引导 | 混在登录页且无校验 |
+| 账户页 | 用户资料、地址列表、新增、编辑、删除入口、空状态 | 只有简单字段和 ID |
+| 购物车 | 商品行、价格、小计、勾选、数量、删除、结算、空状态 | 只显示表格且无状态控制 |
+| 订单确认 | 地址选择、订单项确认、金额汇总、提交状态 | 用地址 ID 直接下单 |
+| 订单详情 | 订单状态、商品明细、金额、支付入口、错误状态 | 只显示订单 JSON |
+| 支付页 | 支付记录、模拟支付说明、通知结果、查询订单入口 | 只显示支付 JSON |
+| 秒杀页 | 活动列表、活动详情、状态文案、发起请求、结果轮询 | 手动输入 ID 调接口 |
+| 后台看板 | 统计卡片、订单入口、商品入口、错误状态 | 只显示 dashboard JSON |
+| 后台订单 | 订单表格、状态、发货操作、提交反馈 | 只输入订单号发货 |
+| 后台商品 | 商品表格、上下架 / 编辑 / 删除状态说明 | 只显示商品 JSON |
+| 技术演示页 | 技术点说明、可验证入口、未验证标记 | 把业务页面做成技术页 |
+
+前端验收时必须逐行填写实现状态、证据路径和未完成原因。未满足本矩阵的页面只能标记为"部分实现"或"未完成"。
+
 ---
 
 ## 14. Open Questions
@@ -589,4 +630,5 @@ import './styles/element-theme.css';
 | 2026-06-07 | 前端源码、路由、页面和 token 文件未在当前仓库检出，相关路径统一标记为待确认 | 文件系统检查 |
 | 2026-06-07 | 页面和 API 依赖只绑定当前文档、Gateway 配置和 Controller 可确认能力 | `docs/API.md`、`deploy/nacos/mall-gateway.yaml`、各服务 Controller |
 | 2026-06-07 | 不把商品列表、后台独立登录、方法级 RBAC、核心链路运行结果写成已完成 | 当前代码与项目标准要求 |
-| 2026-06-08 | 新增 `mall-frontend` 单应用，按路由分区覆盖公共端、用户端、秒杀端、后台和技术演示页 | 第五阶段前端完整演示系统 |
+| 2026-06-08 | 新增 `mall-frontend` 单应用基础工程、接口入口和技术演示断点 | 第五阶段提交 `483e433 feat(frontend): add mallcloud demo app` |
+| 2026-06-08 | 复查后确认当前前端不能作为完整产品化页面交付，需按 Frontend Page Completion Matrix 整改 | 前端页面质量审查 |

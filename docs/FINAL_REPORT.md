@@ -83,7 +83,7 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 待验证 | |
-| 前端完整演示系统 | 已实现待后端联调 | `mall-frontend` 构建通过；浏览器基础验证截图见 `docs/test/screenshots/frontend-home-desktop.png`、`docs/test/screenshots/frontend-home-mobile.png`；后端接口联调待补充 |
+| 前端演示系统 | 部分实现 | `mall-frontend` 基础工程、路由骨架、接口入口和基础错误反馈已完成；`npm run build` 和首页基础渲染截图可作为工程断点证据；完整商品、搜索、结算、订单详情、支付、秒杀轮询、后台管理等产品化页面未完成，后端真实联调待补充 |
 
 ---
 
@@ -236,6 +236,7 @@ docs/test/postman/report.html
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；
+- 前端当前为基础工程和接口入口断点，不能作为完整产品化商城前端交付；
 - 某些性能目标未达到；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
