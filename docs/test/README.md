@@ -13,7 +13,7 @@ docs/test/
 ├── postman/
 │   ├── mallcloud.postman_collection.json
 │   ├── local.postman_environment.json
-│   └── report.html
+│   └── report.html                  # 运行 HTML 报告后生成，当前未生成
 ├── jmeter/
 │   ├── search-load.jmx
 │   ├── order-load.jmx

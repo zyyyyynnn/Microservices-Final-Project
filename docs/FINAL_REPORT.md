@@ -93,10 +93,11 @@ mvn clean test -DskipTests=false
 
 ## 5. Postman 接口测试
 
-报告位置：
+HTML 报告状态：
 
 ```text
-docs/test/postman/summary/newman-20260609.md
+未生成；最近一次 Newman 使用 -SkipHtml。
+预期输出路径：docs/test/postman/summary/newman-20260609.md
 ```
 
 | 指标 | 结果 |
