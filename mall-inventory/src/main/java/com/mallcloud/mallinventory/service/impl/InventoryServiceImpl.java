@@ -6,6 +6,8 @@ import com.mallcloud.mallcommon.exception.BizException;
 import com.mallcloud.mallinventory.api.dto.LockItemDTO;
 import com.mallcloud.mallinventory.api.dto.LockStockDTO;
 import com.mallcloud.mallinventory.api.dto.OrderNoDTO;
+import com.mallcloud.mallinventory.api.vo.StockVO;
+import com.mallcloud.mallinventory.domain.Stock;
 import com.mallcloud.mallinventory.domain.StockLog;
 import com.mallcloud.mallinventory.mapper.StockLogMapper;
 import com.mallcloud.mallinventory.mapper.StockMapper;
@@ -130,8 +132,22 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    public StockVO getStock(Long skuId) {
+        Stock stock = stockMapper.selectOne(new QueryWrapper<Stock>().eq("sku_id", skuId));
+        if (stock == null) {
+            throw new BizException(ErrorCode.PARAM_ERROR.getCode(), "库存不存在");
+        }
+        StockVO vo = new StockVO();
+        vo.setSkuId(stock.getSkuId());
+        vo.setTotal(stock.getTotal());
+        vo.setLocked(stock.getLocked());
+        vo.setAvailable(stock.getAvailable());
+        return vo;
+    }
+
+    @Override
     public int reconcileStock() {
-        QueryWrapper<com.mallcloud.mallinventory.domain.Stock> query = new QueryWrapper<>();
+        QueryWrapper<Stock> query = new QueryWrapper<>();
         query.lt("available", 0)
                 .or()
                 .lt("locked", 0)

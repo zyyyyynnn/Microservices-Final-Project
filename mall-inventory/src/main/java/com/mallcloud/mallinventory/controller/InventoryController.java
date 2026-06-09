@@ -3,6 +3,7 @@ package com.mallcloud.mallinventory.controller;
 import com.mallcloud.mallcommon.response.Result;
 import com.mallcloud.mallinventory.api.dto.LockStockDTO;
 import com.mallcloud.mallinventory.api.dto.OrderNoDTO;
+import com.mallcloud.mallinventory.api.vo.StockVO;
 import com.mallcloud.mallinventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,5 +43,11 @@ public class InventoryController {
     public Result<Void> releaseStock(@RequestBody OrderNoDTO dto) {
         inventoryService.release(dto);
         return Result.ok();
+    }
+
+    @Operation(summary = "查询库存")
+    @GetMapping("/stock/{skuId}")
+    public Result<StockVO> getStock(@PathVariable("skuId") Long skuId) {
+        return Result.ok(inventoryService.getStock(skuId));
     }
 }

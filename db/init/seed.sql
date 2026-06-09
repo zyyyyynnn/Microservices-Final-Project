@@ -133,9 +133,9 @@ USE `mall_seckill`;
 
 -- 秒杀活动
 INSERT INTO `seckill_activity` (id, name, sku_id, seckill_price, total_stock, limit_per_user, start_time, end_time, status) VALUES
-(1, 'iPhone 15 限时秒杀 8 折', 9003, 4799.00, 100, 1, '2026-06-08 10:00:00', '2026-06-08 12:00:00', 0),
-(2, '小米 14 Pro 限量秒杀',     9004, 4599.00, 50,  1, '2026-06-08 14:00:00', '2026-06-08 16:00:00', 0),
-(3, '华为 Mate 60 Pro 整点抢',  9006, 6499.00, 200, 1, '2026-06-09 20:00:00', '2026-06-09 22:00:00', 0);
+(1, 'iPhone 15 限时秒杀 8 折', 9003, 4799.00, 100, 1, DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_ADD(NOW(), INTERVAL 1 DAY), 0),
+(2, '小米 14 Pro 限量秒杀',     9004, 4599.00, 50,  1, DATE_ADD(NOW(), INTERVAL 2 HOUR), DATE_ADD(NOW(), INTERVAL 4 HOUR), 0),
+(3, '华为 Mate 60 Pro 整点抢',  9006, 6499.00, 200, 1, DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 2 DAY), 0);
 
 -- ============================================================
 -- 5. 验证：检查数据

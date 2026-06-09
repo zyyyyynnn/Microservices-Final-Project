@@ -113,10 +113,12 @@ pwsh .\scripts\run-newman.ps1
 JMeter：
 
 ```powershell
-pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50
-pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
+pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 ```
+
+搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
 
 技术专项冒烟检查：
 

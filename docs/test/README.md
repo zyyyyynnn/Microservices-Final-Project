@@ -70,6 +70,7 @@ orderNo=
 requestId=
 spuId=1001
 skuId=9001
+seckillSkuId=9003
 ```
 
 演示账号：
@@ -122,10 +123,12 @@ docs/test/jmeter/seckill-stress.jmx
 执行：
 
 ```powershell
-pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50
-pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50
+pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
+pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 ```
+
+搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
 
 ### 4.1 搜索负载
 
@@ -193,7 +196,7 @@ pwsh .\scripts\run-special-checks.ps1
 说明：
 
 - HTTP 可达不等于业务通过；
-- 搜索商品必须检查统一响应业务码；
+- `run-special-checks.ps1` 只判断 HTTP 可达；搜索业务通过必须以 `init-search-index.ps1`、Newman 或专项报告中的业务码断言为准；
 - `-AllowFailures` 只用于记录当前环境状态；
 - 该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
 

@@ -27,7 +27,17 @@ function Join-Url {
 }
 
 function Convert-JsonContent {
-    param([string]$Content)
+    param([object]$Content)
+
+    if ($null -eq $Content) {
+        return $null
+    }
+
+    if ($Content -is [byte[]]) {
+        $Content = [System.Text.Encoding]::UTF8.GetString($Content)
+    } else {
+        $Content = [string]$Content
+    }
 
     if ([string]::IsNullOrWhiteSpace($Content)) {
         return $null
@@ -62,7 +72,7 @@ function Invoke-JsonCheck {
         [string]$Uri,
         [string]$Method = "Get",
         [int[]]$ExpectedStatus = @(200),
-        [Nullable[int]]$ExpectedBusinessCode = $null
+        [object]$ExpectedBusinessCode = $null
     )
 
     try {
@@ -78,11 +88,12 @@ function Invoke-JsonCheck {
         $actual = "HTTP $statusCode"
         $detail = "HTTP status checked"
 
-        if ($ok -and $ExpectedBusinessCode -ne $null) {
+        if ($ok -and $null -ne $ExpectedBusinessCode) {
+            $expectedCode = [int]$ExpectedBusinessCode
             if ($null -eq $json -or $null -eq $json.code) {
                 $ok = $false
                 $detail = "missing business code"
-            } elseif ([int]$json.code -ne $ExpectedBusinessCode.Value) {
+            } elseif ([int]$json.code -ne $expectedCode) {
                 $ok = $false
                 $actual = "$actual / code $($json.code)"
                 $detail = if ($json.message) { $json.message } else { "business code mismatch" }
@@ -92,7 +103,7 @@ function Invoke-JsonCheck {
             }
         }
 
-        return New-CheckResult $Step $Uri (($ExpectedStatus -join "/") + $(if ($ExpectedBusinessCode -ne $null) { " + code $($ExpectedBusinessCode.Value)" } else { "" })) $actual $ok $detail
+        return New-CheckResult $Step $Uri (($ExpectedStatus -join "/") + $(if ($null -ne $ExpectedBusinessCode) { " + code $([int]$ExpectedBusinessCode)" } else { "" })) $actual $ok $detail
     } catch {
         return New-CheckResult $Step $Uri ($ExpectedStatus -join "/") "-" $false $_.Exception.Message
     }

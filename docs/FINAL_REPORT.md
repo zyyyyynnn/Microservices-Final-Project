@@ -14,7 +14,7 @@
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
 | 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
-| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项脚本降级验证 |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归和 JMeter 搜索冒烟 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
@@ -82,11 +82,11 @@ mvn clean test -DskipTests=false
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
-| Elasticsearch 搜索 | 待验证 | 已新增 `scripts/init-search-index.ps1` 作为搜索索引初始化与业务码校验入口；2026-06-09 本次 `pwsh .\scripts\init-search-index.ps1 -AllowFailures -TimeoutSec 2` 检查中 Elasticsearch、`mall-search`、Gateway 均不可达，脚本返回失败项并禁止记录为通过 |
-| Postman 集合 | 已建立，最近一次后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
-| JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，最近记录中 Sentinel Dashboard 与 Elasticsearch 不可达 |
+| Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
+| Postman 集合 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、57 个断言、57 个通过、0 个失败；HTML 报告未生成 |
+| JMeter 脚本 | 搜索冒烟已验证，正式负载/压力待执行 | 2026-06-09 执行 `pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 1 -RampUp 1 -Duration 10`：380 样本、0 失败、平均 17.18ms、P95 30ms、吞吐约 44.44/s；订单和秒杀正式负载/压力未执行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
-| 技术专项冒烟入口 | 已建立，历史环境部分通过 | 此前 `scripts/run-special-checks.ps1 -AllowFailures` 检查：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
+| 技术专项冒烟入口 | 部分通过 | 2026-06-09 执行 `scripts/run-special-checks.ps1 -AllowFailures`：Nacos、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；Sentinel Dashboard 连接失败，不能标记为 Sentinel 专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
@@ -104,9 +104,9 @@ HTML 报告状态：
 |---|---|
 | 核心接口数量 | 待填写，要求 ≥ 6 |
 | 请求总数 | 28 |
-| 断言总数 | 56 |
-| 通过 | 50 |
-| 失败 | 6；原因：搜索商品返回业务码 10003（最近一次 Newman 执行时 Elasticsearch 不可达）、库存查询返回 500、秒杀请求返回业务码 10001、秒杀结果查询返回 500 |
+| 断言总数 | 57 |
+| 通过 | 57 |
+| 失败 | 0 |
 
 核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
 
@@ -149,7 +149,7 @@ HTML 报告状态：
 
 ### 7.1 测试环境
 
-记录状态：JMeter 5.6.3 命令已验证可执行；Gateway 和 12 个后端服务启动能力已恢复，但最近记录中 Sentinel Dashboard 与 Elasticsearch 不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
+记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟。正式负载和压力测试尚未执行，以下正式指标不得在运行前填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -160,7 +160,15 @@ HTML 报告状态：
 | Docker 资源限制 | |
 | 代码 Commit | |
 
-### 7.2 商品查询与订单
+### 7.2 搜索短冒烟
+
+| 场景 | 用户 | 持续时间 | 样本 | 平均 RT | P95 | 吞吐量 | 错误率 | 证据 |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 商品搜索 | 1 | 10s | 380 | 17.18ms | 30ms | 44.44/s | 0% | `docs/test/jmeter/results/search-1-20260609-225028.jtl` |
+
+该结果仅作为搜索链路冒烟证据，不替代 50/150 用户正式负载测试。
+
+### 7.3 商品查询与订单
 
 | 场景 | 并发用户 | 平均 RT | P95 | 吞吐量 | 错误率 |
 |---|---:|---:|---:|---:|---:|
@@ -169,7 +177,7 @@ HTML 报告状态：
 | 创建订单 | 50 | | | | |
 | 创建订单 | 75～150 | | | | |
 
-### 7.3 秒杀阶梯压力
+### 7.4 秒杀阶梯压力
 
 | 并发用户 | P95 | 吞吐量 | 错误率 | Sentinel 触发 | CPU | 内存 |
 |---:|---:|---:|---:|---|---:|---:|
@@ -242,12 +250,12 @@ HTML 报告状态：
 - Docker 全栈尚未完成；
 - 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
 - 本地脚本后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
-- Elasticsearch 搜索已补充索引初始化与业务校验入口；2026-06-09 本次 init-search-index 降级检查未通过，仍待真实运行通过；
+- Elasticsearch 搜索索引初始化与 Gateway 搜索业务校验已通过；正式搜索负载测试仍待执行；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；
 - 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
-- 某些性能目标未达到；
+- 正式负载、压力测试性能目标仍未验证；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
 ---
