@@ -82,11 +82,11 @@ mvn clean test -DskipTests=false
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
-| Elasticsearch 搜索 | 待验证 | 已新增 `scripts/init-search-index.ps1` 作为搜索索引初始化与业务码校验入口；`pwsh .\scripts\init-search-index.ps1 -AllowFailures -TimeoutSec 2` 已执行，当前 Elasticsearch、`mall-search`、Gateway 均不可达，脚本返回失败项并禁止记录为通过 |
-| Postman 集合 | 已建立，当前后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
-| JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，当前 Sentinel Dashboard 与 Elasticsearch 不可达 |
+| Elasticsearch 搜索 | 待验证 | 已新增 `scripts/init-search-index.ps1` 作为搜索索引初始化与业务码校验入口；2026-06-09 本次 `pwsh .\scripts\init-search-index.ps1 -AllowFailures -TimeoutSec 2` 检查中 Elasticsearch、`mall-search`、Gateway 均不可达，脚本返回失败项并禁止记录为通过 |
+| Postman 集合 | 已建立，最近一次后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
+| JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，最近记录中 Sentinel Dashboard 与 Elasticsearch 不可达 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
-| 技术专项冒烟入口 | 已建立，当前环境部分通过 | `scripts/run-special-checks.ps1 -AllowFailures` 已执行：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
+| 技术专项冒烟入口 | 已建立，历史环境部分通过 | 此前 `scripts/run-special-checks.ps1 -AllowFailures` 检查：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
@@ -106,7 +106,7 @@ HTML 报告状态：
 | 请求总数 | 28 |
 | 断言总数 | 56 |
 | 通过 | 50 |
-| 失败 | 6；原因：搜索商品返回业务码 10003（Elasticsearch 当前不可达）、库存查询返回 500、秒杀请求返回业务码 10001、秒杀结果查询返回 500 |
+| 失败 | 6；原因：搜索商品返回业务码 10003（最近一次 Newman 执行时 Elasticsearch 不可达）、库存查询返回 500、秒杀请求返回业务码 10001、秒杀结果查询返回 500 |
 
 核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
 
@@ -149,7 +149,7 @@ HTML 报告状态：
 
 ### 7.1 测试环境
 
-当前状态：JMeter 5.6.3 命令已验证可执行；Gateway 和 12 个后端服务启动能力已恢复，但 Sentinel Dashboard 与 Elasticsearch 当前不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
+记录状态：JMeter 5.6.3 命令已验证可执行；Gateway 和 12 个后端服务启动能力已恢复，但最近记录中 Sentinel Dashboard 与 Elasticsearch 不可达，尚未执行负载或压力测试。以下指标不得在运行前填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -242,7 +242,7 @@ HTML 报告状态：
 - Docker 全栈尚未完成；
 - 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
 - 本地脚本后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
-- Elasticsearch 搜索已补充索引初始化与业务校验入口，但当前仍待真实运行通过；
+- Elasticsearch 搜索已补充索引初始化与业务校验入口；2026-06-09 本次 init-search-index 降级检查未通过，仍待真实运行通过；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；

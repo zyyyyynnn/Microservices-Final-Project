@@ -4,6 +4,9 @@ param(
     [string]$ElasticsearchURL = "http://localhost:9200",
     [string[]]$SpuIds = @("1001", "1002", "1003", "1004", "1005"),
     [string]$Keyword = "iPhone",
+    [string[]]$ExpectedSpuIds = @("1001", "1002"),
+    [int]$VerifyAttempts = 10,
+    [int]$VerifyDelayMs = 500,
     [int]$TimeoutSec = 5,
     [switch]$SkipSync,
     [switch]$AllowFailures
@@ -118,38 +121,98 @@ function Invoke-ElasticsearchHealth {
 function Invoke-SearchVerify {
     $path = "/api/v1/search/products?keyword=$([uri]::EscapeDataString($Keyword))&pageNum=1&pageSize=10"
     $uri = Join-Url $BaseURL $path
-    try {
-        $response = Invoke-WebRequest `
-            -Uri $uri `
-            -TimeoutSec $TimeoutSec `
-            -SkipHttpErrorCheck
+    $attempts = [Math]::Max(1, $VerifyAttempts)
+    $lastResult = $null
 
-        $statusCode = [int]$response.StatusCode
-        $json = Convert-JsonContent $response.Content
-        $ok = $statusCode -eq 200
-        $actual = "HTTP $statusCode"
-        $detail = "HTTP status checked"
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        try {
+            $response = Invoke-WebRequest `
+                -Uri $uri `
+                -TimeoutSec $TimeoutSec `
+                -SkipHttpErrorCheck
 
-        if ($ok) {
-            if ($null -eq $json -or [int]$json.code -ne 200) {
-                $ok = $false
-                $actual = "$actual / code $(if ($json) { $json.code } else { '-' })"
-                $detail = if ($json -and $json.message) { $json.message } else { "business code mismatch" }
-            } else {
-                $total = if ($json.data -and $null -ne $json.data.total) { [long]$json.data.total } else { 0 }
-                $listCount = if ($json.data -and $json.data.list) { @($json.data.list).Count } else { 0 }
-                $ok = $total -gt 0 -or $listCount -gt 0
-                $actual = "$actual / code $($json.code)"
-                $detail = "total=$total list=$listCount"
-                if (-not $ok) {
-                    $detail = "business code 200 but no search result for keyword '$Keyword'"
+            $statusCode = [int]$response.StatusCode
+            $json = Convert-JsonContent $response.Content
+            $ok = $statusCode -eq 200
+            $actual = "HTTP $statusCode"
+            $detail = "attempt $attempt/$attempts"
+
+            if ($ok) {
+                if ($null -eq $json -or [int]$json.code -ne 200) {
+                    $ok = $false
+                    $actual = "$actual / code $(if ($json) { $json.code } else { '-' })"
+                    $detail = "$detail; $(if ($json -and $json.message) { $json.message } else { "business code mismatch" })"
+                } else {
+                    $check = Test-SearchPayload $json
+                    $ok = $check.Ok
+                    $actual = "$actual / code $($json.code)"
+                    $detail = "$detail; $($check.Detail)"
                 }
+            }
+
+            $lastResult = New-CheckResult "Search products business" $uri "HTTP 200 + code 200 + expected result" $actual $ok $detail
+        } catch {
+            $lastResult = New-CheckResult "Search products business" $uri "HTTP 200 + code 200 + expected result" "-" $false "attempt $attempt/$attempts; $($_.Exception.Message)"
+        }
+
+        if ($lastResult.Result -eq "OK" -or $attempt -ge $attempts) {
+            return $lastResult
+        }
+
+        Start-Sleep -Milliseconds $VerifyDelayMs
+    }
+
+    return $lastResult
+}
+
+function Test-SearchPayload {
+    param([object]$Json)
+
+    $items = if ($Json.data -and $Json.data.list) { @($Json.data.list) } else { @() }
+    $total = if ($Json.data -and $null -ne $Json.data.total) { [long]$Json.data.total } else { 0 }
+    $itemIds = @($items | ForEach-Object { if ($null -ne $_.spuId) { [string]$_.spuId } })
+
+    if ($ExpectedSpuIds -and $ExpectedSpuIds.Count -gt 0) {
+        $expected = @($ExpectedSpuIds | ForEach-Object { [string]$_ })
+        $matched = @($itemIds | Where-Object { $expected -contains $_ })
+        if ($matched.Count -gt 0) {
+            return [pscustomobject]@{
+                Ok = $true
+                Detail = "total=$total list=$($items.Count) matchedSpuIds=$($matched -join ',')"
             }
         }
 
-        return New-CheckResult "Search products business" $uri "HTTP 200 + code 200 + result" $actual $ok $detail
-    } catch {
-        return New-CheckResult "Search products business" $uri "HTTP 200 + code 200 + result" "-" $false $_.Exception.Message
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = "expectedSpuIds=$($expected -join ',') actualSpuIds=$($itemIds -join ',')"
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Keyword)) {
+        $matchedByName = @($items | Where-Object {
+            $name = if ($_.name) { [string]$_.name } else { "" }
+            $highlightName = if ($_.highlightName) { [string]$_.highlightName } else { "" }
+            $name.IndexOf($Keyword, [StringComparison]::OrdinalIgnoreCase) -ge 0 `
+                -or $highlightName.IndexOf($Keyword, [StringComparison]::OrdinalIgnoreCase) -ge 0
+        })
+
+        if ($matchedByName.Count -gt 0) {
+            return [pscustomobject]@{
+                Ok = $true
+                Detail = "total=$total list=$($items.Count) matchedName=$($matchedByName.Count)"
+            }
+        }
+
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = "no result name matched keyword '$Keyword'"
+        }
+    }
+
+    $ok = $total -gt 0 -or $items.Count -gt 0
+    return [pscustomobject]@{
+        Ok = $ok
+        Detail = if ($ok) { "total=$total list=$($items.Count)" } else { "business code 200 but result is empty" }
     }
 }
 

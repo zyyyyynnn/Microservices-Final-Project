@@ -214,6 +214,8 @@ pwsh .\scripts\init-search-index.ps1
 ```powershell
 pwsh .\scripts\init-search-index.ps1 -Keyword iPhone
 pwsh .\scripts\init-search-index.ps1 -SpuIds 1001,1002,1005
+pwsh .\scripts\init-search-index.ps1 -ExpectedSpuIds 1001,1002
+pwsh .\scripts\init-search-index.ps1 -VerifyAttempts 10 -VerifyDelayMs 500
 pwsh .\scripts\init-search-index.ps1 -SkipSync
 pwsh .\scripts\init-search-index.ps1 -AllowFailures
 ```
@@ -223,6 +225,8 @@ pwsh .\scripts\init-search-index.ps1 -AllowFailures
 - 该脚本不伪造商品数据，索引内容来自 `mall-product` 真实商品详情接口；
 - `SearchURL` 默认 `http://localhost:9008`，用于调用内部同步接口；
 - `BaseURL` 默认 `http://localhost:9000`，用于验证 Gateway 搜索业务入口；
+- 默认搜索关键字为 `iPhone`，预期结果包含种子商品 `1001` 或 `1002`；
+- 搜索验证会按 `VerifyAttempts` / `VerifyDelayMs` 轮询，降低 ES 写入后刷新延迟导致的假失败；
 - `-AllowFailures` 只用于记录当前环境状态，不得写成搜索专项通过；
 - Newman 搜索用例通过前，仍不得把 Elasticsearch 搜索标记为已验证。
 

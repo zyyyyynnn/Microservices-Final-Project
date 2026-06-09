@@ -136,6 +136,8 @@ pwsh .\scripts\init-search-index.ps1 -AllowFailures
 - 默认检查 Elasticsearch `_cluster/health`；
 - 默认通过 `mall-search` 内部接口同步种子商品 `1001`～`1005` 到 ES；
 - 检查 Gateway health 后，通过 Gateway `/api/v1/search/products` 校验 HTTP 状态、统一响应业务码和搜索结果；
+- 默认最多轮询 10 次、每次间隔 500ms，避免 ES 索引刷新时序导致假失败；
+- 默认要求搜索结果包含 `1001` 或 `1002`，避免只用“结果非空”误判搜索通过；
 - 内部同步接口默认直连 `http://localhost:9008`，不是 Gateway 业务入口；
 - `-AllowFailures` 只用于记录当前环境状态，不能作为搜索专项通过证据。
 
