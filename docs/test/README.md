@@ -197,6 +197,35 @@ pwsh .\scripts\run-special-checks.ps1
 - `-AllowFailures` 只用于记录当前环境状态；
 - 该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
 
+### 5.1 Elasticsearch 搜索索引初始化
+
+```powershell
+pwsh .\scripts\init-search-index.ps1
+```
+
+用途：
+
+- 检查 Elasticsearch `_cluster/health`；
+- 通过 `mall-search` 内部同步接口把真实种子商品 `1001`～`1005` 写入搜索索引；
+- 检查 Gateway health 后，通过 Gateway `/api/v1/search/products` 校验 HTTP 状态、统一响应业务码和搜索结果数量。
+
+常用参数：
+
+```powershell
+pwsh .\scripts\init-search-index.ps1 -Keyword iPhone
+pwsh .\scripts\init-search-index.ps1 -SpuIds 1001,1002,1005
+pwsh .\scripts\init-search-index.ps1 -SkipSync
+pwsh .\scripts\init-search-index.ps1 -AllowFailures
+```
+
+说明：
+
+- 该脚本不伪造商品数据，索引内容来自 `mall-product` 真实商品详情接口；
+- `SearchURL` 默认 `http://localhost:9008`，用于调用内部同步接口；
+- `BaseURL` 默认 `http://localhost:9000`，用于验证 Gateway 搜索业务入口；
+- `-AllowFailures` 只用于记录当前环境状态，不得写成搜索专项通过；
+- Newman 搜索用例通过前，仍不得把 Elasticsearch 搜索标记为已验证。
+
 ---
 
 ## 6. 前端页面验收

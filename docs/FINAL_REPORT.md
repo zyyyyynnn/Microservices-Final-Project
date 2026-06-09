@@ -14,7 +14,7 @@
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
 | 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
-| 测试日期 | 2026-06-08 |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项脚本降级验证 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
@@ -82,7 +82,7 @@ mvn clean test -DskipTests=false
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
-| Elasticsearch 搜索 | 待验证 | |
+| Elasticsearch 搜索 | 待验证 | 已新增 `scripts/init-search-index.ps1` 作为搜索索引初始化与业务码校验入口；`pwsh .\scripts\init-search-index.ps1 -AllowFailures -TimeoutSec 2` 已执行，当前 Elasticsearch、`mall-search`、Gateway 均不可达，脚本返回失败项并禁止记录为通过 |
 | Postman 集合 | 已建立，当前后端环境部分通过 | `run-newman.ps1 -SkipHtml` 已执行：28 个请求均完成，56 个断言中 50 个通过、6 个失败；失败项为搜索商品业务码 10003、库存查询 500、秒杀请求业务码 10001、秒杀结果查询 500 |
 | JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，当前 Sentinel Dashboard 与 Elasticsearch 不可达 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
@@ -242,6 +242,7 @@ HTML 报告状态：
 - Docker 全栈尚未完成；
 - 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
 - 本地脚本后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
+- Elasticsearch 搜索已补充索引初始化与业务校验入口，但当前仍待真实运行通过；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；

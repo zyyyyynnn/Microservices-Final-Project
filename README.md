@@ -45,7 +45,7 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Seata 2.0.0 | 已验证 | Server 基线和 AT 回滚已验证 |
 | RocketMQ | 已验证 | 支付结果链路已验证 |
 | Sentinel | 待验证 | 核心规则、限流和熔断专项待完成 |
-| Elasticsearch | 待验证 | 搜索与同步链路需形成运行证据 |
+| Elasticsearch | 待验证 | 已补充搜索索引初始化与业务校验脚本，仍需真实运行通过 |
 | Postman/Newman | 部分通过 | 当前真实结果见 [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
 | JMeter | 已建立，待执行 | 脚本已建立，正式负载和压力报告待执行 |
 | 前端演示系统 | 部分实现，受后端限制 | 产品化页面已整改一轮，成功态联调和逐页截图待补 |
@@ -116,7 +116,7 @@ http://localhost:5173
 
 - Docker 全栈不是当前正式交付路径；
 - Kubernetes 仅保留部分示例；
-- Elasticsearch 搜索完整验收待完成；
+- Elasticsearch 搜索完整验收待完成，搜索索引初始化脚本已建立但未形成通过证据；
 - 秒杀完整链路待完成；
 - Sentinel 限流/熔断专项待完成；
 - Nacos 热更新专项待完成；

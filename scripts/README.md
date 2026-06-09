@@ -124,6 +124,21 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 pwsh .\scripts\run-special-checks.ps1
 ```
 
+Elasticsearch 搜索索引初始化与业务校验：
+
+```powershell
+pwsh .\scripts\init-search-index.ps1
+pwsh .\scripts\init-search-index.ps1 -AllowFailures
+```
+
+说明：
+
+- 默认检查 Elasticsearch `_cluster/health`；
+- 默认通过 `mall-search` 内部接口同步种子商品 `1001`～`1005` 到 ES；
+- 检查 Gateway health 后，通过 Gateway `/api/v1/search/products` 校验 HTTP 状态、统一响应业务码和搜索结果；
+- 内部同步接口默认直连 `http://localhost:9008`，不是 Gateway 业务入口；
+- `-AllowFailures` 只用于记录当前环境状态，不能作为搜索专项通过证据。
+
 测试脚本的结果统一记录到 `docs/FINAL_REPORT.md`。脚本存在不等于测试通过。
 
 ---
