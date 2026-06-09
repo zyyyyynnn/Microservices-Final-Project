@@ -47,7 +47,7 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | Sentinel | 待验证 | 核心规则、限流和熔断专项待完成 |
 | Elasticsearch | 已验证 | 搜索索引初始化、Gateway 搜索业务码和结果校验已通过 |
 | Postman/Newman | 已验证 | 当前真实结果见 [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
-| JMeter | 搜索冒烟已验证 | 搜索 1 用户短冒烟已通过；正式负载和压力报告待执行 |
+| JMeter | 搜索负载已验证 | 搜索 1/50/150 用户已通过；订单和秒杀负载/压力待执行 |
 | 前端演示系统 | 部分实现，受后端限制 | 产品化页面已整改一轮，成功态联调和逐页截图待补 |
 
 未验证能力不得在答辩、报告或页面中写成已完成。
@@ -118,7 +118,7 @@ http://localhost:5173
 - Kubernetes 仅保留部分示例；
 - Sentinel 限流/熔断专项待完成；
 - Nacos 热更新专项待完成；
-- JMeter 正式负载、压力测试待执行；
+- JMeter 订单负载、秒杀压力测试待执行；
 - 前端成功态业务闭环、逐页截图和真实接口数据待补充。
 
 ---

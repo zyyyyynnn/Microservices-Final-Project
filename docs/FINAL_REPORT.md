@@ -14,7 +14,7 @@
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
 | 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
-| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归和 JMeter 搜索冒烟 |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
@@ -84,7 +84,7 @@ mvn clean test -DskipTests=false
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
-| JMeter 脚本 | 搜索冒烟已验证，正式负载/压力待执行 | 2026-06-09 执行 `pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 1 -RampUp 1 -Duration 10`：380 样本、0 失败、平均 17.18ms、P95 30ms、吞吐约 44.44/s；轻量摘要见 `docs/test/jmeter/summary/search-smoke-20260609-225028.md`，原始 JTL 为本地产物未纳入仓库；订单和秒杀正式负载/压力未执行 |
+| JMeter 脚本 | 搜索负载已验证，订单/秒杀负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载，均 0 失败；摘要见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 部分通过 | 2026-06-09 执行 `scripts/run-special-checks.ps1 -AllowFailures`：Nacos、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；Sentinel Dashboard 连接失败，不能标记为 Sentinel 专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
@@ -149,7 +149,7 @@ HTML 报告状态：
 
 ### 7.1 测试环境
 
-记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟。正式负载和压力测试尚未执行，以下正式指标不得在运行前填写估算值。
+记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载。订单和秒杀正式负载/压力测试尚未执行，以下未运行场景不得填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -172,8 +172,8 @@ HTML 报告状态：
 
 | 场景 | 并发用户 | 平均 RT | P95 | 吞吐量 | 错误率 |
 |---|---:|---:|---:|---:|---:|
-| 商品查询 | 50 | | | | |
-| 商品查询 | 150 | | | | |
+| 商品查询 | 50 | 9.06ms | 19ms | 328.86/s | 0% |
+| 商品查询 | 150 | 5.76ms | 8ms | 363.39/s | 0% |
 | 创建订单 | 50 | | | | |
 | 创建订单 | 75～150 | | | | |
 
