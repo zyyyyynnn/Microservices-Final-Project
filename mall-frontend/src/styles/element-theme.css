@@ -38,13 +38,15 @@
   --el-transition-color: none;
 }
 
-/* Remove default shadows */
-.el-card,
+/* Remove default shadows except where intended */
 .el-message,
-.el-popper,
 .el-table,
 .el-alert {
   box-shadow: none !important;
+}
+
+.el-popper {
+  box-shadow: var(--shadow-md) !important;
 }
 
 /* Disabled button: no opacity */
@@ -57,10 +59,11 @@
   opacity: 1;
 }
 
-/* Card: consistent border and radius */
+/* Card: consistent border and radius with shadow */
 .el-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .el-card__header {

@@ -73,7 +73,7 @@ if errorlevel 1 (
     goto :FAIL
 )
 set "JAVA_MAJOR="
-for /f "usebackq tokens=*" %%v in (`pwsh.exe -NoProfile -NoLogo -Command "([regex]::Match((& java -version 2>&1 | Select-Object -First 1), '(\d+)')).Groups[1].Value"`) do set "JAVA_MAJOR=%%v"
+for /f "usebackq tokens=*" %%v in (`pwsh.exe -NoProfile -NoLogo -Command "([regex]::Match((& java -version 2>&1 | Out-String), '(?is)(?:java|openjdk).*?(?:version\s+)?""?(?:1\.)?(\d+)')).Groups[1].Value"`) do set "JAVA_MAJOR=%%v"
 if "%JAVA_MAJOR%"=="" (
     echo [ERROR] Cannot detect Java version
     echo [FIX]   Ensure JDK 21 is installed and java.exe is on PATH

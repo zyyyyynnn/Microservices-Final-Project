@@ -142,15 +142,10 @@ if (-not $JavaCmd) {
     Write-Err "未找到 java，请安装 JDK 21"
     exit 1
 }
-$javaVersion = & $JavaCmd -version 2>&1 | Select-Object -First 1
+$javaVersionOutput = & $JavaCmd -version 2>&1 | Out-String
 $javaMajor = $null
-if ($javaVersion -match '"([^"]+)"') {
-    $rawJavaVersion = $Matches[1]
-    if ($rawJavaVersion -match '^1\.(\d+)') {
-        $javaMajor = [int]$Matches[1]
-    } elseif ($rawJavaVersion -match '^(\d+)') {
-        $javaMajor = [int]$Matches[1]
-    }
+if ($javaVersionOutput -match '(?is)(?:java|openjdk).*?(?:version\s+)?"?(?:1\.)?(\d+)') {
+    $javaMajor = [int]$Matches[1]
 }
 if ($javaMajor) {
     if ($javaMajor -eq 21) {

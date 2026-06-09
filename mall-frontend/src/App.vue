@@ -10,17 +10,17 @@ const router = useRouter();
 const navItems = [
   { label: '首页', path: '/' },
   { label: '搜索', path: '/search' },
-  { label: '账户', path: '/account', auth: true },
-  { label: '购物车', path: '/cart', auth: true },
-  { label: '结算', path: '/checkout', auth: true },
-  { label: '秒杀', path: '/seckill', auth: true },
-  { label: '后台', path: '/admin', auth: true },
+  { label: '购物车', path: '/cart' },
+  { label: '秒杀', path: '/seckill' },
+  { label: '结算', path: '/checkout' },
+  { label: '账户', path: '/account' },
+  { label: '后台', path: '/admin' },
   { label: '技术演示', path: '/tech' },
 ];
 
 const userLabel = computed(() => {
-  if (!auth.isAuthenticated) return '未登录';
-  return auth.user?.username || auth.user?.nickname || `用户 ${auth.user?.id || ''}`;
+  if (!auth.isAuthenticated) return 'Guest';
+  return auth.user?.username || auth.user?.nickname || `User ${auth.user?.id || ''}`;
 });
 
 async function logout() {
@@ -33,33 +33,33 @@ async function logout() {
 <template>
   <el-container class="app-shell">
     <el-header class="app-header">
-      <RouterLink class="brand" to="/" aria-label="MallCloud 首页">
-        <span class="brand-mark">MC</span>
-        <span>
-          <strong>MallCloud</strong>
-          <small>微服务演示台</small>
-        </span>
-      </RouterLink>
-
-      <nav class="app-nav" aria-label="主导航">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          class="nav-link"
-        >
-          {{ item.label }}
+      <div class="header-left">
+        <RouterLink class="brand" to="/" aria-label="MallCloud 首页">
+          <svg class="brand-logo" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="36" height="36" rx="12" fill="var(--color-brand)" />
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12.5 14C12.5 12.6193 13.6193 11.5 15 11.5H21C22.3807 11.5 23.5 12.6193 23.5 14V16H25C26.1046 16 27 16.8954 27 18V25C27 26.1046 26.1046 27 25 27H11C9.89543 27 9 26.1046 9 25V18C9 16.8954 9.89543 16 11 16H12.5V14ZM14.5 16V14C14.5 13.7239 14.7239 13.5 15 13.5H21C21.2761 13.5 21.5 13.7239 21.5 14V16H14.5ZM11 18V25H25V18H11ZM18 20C17.4477 20 17 20.4477 17 21C17 21.5523 17.4477 22 18 22C18.5523 22 19 21.5523 19 21C19 20.4477 18.5523 20 18 20Z" fill="white"/>
+          </svg>
+          <span class="brand-text">MallCloud</span>
         </RouterLink>
-      </nav>
+
+        <nav class="app-nav" aria-label="主导航">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            class="nav-link"
+          >
+            {{ item.label }}
+          </RouterLink>
+        </nav>
+      </div>
 
       <div class="session-bar">
-        <el-tag :type="auth.isAuthenticated ? 'success' : 'info'" effect="plain">
-          {{ userLabel }}
-        </el-tag>
+        <span class="user-status">{{ userLabel }}</span>
         <RouterLink v-if="!auth.isAuthenticated" to="/login">
-          <el-button type="primary">登录</el-button>
+          <el-button type="primary" round>Sign In</el-button>
         </RouterLink>
-        <el-button v-else plain @click="logout">退出</el-button>
+        <el-button v-else plain round @click="logout">Sign Out</el-button>
       </div>
     </el-header>
 

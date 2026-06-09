@@ -47,36 +47,28 @@ onMounted(loadHome);
 <template>
   <section class="commerce-layout">
     <div class="hero-band">
-      <div>
-        <el-tag effect="plain">Gateway 统一入口</el-tag>
-        <h1>MallCloud 微商城</h1>
-        <p>从商品浏览到购物车、下单、支付消息和订单查询的课程演示链路。</p>
-        <div class="hero-actions">
-          <RouterLink to="/products/1001">
-            <el-button type="primary">查看演示商品</el-button>
-          </RouterLink>
-          <RouterLink to="/cart">
-            <el-button plain>进入购物车</el-button>
-          </RouterLink>
-        </div>
-      </div>
+      <el-tag effect="plain" round class="hero-tag">Enterprise E-commerce</el-tag>
+      <h1>MallCloud Microservices</h1>
+      <p>An elegant, high-performance commerce experience powered by modern microservices. Explore the end-to-end journey from product discovery to checkout.</p>
+      
       <div class="search-panel">
-        <label for="home-search">搜索商品</label>
+        <label for="home-search">What are you looking for?</label>
         <div class="search-row">
-          <el-input id="home-search" v-model="keyword" placeholder="输入关键字" @keyup.enter="goSearch" />
-          <el-button type="primary" @click="goSearch">搜索</el-button>
+          <el-input id="home-search" v-model="keyword" placeholder="e.g. iPhone, MacBook" size="large" @keyup.enter="goSearch">
+            <template #append>
+              <el-button type="primary" @click="goSearch">Search</el-button>
+            </template>
+          </el-input>
         </div>
-        <span>当前搜索由 `/api/v1/search/products` 提供，未启动搜索服务时会显示错误状态。</span>
+        <span>Powered by Elasticsearch</span>
       </div>
     </div>
 
     <PageState :loading="loading" :error="error" @retry="loadHome" />
 
     <div class="page-grid two" v-if="!loading">
-      <el-card class="panel">
-        <template #header>
-          <div class="panel-title">类目入口</div>
-        </template>
+      <div class="panel">
+        <h2 class="panel-title">Explore Categories</h2>
         <div v-if="categoryCount" class="category-grid">
           <RouterLink
             v-for="category in categories"
@@ -84,22 +76,28 @@ onMounted(loadHome);
             class="category-item"
             :to="{ path: '/search', query: { categoryId: field(category, ['id', 'categoryId']) } }"
           >
-            <strong>{{ field(category, ['name'], '未命名类目') }}</strong>
-            <span>进入商品搜索</span>
+            <strong>{{ field(category, ['name'], 'Unnamed Category') }}</strong>
+            <span>Browse Products &rarr;</span>
           </RouterLink>
         </div>
-        <el-empty v-else description="类目服务未返回数据" />
-      </el-card>
+        <el-empty v-else description="No categories available" />
+      </div>
 
-      <el-card class="panel">
-        <template #header>
-          <div class="panel-title">商品推荐</div>
-        </template>
+      <div class="panel">
+        <h2 class="panel-title">Featured Products</h2>
         <div class="product-grid" v-if="products.length">
           <ProductCard v-for="product in products" :key="String(field(product, ['spuId', 'id']))" :product="product" />
         </div>
-        <el-empty v-else description="商品详情接口暂不可用" />
-      </el-card>
+        <el-empty v-else description="Product service unavailable" />
+      </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+.hero-tag {
+  margin-bottom: var(--spacing-sm);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+</style>

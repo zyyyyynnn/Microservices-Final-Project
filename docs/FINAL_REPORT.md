@@ -87,7 +87,7 @@ mvn clean test -DskipTests=false
 | JMeter 脚本 | 已建立，工具链已验证 | `docs/test/jmeter/search-load.jmx`、`order-load.jmx`、`seckill-stress.jmx`；JMeter 5.6.3 已可执行，负载/压力测试尚未运行，当前 Sentinel Dashboard 与 Elasticsearch 不可达 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 已建立，当前环境部分通过 | `scripts/run-special-checks.ps1 -AllowFailures` 已执行：Nacos、Gateway health、搜索热词、搜索商品 HTTP 可达，秒杀活动无 Token 返回 401；搜索商品业务码仍受 Elasticsearch 不可达影响，Sentinel Dashboard 和 Elasticsearch health 连接失败，不能标记为专项验收通过 |
-| 前端演示系统 | 部分实现，受后端限制 | 已完成产品化页面整改和浏览器基础验证；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
+| 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
 

@@ -367,31 +367,33 @@ MallCloud
 
 ### 10.1 设计原则
 
-- **极简线框隐喻**：以高纯度白色为基底，电光蓝作为线条与视觉骨架。去除所有阴影、过渡、缓动，仅靠清晰的 1px 边框和网格划分空间。
-- **克制的品牌色**：蓝色仅用于交互焦点、核心操作和关键装饰线，绝不大面积高饱和色块。
-- **零动效 / 静态切换**：状态变化通过瞬时的颜色、边框、文字色切换实现，不使用 `transition`、`animation`、`transform` 缓动。`transition: all` 永久禁用。
-- **Token 驱动**：间距、高度、颜色、圆角全面变量化。业务代码中避免硬编码颜色、间距和圆角。
-- **直觉式电商交互**：商品、购物车、结算链路保持最高视觉优先级，弱化非核心装饰。
+- **Airtable 风格与优雅复古**：以白色为基底，深海蓝（Deep Navy）作为主要文字色，Airtable Blue 作为单一点缀色和交互焦点，配合多层微蓝阴影表现深度。字体采用优雅复古的衬线体（如 Lora / Noto Serif SC），呈现企业级工具的严谨与杂志般的排版质感。
+- **克制的品牌色**：蓝色仅用于核心操作和交互提示。
+- **零动效 / 静态切换**：继承原基线，状态变化瞬时生效，不使用缓动。
+- **Token 驱动**：全面应用 Airtable 色彩和多层蓝调阴影。
+- **直觉式电商交互**：链路保持最高视觉优先级，弱化非核心装饰。
 
 ### 10.2 色彩与 Token
 
+基于 Airtable 配色体系映射：
+
 | Token | 值 | 用途 |
 |---|---|---|
-| `--color-text-primary` | `#070b19` | 基础文本色 |
-| `--color-text-secondary` | `#5c678a` | 次级文本色 |
-| `--color-text-tertiary` | `#8b96b5` | 第三级辅助文本色 |
+| `--color-text-primary` | `#181d26` | Deep Navy，基础文本色 |
+| `--color-text-secondary` | `#333333` | Dark Gray，次级正文色 |
+| `--color-text-tertiary` | `rgba(4, 14, 32, 0.69)` | Weak Text，辅助说明 |
 | `--color-text-inverse` | `#ffffff` | 反色文本 |
-| `--color-brand` | `#002bf0` | 品牌主色 |
-| `--color-brand-light` | `color-mix(in srgb, var(--color-brand) 8%, var(--color-surface))` | 品牌暗示高亮 |
-| `--color-bg` | `#ffffff` | 页面全局基础底色 |
-| `--color-surface` | `#ffffff` | 组件表面色 |
-| `--color-surface-hover` | `#f4f7fc` | Hover 态极浅冷灰蓝背景 |
-| `--color-surface-muted` | `#ebf0f8` | Active 态、次级按钮底色 |
-| `--color-border` | `#d6e0f5` | 标准边框色 |
-| `--color-border-strong` | `var(--color-brand)` | 强边框色 |
-| `--color-error` | `#e11d48` | 错误 / 告警 |
-| `--color-success` | `#16a34a` | 成功 |
-| `--color-warning` | `#d97706` | 警告 |
+| `--color-brand` | `#1b61c9` | Airtable Blue，主行动点 |
+| `--color-brand-light` | `color-mix(in srgb, var(--color-brand) 8%, var(--color-surface))` | Hover 或选中底色 |
+| `--color-bg` | `#ffffff` | 白色画布 |
+| `--color-surface` | `#ffffff` | 白色内容容器 |
+| `--color-surface-hover` | `#f8fafc` | 极浅冷灰蓝（Light Surface） |
+| `--color-surface-muted` | `#ebf0f8` | 禁用或背景 |
+| `--color-border` | `#e0e2e6` | 标准卡片边框 |
+| `--color-border-strong` | `#1b61c9` | Focus 状态和活动边框 |
+| `--color-error` | `#dc2626` | 错误 / 告警 |
+| `--color-success` | `#006400` | 成功（Success Green） |
+| `--color-warning` | `#eab308` | 警告 |
 | `--color-info` | `#3b82f6` | 信息提示 |
 
 | 语义 Token | 映射 | 用途 |
@@ -439,8 +441,8 @@ MallCloud
 | `--weight-medium` | `500` | 表头、标签 |
 | `--weight-bold` | `700` | 标题、价格 |
 
-- 文本字体：`Inter` / `PingFang SC` / `Microsoft YaHei` / sans-serif；
-- 数据、订单号、SKU、价格数字：`JetBrains Mono` / `Consolas` / monospace；
+- 文本字体：`"Lora", "Noto Serif SC", "Haas Groot Disp", Haas, -apple-system, system-ui, serif`（优雅复古的衬线体）；
+- 数据、订单号、SKU、价格数字：`"JetBrains Mono", Consolas, monospace`；
 - Z 轴层级由 Element Plus 默认管理，不自定义 z-index 变量。
 
 ### 10.4 Element Plus 主题映射
@@ -646,3 +648,4 @@ import './styles/element-theme.css';
 | 2026-06-08 | 复查后确认当前前端不能作为完整产品化页面交付，需按 Frontend Page Completion Matrix 整改 | 前端页面质量审查 |
 | 2026-06-08 | 完成一轮产品化页面整改，拆分 `/products/:id`、`/search`、`/register`、`/checkout`、`/orders/:orderNo`、`/pay/:orderNo` 等路由 | 前端页面整改 |
 | 2026-06-08 | UI 全局审查与重构：统一 token 体系、补充缺失 token、修复全局样式、添加 404 路由、改善响应式、对齐 DESIGN.md 与代码实现 | 本轮 UI 审查 |
+
