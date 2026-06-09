@@ -22,7 +22,15 @@ public class OrderController {
     public Result<CreateOrderVO> create(@Valid @RequestBody CreateOrderDTO dto) {
         Long userId = UserContext.getUserId();
         if (userId == null) throw new BizException(20100, "未登录");
-        return Result.ok(orderService.createOrder(userId, dto));
+        try {
+            return Result.ok(orderService.createOrder(userId, dto));
+        } catch (RuntimeException e) {
+            BizException bizException = findBizException(e);
+            if (bizException != null) {
+                return Result.error(bizException.getCode(), bizException.getMessage());
+            }
+            throw e;
+        }
     }
 
     @GetMapping("/{orderNo}")
@@ -30,5 +38,16 @@ public class OrderController {
         Long userId = UserContext.getUserId();
         if (userId == null) throw new BizException(20100, "未登录");
         return Result.ok(orderService.getOrder(orderNo, userId));
+    }
+
+    private BizException findBizException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof BizException bizException) {
+                return bizException;
+            }
+            current = current.getCause();
+        }
+        return null;
     }
 }

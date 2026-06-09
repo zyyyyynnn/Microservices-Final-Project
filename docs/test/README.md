@@ -13,13 +13,14 @@ docs/test/
 ├── postman/
 │   ├── mallcloud.postman_collection.json
 │   ├── local.postman_environment.json
-│   └── report.html                  # 运行 HTML 报告后生成，当前未生成
+│   └── report.html                  # Newman HTML 报告
 ├── jmeter/
 │   ├── search-load.jmx
 │   ├── order-load.jmx
 │   ├── seckill-stress.jmx
 │   ├── results/
-│   └── report/
+│   ├── report/
+│   └── summary/
 └── screenshots/
 ```
 
@@ -98,6 +99,15 @@ seckillSkuId=9003
 ```powershell
 pwsh .\scripts\run-newman.ps1
 ```
+
+秒杀用例使用 `zhangsan` 和活动 `1`，正式回归前必须清理该测试用户的限购状态，或重置 Redis 与数据库测试数据。当前本地 Docker 环境可使用：
+
+```powershell
+docker exec mall-redis redis-cli DEL seckill:user:1:1001 seckill:stock:1
+docker exec mall-mysql mysql -uroot -proot -e "USE mall_seckill; DELETE FROM seckill_order WHERE activity_id=1 AND user_id=1001;"
+```
+
+不得通过放宽秒杀限购断言来规避重复执行问题。
 
 记录到 `docs/FINAL_REPORT.md`：
 

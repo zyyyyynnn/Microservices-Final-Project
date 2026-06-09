@@ -83,8 +83,8 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
-| Postman 集合 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、57 个断言、57 个通过、0 个失败；HTML 报告未生成 |
-| JMeter 脚本 | 搜索冒烟已验证，正式负载/压力待执行 | 2026-06-09 执行 `pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 1 -RampUp 1 -Duration 10`：380 样本、0 失败、平均 17.18ms、P95 30ms、吞吐约 44.44/s；订单和秒杀正式负载/压力未执行 |
+| Postman 集合 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\run-newman.ps1`：28 个请求、60 个断言、60 个通过、0 个失败；HTML 报告见 `docs/test/postman/summary/newman-20260609.md` |
+| JMeter 脚本 | 搜索冒烟已验证，正式负载/压力待执行 | 2026-06-09 执行 `pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 1 -RampUp 1 -Duration 10`：380 样本、0 失败、平均 17.18ms、P95 30ms、吞吐约 44.44/s；轻量摘要见 `docs/test/jmeter/summary/search-smoke-20260609-225028.md`，原始 JTL 为本地产物未纳入仓库；订单和秒杀正式负载/压力未执行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 部分通过 | 2026-06-09 执行 `scripts/run-special-checks.ps1 -AllowFailures`：Nacos、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；Sentinel Dashboard 连接失败，不能标记为 Sentinel 专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
@@ -96,16 +96,15 @@ mvn clean test -DskipTests=false
 HTML 报告状态：
 
 ```text
-未生成；最近一次 Newman 使用 -SkipHtml。
-预期输出路径：docs/test/postman/summary/newman-20260609.md
+已生成：docs/test/postman/summary/newman-20260609.md
 ```
 
 | 指标 | 结果 |
 |---|---|
 | 核心接口数量 | 待填写，要求 ≥ 6 |
 | 请求总数 | 28 |
-| 断言总数 | 57 |
-| 通过 | 57 |
+| 断言总数 | 60 |
+| 通过 | 60 |
 | 失败 | 0 |
 
 核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
@@ -164,7 +163,7 @@ HTML 报告状态：
 
 | 场景 | 用户 | 持续时间 | 样本 | 平均 RT | P95 | 吞吐量 | 错误率 | 证据 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| 商品搜索 | 1 | 10s | 380 | 17.18ms | 30ms | 44.44/s | 0% | `docs/test/jmeter/results/search-1-20260609-225028.jtl` |
+| 商品搜索 | 1 | 10s | 380 | 17.18ms | 30ms | 44.44/s | 0% | `docs/test/jmeter/summary/search-smoke-20260609-225028.md`；原始 JTL 为本地产物 |
 
 该结果仅作为搜索链路冒烟证据，不替代 50/150 用户正式负载测试。
 

@@ -178,9 +178,7 @@
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));",
-                  "const active = (body.data || []).find(item => item.status === 1) || (body.data || [])[0];",
-                  "if (active) { pm.environment.set('activityId', active.activityId || active.id); pm.environment.set('seckillSkuId', active.skuId); }"
+                  "pm.test('business code 200', () => pm.expect(body.code).to.eql(200));"
                 ]
               }
             }
@@ -320,8 +318,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('unauthorized', () => pm.expect(pm.response.code).to.be.oneOf([200, 401]));",
-                  "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.be.oneOf([20100, 20101, 20102, 401]);"
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('business code 20100', () => pm.expect(pm.response.json().code).to.eql(20100));"
                 ]
               }
             }
@@ -356,8 +354,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('invalid token rejected', () => pm.expect(pm.response.code).to.be.oneOf([200, 401]));",
-                  "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.be.oneOf([20100, 20101, 20102, 401]);"
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('business code 20102', () => pm.expect(pm.response.json().code).to.eql(20102));"
                 ]
               }
             }
@@ -725,8 +723,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('request completed', () => pm.expect(pm.response.code).to.be.oneOf([200, 400, 409, 500]));",
-                  "if (pm.response.code === 200) pm.expect(pm.response.json().code).to.not.eql(200);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('business code 40100', () => pm.expect(pm.response.json().code).to.eql(40100));"
                 ]
               }
             }
@@ -816,7 +814,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "pm.test('notify accepted', () => pm.expect(pm.response.text()).to.be.oneOf(['success', 'fail']));"
+                  "pm.test('notify accepted', () => pm.expect(pm.response.text()).to.eql('success'));"
                 ]
               }
             }
