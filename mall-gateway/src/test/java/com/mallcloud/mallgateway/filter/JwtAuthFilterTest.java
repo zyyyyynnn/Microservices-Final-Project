@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 class JwtAuthFilterTest {
 
-    private static final String SECRET = "mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key-please-change-in-prod";
+    private static final String SECRET = "mallcloud-gateway-test-secret-20260609-rotated-change-in-prod";
 
     private final ReactiveStringRedisTemplate redisTemplate = mock(ReactiveStringRedisTemplate.class);
     private final JwtAuthFilter filter = new JwtAuthFilter(jwtProperties(), redisTemplate);

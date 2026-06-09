@@ -13,7 +13,7 @@ docs/test/
 ├── postman/
 │   ├── mallcloud.postman_collection.json
 │   ├── local.postman_environment.json
-│   └── report.html                  # Newman HTML 报告
+│   └── summary/
 ├── jmeter/
 │   ├── search-load.jmx
 │   ├── order-load.jmx
@@ -25,6 +25,7 @@ docs/test/
 ```
 
 不存在的文件不得写成已生成。测试结果、截图索引、通过率、失败项和性能指标统一写入 `docs/FINAL_REPORT.md`。
+Newman HTML 报告包含请求头和响应体，可能包含动态 Token，不提交到仓库；提交证据时使用 `postman/summary/` 下的脱敏摘要。
 
 ---
 
