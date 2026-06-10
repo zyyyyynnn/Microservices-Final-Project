@@ -103,6 +103,33 @@ function Get-ExistingPid($port) {
     return $null
 }
 
+function Get-ProcessCommandLine([int]$Pid) {
+    try {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $Pid" -ErrorAction Stop
+        return $proc.CommandLine
+    } catch {
+        return $null
+    }
+}
+
+function Test-ManagedBackendProcess([int]$Pid, [string]$ServiceName) {
+    $proc = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+    if (-not $proc -or $proc.ProcessName -ne "java") {
+        return $false
+    }
+
+    $commandLine = Get-ProcessCommandLine $Pid
+    if ([string]::IsNullOrWhiteSpace($commandLine)) {
+        return $false
+    }
+
+    $targetDir = (Join-Path (Join-Path $ProjectRoot $ServiceName) "target").Replace("/", "\")
+    $normalized = $commandLine.Replace("/", "\")
+    $jarPattern = "\\$([regex]::Escape($ServiceName))(?:-[^\\\s`"']+)?\.jar"
+
+    return ($normalized -like "*$targetDir*" -and $normalized -match $jarPattern)
+}
+
 # ── 初始化目录 ────────────────────────────────────────
 if ($CleanLogs -and (Test-Path $LogsDir)) {
     Write-Info "清理旧日志: $LogsDir"
@@ -224,7 +251,7 @@ if (-not $SkipInfrastructure) {
     Push-Location $DockerDir
     try {
         if ($composeServices.Count -gt 0) {
-            $allServices = @("mysql", "redis", "nacos", "seata", "elasticsearch", "rocketmq-namesrv", "rocketmq-broker", "sentinel")
+            $allServices = @("mysql", "redis", "nacos", "seata", "elasticsearch", "kibana", "rocketmq-namesrv", "rocketmq-broker", "rocketmq-console", "sentinel", "zipkin")
             $toStop = @($allServices | Where-Object { $_ -notin $composeServices })
             if ($toStop.Count -gt 0) {
                 Write-Info "停止不在 Profile 内的基础设施: $($toStop -join ' ')"
@@ -339,10 +366,11 @@ if (-not $SkipBackend) {
             if ($script:Processes.ContainsKey($name)) {
                 $oldPid = $script:Processes[$name].PID
                 if ($oldPid) {
-                    $oldProc = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
-                    if ($oldProc -and $oldProc.ProcessName -eq "java") {
+                    if (Test-ManagedBackendProcess $oldPid $name) {
                         Write-Info "终止不在 Profile 内的旧服务 $name (PID: $oldPid)"
                         Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+                    } else {
+                        Write-Warn "跳过终止 $name 的旧 PID $oldPid：命令行未匹配本项目 $name jar"
                     }
                 }
                 $script:Processes.Remove($name)
@@ -361,7 +389,7 @@ if (-not $SkipBackend) {
         if ($existingPid) {
             $existingProc = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
             $isKnownService = $false
-            if ($Processes.ContainsKey($name) -and $Processes[$name].PID -eq $existingPid -and $existingProc -and $existingProc.ProcessName -in @("java", "node")) {
+            if ($Processes.ContainsKey($name) -and $Processes[$name].PID -eq $existingPid -and (Test-ManagedBackendProcess $existingPid $name)) {
                 $isKnownService = $true
             }
 

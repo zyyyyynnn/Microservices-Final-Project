@@ -140,8 +140,8 @@ docs/test/jmeter/seckill-stress.jmx
 ```powershell
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
-pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 9003 -TotalStock 100 -UserCount 100
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 9003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalStock 100 -UserCount 100
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
@@ -177,15 +177,15 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -
 正式压力测试前先准备可重复的多用户数据：
 
 ```powershell
-pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 9003 -TotalStock 100 -UserCount 100
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalStock 100 -UserCount 100
 ```
 
-该脚本会准备 `jmeter_seckill_1..N` 测试用户，创建或重置专用活动 `9001`，清理该活动下游秒杀订单、订单明细、库存流水、SKU 库存，并清理 Redis 中该活动的库存缓存和限购 Key。默认活动 `9001` 对应 `skuId=9003`、总库存 100、每用户限购 1。脚本默认通过宿主机 MySQL 连接执行；如后端连接 Docker MySQL，可显式使用 `-MysqlMode docker`。
+该脚本会准备 `jmeter_seckill_1..N` 测试用户，创建或重置专用活动 `9001`，清理该活动下游秒杀订单、订单明细、库存流水、SKU 库存，并清理 Redis 中该活动的库存缓存和限购 Key。默认活动 `9001` 对应专用压测 `skuId=99003`，该 SKU 从种子 SKU `9003` 复制，默认总库存 100、每用户限购 1。脚本默认通过宿主机 MySQL 连接执行；如后端连接 Docker MySQL，可显式使用 `-MysqlMode docker`。
 
 压测执行示例：
 
 ```powershell
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 9003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_
 ```
 
 进入阶梯压力前，必须先完成 10 用户完整链路验证，并确认 JMeter 失败样本为 0、最终成功 10、`orderNo` 去重数 10、Redis 剩余库存 90、真实库存锁定增量 10。

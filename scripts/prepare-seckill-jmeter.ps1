@@ -150,8 +150,25 @@ if ($LASTEXITCODE -ne 0) {
     throw "MySQL preparation failed."
 }
 
+if ($MysqlMode -eq "docker") {
+    $skuCount = docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N -e "SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId;"
+    if ($skuCount -ne "1") {
+        throw "SKU $SkuId verification failed. Source SKU 9003 might be missing or status invalid. Count = $skuCount"
+    }
+    $timeMetrics = docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N -e "SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
+    Write-Host "[INFO] Time metrics: $timeMetrics"
+} else {
+    $mysqlArgs = @("--host=$MysqlHost", "--port=$MysqlPort", "--user=$MysqlUser", "--password=$MysqlPassword", "-s", "-N", "-e")
+    $skuCount = & mysql @mysqlArgs "SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId;"
+    if ($skuCount -ne "1") {
+        throw "SKU $SkuId verification failed. Count = $skuCount"
+    }
+    $timeMetrics = & mysql @mysqlArgs "SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
+    Write-Host "[INFO] Time metrics: $timeMetrics"
+}
+
 Write-Host "[INFO] Clearing Redis seckill stock and user keys for activity $ActivityId"
-docker exec $RedisContainer redis-cli DEL "seckill:stock:$ActivityId" | Out-Null
+docker exec -i $RedisContainer redis-cli DEL "seckill:stock:$ActivityId" | Out-Null
 $pattern = "seckill:user:$ActivityId`:*"
 $keys = docker exec $RedisContainer redis-cli --scan --pattern $pattern
 foreach ($key in $keys) {
