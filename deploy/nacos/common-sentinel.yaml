@@ -7,7 +7,7 @@ spring:
     sentinel:
       transport:
         # Sentinel Dashboard 地址
-        dashboard: ${SENTINEL_DASHBOARD:sentinel:8080}
+        dashboard: ${SENTINEL_DASHBOARD:sentinel:8858}
         # 应用与 Dashboard 的通信端口
         port: 8719
         heartbeat-interval-ms: 5000

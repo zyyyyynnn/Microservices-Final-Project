@@ -16,4 +16,6 @@
 | Sentinel 统计 | `oneMinuteBlock=11`，`oneMinutePass=2`，`blockQps=11` |
 | 清理结果 | 已调用 `setRules?type=flow&data=[]` 清空临时运行时规则；`getRules?type=flow` 返回 `[]` |
 
+`oneMinutePass=2` 是 Sentinel 1 分钟滑动统计窗口值，包含本次并发验证前同一分钟内用于打出资源名的探测请求；本次并发请求自身的 Gateway 观测结果为 1 次 HTTP 200、11 次 HTTP 429。
+
 该结果证明 `mall-seckill` Web 资源可以被 Sentinel 流控规则拦截，并且 Gateway 入口可观察到 HTTP 429。该验证不等同于 Sentinel 熔断验证，也不证明 Nacos 持久化规则已加载；熔断和 Nacos 规则热加载仍需单独验证。

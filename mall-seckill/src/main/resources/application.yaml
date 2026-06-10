@@ -46,7 +46,7 @@ spring:
 # Sentinel
 spring.cloud.sentinel:
   transport:
-    dashboard: ${SENTINEL_DASHBOARD:sentinel:8080}
+    dashboard: ${SENTINEL_DASHBOARD:sentinel:8858}
     port: 8719
   datasource:
     flow:
