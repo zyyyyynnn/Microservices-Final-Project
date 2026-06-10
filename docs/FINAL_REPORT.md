@@ -14,7 +14,7 @@
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
 | 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
-| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载；2026-06-10 补充 JMeter 订单短冒烟、秒杀请求受理短冒烟和 1 用户完整链路短冒烟 |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载；2026-06-10 补充 JMeter 订单短冒烟、秒杀请求受理短冒烟、1 用户完整链路短冒烟和 10 用户完整链路连续验证 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
@@ -84,7 +84,7 @@ mvn clean test -DskipTests=false
 | Sentinel 限流/熔断 | 已验证 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429；`mall-inventory` 慢调用比例熔断验证通过：30 个 Gateway 请求中 2 个 HTTP 200、28 个 HTTP 429。摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`、`docs/test/sentinel/summary/nacos-flow-rules-20260610.md` 和 `docs/test/sentinel/summary/inventory-degrade-20260610.md`；熔断阈值为临时低阈值验证，不代表生产容量 |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
-| JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟和秒杀 1 用户完整链路短冒烟已执行且零失败；订单正式负载和秒杀阶梯压力待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟和秒杀 1 用户完整链路短冒烟；10 用户完整链路验证因异步订单最终状态失败被记录为阻断，不进入阶梯压力结论；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/` |
+| JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟和秒杀 10 用户完整链路已执行且零失败；订单正式负载和秒杀阶梯压力待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟和秒杀 10 用户完整链路连续 3 次验证；50/100/200/300/500 阶梯压力尚未执行；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/` |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 已通过 | 2026-06-10 执行 `scripts/run-special-checks.ps1`：Nacos、Sentinel Dashboard、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；该脚本仍只代表只读可达性检查，不替代业务专项 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
@@ -151,7 +151,7 @@ HTML 报告状态：
 
 ### 7.1 测试环境
 
-记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟和秒杀 1 用户完整链路短冒烟。秒杀 10 用户完整链路验证已记录为阻断，订单正式负载和秒杀 50/100/200/300/500 阶梯压力尚未执行，以下未运行场景不得填写估算值。
+记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟和秒杀 10 用户完整链路连续 3 次验证。订单正式负载和秒杀 50/100/200/300/500 阶梯压力尚未执行，以下未运行场景不得填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -203,9 +203,19 @@ HTML 报告状态：
 
 最终状态核验：专用活动 `9001`、`skuId=9003`、总库存 100；`mall_seckill.seckill_order` 中该活动最终成功 1、最终失败 0、非空 `orderNo` 1、去重用户数 1，Redis `seckill:stock:9001` 剩余 99。该结果仅证明单用户秒杀完整链路可成功，不替代多用户阶梯压力测试。
 
-秒杀 10 用户请求受理短冒烟：`docs/test/jmeter/summary/seckill-smoke-20260610-113722.md` 仅证明 10 用户登录、请求受理和结果查询接口可达；不能证明异步秒杀最终成功或活动全局不超卖。
+秒杀 10 用户请求受理短冒烟：`docs/test/jmeter/summary/seckill-smoke-20260610-113722.md` 仅证明 10 用户登录、请求受理和结果查询接口可达；不能单独证明异步秒杀最终成功或活动全局不超卖。
 
-秒杀 10 用户完整链路阻断记录：`docs/test/jmeter/summary/seckill-full-blocked-20260610-134442.md` 记录 10 用户均成功受理，但 9 个请求最终失败；数据库中该活动最终成功 1、最终失败 9、Redis `seckill:stock:9001` 剩余 90。该结果不得写成通过，50/100/200/300/500 阶梯压力暂不执行。
+秒杀 10 用户完整链路历史阻断记录：`docs/test/jmeter/summary/seckill-full-blocked-20260610-134442.md` 记录 10 用户均成功受理，但 9 个请求最终失败；该记录作为历史问题证据保留，不作为当前通过证据。
+
+秒杀 10 用户完整链路连续验证：
+
+| 场景 | 用户 | RampUp | 轮次 | 样本 | 失败 | 最终成功校验 | 证据 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 登录 + 发起秒杀 + 轮询结果 + 最终状态校验 | 10 | 2s | 3 | 124 / 63 / 58 | 0 / 0 / 0 | 10 / 10 / 10 | `docs/test/jmeter/summary/seckill-full-10-3runs-20260610-195555.md`；原始 JTL 为本地产物 |
+
+最终状态核验：专用活动 `9001`、`skuId=9003`、总库存 100；第 3 轮结束后 `mall_seckill.seckill_order` 中最终成功 10、最终失败 0、非空 `orderNo` 10、`orderNo` 去重数 10、去重用户数 10；`mall_order.order_info` 秒杀订单 10、`mall_order.order_item` 秒杀明细 10；`mall_inventory.stock` 中 `skuId=9003,total=100,locked=10,available=90`；库存锁定流水 10；Redis `seckill:stock:9001` 剩余 90。日志未命中 `Duplicate entry`、`秒杀订单创建失败`、`秒杀结果回写失败`、`Global lock wait timeout`、`ERROR`。
+
+该结果证明 10 用户完整链路可重复通过，不代表 50/100/200/300/500 阶梯压力测试已通过。
 
 | 并发用户 | P95 | 吞吐量 | 错误率 | Sentinel 触发 | CPU | 内存 |
 |---:|---:|---:|---:|---|---:|---:|

@@ -217,11 +217,16 @@ if (status != 200 || !(body.contains('&quot;code&quot;:200') || body.contains('&
                   <stringProp name="parameters"></stringProp>
                   <stringProp name="script">def attempts = (vars.get('resultAttempts') ?: '0') as int
 vars.put('resultAttempts', String.valueOf(attempts + 1))
-def status = vars.get('resultStatus')
+def body = prev.getResponseDataAsString()
+def parsed = new groovy.json.JsonSlurper().parseText(body)
+def status = parsed?.data?.status == null ? '' : String.valueOf(parsed.data.status)
+def orderNo = parsed?.data?.orderNo == null ? '' : String.valueOf(parsed.data.orderNo)
+vars.put('resultStatus', status)
+vars.put('resultOrderNo', orderNo)
 if (status == '1' || status == '2') {
     vars.put('resultDone', 'true')
     vars.put('finalSeckillStatus', status)
-    vars.put('finalOrderNo', vars.get('resultOrderNo') ?: '')
+    vars.put('finalOrderNo', orderNo)
 }</stringProp>
                   <stringProp name="scriptLanguage">groovy</stringProp>
                 </JSR223PostProcessor>

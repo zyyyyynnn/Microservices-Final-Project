@@ -26,6 +26,13 @@ public final class BizNoUtil {
     }
 
     /**
+     * 秒杀订单号：SK + 完整雪花 ID
+     */
+    public static String generateSeckillOrderNo() {
+        return "SK" + IdUtil.getSnowflake(1, 1).nextIdStr();
+    }
+
+    /**
      * 支付单号：PAY + yyyyMMdd + 8 位雪花
      */
     public static String generatePayNo() {

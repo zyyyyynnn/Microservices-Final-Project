@@ -131,7 +131,7 @@ pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 9003 -TotalSto
 
 - 默认准备 `jmeter_seckill_1..N` 测试用户，默认密码为 `123456`；
 - 默认创建或重置专用活动 `9001`，对应 `SkuId=9003`、总库存 100、每用户限购 1；
-- 默认清理 `mall_seckill.seckill_order` 中活动 `9001` 的全部记录；
+- 默认清理活动 `9001` 对应的下游秒杀订单、订单明细、库存流水、SKU 库存；
 - 默认清理 Redis `seckill:stock:9001` 和该活动全部用户限购 Key；
 - 默认通过宿主机 MySQL 连接执行，后端连接 Docker MySQL 时可使用 `-MysqlMode docker`；
 - `run-jmeter.ps1` 的秒杀场景默认使用 `ActivityId=9001`、`SkuId=9003`、`UsernamePrefix=jmeter_seckill_`；

@@ -67,6 +67,36 @@ ON DUPLICATE KEY UPDATE
   role = VALUES(role),
   status = 1;
 
+DROP TEMPORARY TABLE IF EXISTS tmp_jmeter_seckill_order_no;
+CREATE TEMPORARY TABLE tmp_jmeter_seckill_order_no AS
+SELECT order_no
+FROM mall_order.order_info
+WHERE remark = '秒杀活动：$ActivityId'
+   OR JSON_UNQUOTE(JSON_EXTRACT(address_json, '$.requestId')) IN (
+      SELECT request_id
+      FROM mall_seckill.seckill_order
+      WHERE activity_id = $ActivityId
+   );
+
+DELETE sl
+FROM mall_inventory.stock_log sl
+JOIN tmp_jmeter_seckill_order_no t ON sl.ref_no = t.order_no;
+
+DELETE oi
+FROM mall_order.order_item oi
+JOIN tmp_jmeter_seckill_order_no t ON oi.order_no = t.order_no;
+
+DELETE o
+FROM mall_order.order_info o
+JOIN tmp_jmeter_seckill_order_no t ON o.order_no = t.order_no;
+
+INSERT INTO mall_inventory.stock (sku_id, total, locked, available)
+VALUES ($SkuId, $TotalStock, 0, $TotalStock)
+ON DUPLICATE KEY UPDATE
+  total = VALUES(total),
+  locked = VALUES(locked),
+  available = VALUES(available);
+
 USE mall_seckill;
 INSERT INTO seckill_activity (id, name, sku_id, seckill_price, total_stock, limit_per_user, start_time, end_time, status)
 VALUES ($ActivityId, 'JMeter 秒杀压测专用活动', $SkuId, 4799.00, $TotalStock, $LimitPerUser, DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL $DurationMinutes MINUTE), 0)
@@ -118,4 +148,4 @@ foreach ($key in $keys) {
 Write-Host "[OK] Seckill JMeter data prepared."
 Write-Host "[OK] Activity: $ActivityId / skuId: $SkuId / totalStock: $TotalStock / limitPerUser: $LimitPerUser"
 Write-Host "[OK] Users: $($UsernamePrefix)1..$UserCount / password: 123456"
-Write-Host "[OK] Reset all seckill_order rows and Redis seckill keys for activity $ActivityId"
+Write-Host "[OK] Reset downstream seckill orders, order items, stock logs, SKU stock, and Redis seckill keys for activity $ActivityId"

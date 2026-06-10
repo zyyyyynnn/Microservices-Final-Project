@@ -8,6 +8,7 @@ import com.mallcloud.mallcommon.enums.ErrorCode;
 import com.mallcloud.mallcommon.exception.BizException;
 import com.mallcloud.mallcommon.response.PageData;
 import com.mallcloud.mallcommon.response.Result;
+import com.mallcloud.mallcommon.util.BizNoUtil;
 import com.mallcloud.mallorder.api.dto.AdminOrderQueryDTO;
 import com.mallcloud.mallorder.api.dto.CreateOrderDTO;
 import com.mallcloud.mallorder.api.dto.OrderItemDTO;
@@ -199,7 +200,7 @@ public class OrderServiceImpl extends OrderService {
             throw new BizException(ErrorCode.PRODUCT_NOT_FOUND.getCode(), "商品不存在: " + dto.getSkuId());
         }
         SkuDTO sku = skuResult.getData();
-        String orderNo = "SK" + System.currentTimeMillis();
+        String orderNo = BizNoUtil.generateSeckillOrderNo();
         Result<Void> lockResult = inventoryClient.lock(new LockStockDTO(orderNo, List.of(new LockDTO(dto.getSkuId(), dto.getQuantity()))));
         if (lockResult == null || !lockResult.isSuccess()) {
             if (lockResult != null && lockResult.getCode() == ErrorCode.REMOTE_CALL_ERROR.getCode()) {
