@@ -228,6 +228,14 @@ Sentinel 专项至少记录：
 
 临时 command center 规则只能证明当前运行实例可被限流，不等同于 Nacos 持久化规则加载成功。熔断验证必须单独模拟真实慢调用或异常比例，不得用限流结果替代。
 
+Sentinel Nacos 持久化规则验证还应额外记录：
+
+- Nacos 命名空间、Group、DataId；
+- 运行时 `getRules?type=flow` 查询结果；
+- 临时规则热更新结果；
+- 规则回滚结果；
+- 是否仍存在 Spring Config 解析错误。
+
 ### 5.2 Elasticsearch 搜索索引初始化
 
 ```powershell

@@ -10,7 +10,6 @@ spring:
       - optional:nacos:common-rocketmq.yaml?group=DEFAULT_GROUP&refreshEnabled=true
       - optional:nacos:common-sentinel.yaml?group=DEFAULT_GROUP&refreshEnabled=true
       - optional:nacos:mall-seckill.yaml?group=DEFAULT_GROUP&refreshEnabled=true
-      - optional:nacos:mall-seckill-flow-rules.json?group=SENTINEL_GROUP&refreshEnabled=true
   profiles:
     active: dev
   cloud:
@@ -28,10 +27,6 @@ spring:
         extension-configs[0]:
           dataId: mall-seckill.yaml
           group: DEFAULT_GROUP
-          refresh: true
-        extension-configs[1]:
-          dataId: mall-seckill-flow-rules.json
-          group: SENTINEL_GROUP
           refresh: true
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_seckill}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
@@ -54,6 +49,8 @@ spring.cloud.sentinel:
         server-addr: ${NACOS_SERVER:nacos:8848}
         dataId: mall-seckill-flow-rules.json
         groupId: SENTINEL_GROUP
+        namespace: dev
+        data-type: json
         rule-type: flow
 
 # Actuator

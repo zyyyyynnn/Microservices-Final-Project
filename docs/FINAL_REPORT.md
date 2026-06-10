@@ -76,12 +76,12 @@ mvn clean test -DskipTests=false
 |---|---|---|
 | Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
 | Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
-| Nacos 配置热更新 | 待验证 | |
+| Nacos 配置热更新 | 部分通过 | 2026-06-10 已验证 `mall-seckill-flow-rules.json` 通过 Nacos 热更新影响 Sentinel 运行时流控规则，并完成规则回滚；普通业务配置热更新仍待验证 |
 | Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
 | OpenFeign | 已验证 | order→product、order→inventory |
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
-| Sentinel 限流/熔断 | 部分通过 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过：12 个并发请求中 1 个 HTTP 200、11 个 HTTP 429，返回 `Blocked by Sentinel (flow limiting)`；摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`。Nacos 持久化规则加载和熔断专项仍待验证 |
+| Sentinel 限流/熔断 | 部分通过 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429，返回 `Blocked by Sentinel (flow limiting)`；摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md` 和 `docs/test/sentinel/summary/nacos-flow-rules-20260610.md`。熔断专项仍待验证 |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
 | JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟已执行且零失败，订单/秒杀正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟，均 0 失败；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |
