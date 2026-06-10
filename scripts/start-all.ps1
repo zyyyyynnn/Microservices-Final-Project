@@ -224,6 +224,12 @@ if (-not $SkipInfrastructure) {
     Push-Location $DockerDir
     try {
         if ($composeServices.Count -gt 0) {
+            $allServices = @("mysql", "redis", "nacos", "seata", "elasticsearch", "rocketmq-namesrv", "rocketmq-broker", "sentinel")
+            $toStop = @($allServices | Where-Object { $_ -notin $composeServices })
+            if ($toStop.Count -gt 0) {
+                Write-Info "停止不在 Profile 内的基础设施: $($toStop -join ' ')"
+                & docker compose -f docker-compose.middleware.yml stop @toStop 2>&1
+            }
             & docker compose -f docker-compose.middleware.yml up -d @composeServices 2>&1
         } else {
             & docker compose -f docker-compose.middleware.yml up -d 2>&1
@@ -300,7 +306,7 @@ if (-not $SkipBackend -and -not $SkipBuild) {
 $Results = [System.Collections.ArrayList]::new()
 
 function Save-ResultsState {
-    $stateObj = @{}
+    $stateObj = if ($script:Processes) { $script:Processes.Clone() } else { @{} }
     foreach ($r in $script:Results) {
         $stateObj[$r.Name] = $r
     }
@@ -330,6 +336,18 @@ if (-not $SkipBackend) {
         $name = $svc.Name
         if ($name -notin $filteredServices) {
             Write-Info "跳过服务 $name (基于 Profile: $Profile)"
+            if ($script:Processes.ContainsKey($name)) {
+                $oldPid = $script:Processes[$name].PID
+                if ($oldPid) {
+                    $oldProc = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
+                    if ($oldProc -and $oldProc.ProcessName -eq "java") {
+                        Write-Info "终止不在 Profile 内的旧服务 $name (PID: $oldPid)"
+                        Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+                    }
+                }
+                $script:Processes.Remove($name)
+                Save-ResultsState
+            }
             continue
         }
         $port = $svc.Port
@@ -380,8 +398,7 @@ if (-not $SkipBackend) {
 
         # 启动
         Write-Info "启动 $name (端口 $port) ..."
-        $LanIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -like '10.*' -or $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '172.*' } | Select-Object -First 1).IPAddress
-        if (-not $LanIP) { $LanIP = "127.0.0.1" }
+        $LanIP = if ($env:MALL_INFRA_HOST) { $env:MALL_INFRA_HOST } else { "127.0.0.1" }
         $env:NACOS_SERVER       = "${LanIP}:8848"
         $env:MYSQL_HOST         = $LanIP
         $env:REDIS_HOST         = $LanIP

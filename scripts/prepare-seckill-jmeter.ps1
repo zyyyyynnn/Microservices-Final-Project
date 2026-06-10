@@ -39,6 +39,10 @@ if ($LimitPerUser -lt 1) {
 
 $userIdEnd = $UserIdStart + $UserCount - 1
 
+$now = Get-Date
+$startTime = $now.AddMinutes(-5).ToString("yyyy-MM-dd HH:mm:ss")
+$endTime = $now.AddMinutes($DurationMinutes).ToString("yyyy-MM-dd HH:mm:ss")
+
 $values = for ($i = 1; $i -le $UserCount; $i++) {
     $userId = $UserIdStart + $i - 1
     $username = "$UsernamePrefix$i"
@@ -72,6 +76,12 @@ ON DUPLICATE KEY UPDATE
   role = VALUES(role),
   status = 1;
 
+USE mall_product;
+INSERT IGNORE INTO sku (id, spu_id, spec_json, price, original_price, image, weight, barcode, status)
+SELECT $SkuId, spu_id, spec_json, price, original_price, image, weight, barcode, status
+FROM sku
+WHERE id = 9003;
+
 DROP TEMPORARY TABLE IF EXISTS tmp_jmeter_seckill_order_no;
 CREATE TEMPORARY TABLE tmp_jmeter_seckill_order_no AS
 SELECT order_no
@@ -104,7 +114,7 @@ ON DUPLICATE KEY UPDATE
 
 USE mall_seckill;
 INSERT INTO seckill_activity (id, name, sku_id, seckill_price, total_stock, limit_per_user, start_time, end_time, status)
-VALUES ($ActivityId, 'JMeter 秒杀压测专用活动', $SkuId, 4799.00, $TotalStock, $LimitPerUser, DATE_SUB(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL $DurationMinutes MINUTE), 0)
+VALUES ($ActivityId, 'JMeter 秒杀压测专用活动', $SkuId, 4799.00, $TotalStock, $LimitPerUser, '$startTime', '$endTime', 0)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   sku_id = VALUES(sku_id),

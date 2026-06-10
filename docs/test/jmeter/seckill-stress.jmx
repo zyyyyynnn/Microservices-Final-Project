@@ -101,6 +101,9 @@ def token = vars.get('token')
 if (prev.getResponseCode() != '200' || !(body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;: 200')) || token == null || token == 'TOKEN_NOT_FOUND') {
     AssertionResult.setFailure(true)
     AssertionResult.setFailureMessage('Login failed or token not extracted: HTTP ' + prev.getResponseCode())
+    prev.setSampleLabel('其他非预期失败')
+} else {
+    prev.setSampleLabel('登录成功')
 }</stringProp>
             <stringProp name="scriptLanguage">groovy</stringProp>
           </JSR223Assertion>
@@ -162,13 +165,32 @@ vars.put('finalOrderNo', '')</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="script">def body = prev.getResponseDataAsString()
 def status = prev.getResponseCode() as int
-if (status == 429 &amp;&amp; body.contains('Blocked by Sentinel')) {
-    prev.setSuccessful(true)
+if (status &gt;= 500) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('HTTP 5xx')
+    prev.setSampleLabel('HTTP 5xx')
     return
 }
-if (status != 200 || !(body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;:40400') || body.contains('&quot;code&quot;:40403'))) {
+if (status == 429 &amp;&amp; body.contains('Blocked by Sentinel')) {
+    prev.setSuccessful(true)
+    prev.setSampleLabel('Sentinel 429')
+    return
+}
+if (status != 200) {
     AssertionResult.setFailure(true)
-    AssertionResult.setFailureMessage('Unexpected seckill response: HTTP ' + status + ' body=' + body)
+    prev.setSampleLabel('其他非预期失败')
+    return
+}
+if (body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;: 200')) {
+    prev.setSampleLabel('秒杀请求成功受理')
+} else if (body.contains('&quot;code&quot;:40400') || body.contains('&quot;code&quot;: 40400')) {
+    prev.setSampleLabel('库存不足')
+} else if (body.contains('&quot;code&quot;:40403') || body.contains('&quot;code&quot;: 40403')) {
+    prev.setSampleLabel('用户限购')
+} else {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Unexpected seckill response: ' + body)
+    prev.setSampleLabel('其他非预期失败')
 }</stringProp>
             <stringProp name="scriptLanguage">groovy</stringProp>
           </JSR223Assertion>
@@ -236,13 +258,17 @@ if (status == '1' || status == '2') {
                   <stringProp name="filename"></stringProp>
                   <stringProp name="parameters"></stringProp>
                   <stringProp name="script">def body = prev.getResponseDataAsString()
-if (prev.getResponseCode() != '200' || !(body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;: 200'))) {
+def status = prev.getResponseCode() as int
+if (status &gt;= 500) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('HTTP 5xx')
+    prev.setSampleLabel('HTTP 5xx')
+    return
+}
+if (status != 200 || !(body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;: 200'))) {
     AssertionResult.setFailure(true)
     AssertionResult.setFailureMessage('Unexpected result response: HTTP ' + prev.getResponseCode())
-}
-if (vars.get('resultStatus') == '2') {
-    AssertionResult.setFailure(true)
-    AssertionResult.setFailureMessage('Seckill final status is failed')
+    prev.setSampleLabel('其他非预期失败')
 }</stringProp>
                   <stringProp name="scriptLanguage">groovy</stringProp>
                 </JSR223Assertion>
@@ -257,16 +283,25 @@ if (vars.get('resultStatus') == '2') {
             <stringProp name="script">def status = vars.get('finalSeckillStatus')
 def orderNo = vars.get('finalOrderNo')
 SampleResult.setDataType(org.apache.jmeter.samplers.SampleResult.TEXT)
+
 if (status == '1' &amp;&amp; orderNo != null &amp;&amp; orderNo.trim().length() &gt; 0 &amp;&amp; orderNo != 'RESULT_ORDER_NOT_FOUND') {
     SampleResult.setResponseCode('200')
     SampleResult.setResponseMessage('OK')
     SampleResult.setResponseData('final seckill result validated', 'UTF-8')
     SampleResult.setSuccessful(true)
+    SampleResult.setSampleLabel('最终订单成功')
+} else if (status == '2') {
+    SampleResult.setResponseCode('500')
+    SampleResult.setResponseMessage('Business Failed')
+    SampleResult.setResponseData(('status=' + status + ', orderNo=' + orderNo), 'UTF-8')
+    SampleResult.setSuccessful(false)
+    SampleResult.setSampleLabel('最终业务失败')
 } else {
     SampleResult.setResponseCode('500')
-    SampleResult.setResponseMessage('Invalid final seckill result')
-    SampleResult.setResponseData(('status=' + status + ', orderNo=' + orderNo + ', attempts=' + vars.get('resultAttempts')), 'UTF-8')
+    SampleResult.setResponseMessage('Timeout or Unconfirmed')
+    SampleResult.setResponseData(('attempts=' + vars.get('resultAttempts')), 'UTF-8')
     SampleResult.setSuccessful(false)
+    SampleResult.setSampleLabel('结果轮询超时')
 }</stringProp>
             <stringProp name="scriptLanguage">groovy</stringProp>
           </JSR223Sampler>
