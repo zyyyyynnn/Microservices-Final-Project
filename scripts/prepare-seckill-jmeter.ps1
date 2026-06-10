@@ -1,6 +1,6 @@
 param(
     [int]$ActivityId = 9001,
-    [int]$SkuId = 9003,
+    [int]$SkuId = 99003,
     [int]$TotalStock = 100,
     [int]$LimitPerUser = 1,
     [int]$DurationMinutes = 120,
@@ -15,13 +15,18 @@ param(
     [string]$MysqlPort = $(if ($env:MYSQL_PORT) { $env:MYSQL_PORT } else { "3306" }),
     [string]$MysqlUser = "root",
     [string]$MysqlPassword = $(if ($env:MYSQL_PWD) { $env:MYSQL_PWD } else { "root" }),
-    [string]$RedisContainer = "mall-redis"
+    [string]$RedisContainer = "mall-redis",
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
 
 if ($UserCount -lt 1) {
     throw "UserCount must be greater than 0."
+}
+
+if (-not $Force -and ($ActivityId -lt 9000 -or $SkuId -lt 99000)) {
+    throw "ActivityId must be >= 9000 and SkuId must be >= 99000 for test data isolation. Use -Force to override."
 }
 
 if ($TotalStock -lt 1) {

@@ -10,7 +10,9 @@ param(
     [string]$Password = "123456",
     [string]$UsernamePrefix = "jmeter_seckill_",
     [int]$ActivityId = 9001,
-    [int]$SkuId = 9003,
+    [int]$SkuId = 99003,
+    [int]$ResultPollAttempts = 20,
+    [int]$ResultPollDelayMs = 500,
     [string]$JMeterVersion = "5.6.3",
     [switch]$InstallOnly
 )
@@ -113,7 +115,9 @@ $args = @(
     "-Jduration=$Duration",
     "-Jusername=$Username",
     "-Jpassword=$Password",
-    "-JskuId=$SkuId"
+    "-JskuId=$SkuId",
+    "-JresultPollAttempts=$ResultPollAttempts",
+    "-JresultPollDelayMs=$ResultPollDelayMs"
 )
 
 if ($Scenario -eq "seckill") {

@@ -10,7 +10,10 @@ param(
     [switch]$SkipBackend,
     [switch]$SkipBuild,
     [switch]$CleanLogs,
-    [switch]$AllowPartial
+    [switch]$AllowPartial,
+    [ValidateSet("core", "search", "seckill", "full")]
+    [string]$Profile = "full",
+    [switch]$LowMemory
 )
 
 $ErrorActionPreference = "Stop"
@@ -202,16 +205,29 @@ Write-Host ""
 
 # ── 启动基础设施 ──────────────────────────────────────
 if (-not $SkipInfrastructure) {
-    Write-Banner "启动基础设施 (Docker Compose)"
+    Write-Banner "启动基础设施 (Docker Compose) - Profile: $Profile - LowMemory: $LowMemory"
     $composeFile = Join-Path $DockerDir "docker-compose.middleware.yml"
     if (-not (Test-Path $composeFile)) {
         Write-Err "未找到 $composeFile"
         exit 1
     }
 
+    $composeServices = @()
+    if ($Profile -eq "core") {
+        $composeServices = @("mysql", "redis", "nacos", "seata")
+    } elseif ($Profile -eq "search") {
+        $composeServices = @("mysql", "redis", "nacos", "seata", "elasticsearch")
+    } elseif ($Profile -eq "seckill") {
+        $composeServices = @("mysql", "redis", "nacos", "seata", "rocketmq-namesrv", "rocketmq-broker", "sentinel")
+    }
+
     Push-Location $DockerDir
     try {
-        & docker compose -f docker-compose.middleware.yml up -d 2>&1
+        if ($composeServices.Count -gt 0) {
+            & docker compose -f docker-compose.middleware.yml up -d @composeServices 2>&1
+        } else {
+            & docker compose -f docker-compose.middleware.yml up -d 2>&1
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-Err "Docker Compose 启动失败"
             exit 1
@@ -235,6 +251,23 @@ if (-not $SkipInfrastructure) {
         # 等待 Redis
         $redisOk = Test-Port 6379 2
         if ($redisOk) { Write-Ok "Redis 就绪" } else { Write-Warn "Redis 未就绪" }
+
+        # Wait others based on profile
+        $seataOk = Test-Port 8091 30
+        if ($seataOk) { Write-Ok "Seata 就绪" } else { Write-Warn "Seata 未就绪" }
+
+        if ($Profile -in @("full", "seckill")) {
+            $rmqNameOk = Test-Port 9876 30
+            if ($rmqNameOk) { Write-Ok "RocketMQ NameServer 就绪" } else { Write-Warn "RocketMQ NameServer 未就绪" }
+            
+            $rmqBrokerOk = Test-Port 10911 30
+            if ($rmqBrokerOk) { Write-Ok "RocketMQ Broker 就绪" } else { Write-Warn "RocketMQ Broker 未就绪" }
+        }
+
+        if ($Profile -in @("full", "search")) {
+            $esOk = Wait-Http "http://localhost:9200/_cluster/health" "Elasticsearch" 30
+            if ($esOk) { Write-Ok "Elasticsearch 就绪" } else { Write-Warn "Elasticsearch 未就绪" }
+        }
 
     } finally {
         Pop-Location
@@ -282,8 +315,23 @@ function Add-Result([hashtable]$Result) {
 if (-not $SkipBackend) {
     Write-Banner "启动后端服务"
 
+    $filteredServices = @()
+    if ($Profile -eq "core") {
+        $filteredServices = @("mall-user", "mall-auth", "mall-product", "mall-inventory", "mall-cart", "mall-order", "mall-gateway")
+    } elseif ($Profile -eq "search") {
+        $filteredServices = @("mall-user", "mall-auth", "mall-product", "mall-inventory", "mall-cart", "mall-order", "mall-gateway", "mall-search")
+    } elseif ($Profile -eq "seckill") {
+        $filteredServices = @("mall-user", "mall-auth", "mall-product", "mall-inventory", "mall-order", "mall-message", "mall-seckill", "mall-gateway")
+    } else {
+        $filteredServices = $BackendServices | Select-Object -ExpandProperty Name
+    }
+
     foreach ($svc in $BackendServices) {
         $name = $svc.Name
+        if ($name -notin $filteredServices) {
+            Write-Info "跳过服务 $name (基于 Profile: $Profile)"
+            continue
+        }
         $port = $svc.Port
         $logFile = Join-Path $LogsDir "$name.log"
         $moduleDir = Join-Path $ProjectRoot $name
@@ -332,16 +380,22 @@ if (-not $SkipBackend) {
 
         # 启动
         Write-Info "启动 $name (端口 $port) ..."
-        $env:NACOS_SERVER       = "127.0.0.1:8848"
-        $env:MYSQL_HOST         = "127.0.0.1"
-        $env:REDIS_HOST         = "127.0.0.1"
-        $env:ROCKETMQ_NAMESRV   = "127.0.0.1:9876"
-        $env:ES_HOST            = "127.0.0.1"
+        $LanIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -ne '127.0.0.1' -and $_.IPAddress -like '10.*' -or $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '172.*' } | Select-Object -First 1).IPAddress
+        if (-not $LanIP) { $LanIP = "127.0.0.1" }
+        $env:NACOS_SERVER       = "${LanIP}:8848"
+        $env:MYSQL_HOST         = $LanIP
+        $env:REDIS_HOST         = $LanIP
+        $env:ROCKETMQ_NAMESRV   = "${LanIP}:9876"
+        $env:ES_HOST            = $LanIP
         $env:ES_PORT            = "9200"
-        $env:SENTINEL_DASHBOARD = "127.0.0.1:8080"
+        $env:SENTINEL_DASHBOARD = "${LanIP}:8080"
+        $jvmArgs = @("-jar", $jar.FullName)
+        if ($LowMemory) {
+            $jvmArgs = @("-Xms64m", "-Xmx320m", "-XX:MaxMetaspaceSize=192m") + $jvmArgs
+        }
 
         $proc = Start-Process -FilePath $JavaCmd `
-            -ArgumentList "-jar", $jar.FullName `
+            -ArgumentList $jvmArgs `
             -WorkingDirectory $moduleDir `
             -RedirectStandardOutput $logFile `
             -RedirectStandardError (Join-Path $LogsDir "$name.err.log") `

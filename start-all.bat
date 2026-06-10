@@ -22,6 +22,8 @@ set "ARG_SKIP_FRONTEND=0"
 set "ARG_CLEAN_LOGS=0"
 set "ARG_NO_BUILD=0"
 set "ARG_NO_PAUSE=0"
+set "ARG_PROFILE=full"
+set "ARG_LOW_MEMORY=0"
 
 :PARSE_ARGS
 if "%~1"=="" goto :ARGS_DONE
@@ -31,6 +33,8 @@ if /i "%~1"=="--skip-frontend"       ( set "ARG_SKIP_FRONTEND=1" & shift & goto 
 if /i "%~1"=="--clean-logs"          ( set "ARG_CLEAN_LOGS=1" & shift & goto :PARSE_ARGS )
 if /i "%~1"=="--no-build"            ( set "ARG_NO_BUILD=1" & shift & goto :PARSE_ARGS )
 if /i "%~1"=="--no-pause"            ( set "ARG_NO_PAUSE=1" & shift & goto :PARSE_ARGS )
+if /i "%~1"=="--profile"             ( set "ARG_PROFILE=%~2" & shift & shift & goto :PARSE_ARGS )
+if /i "%~1"=="--low-memory"          ( set "ARG_LOW_MEMORY=1" & shift & goto :PARSE_ARGS )
 echo [ERROR] Unknown argument: %~1
 echo [INFO] Usage: start-all.bat [--skip-infrastructure] [--skip-backend] [--skip-frontend] [--clean-logs] [--no-build] [--no-pause]
 goto :FAIL
@@ -176,8 +180,20 @@ rem 记录启动前已运行的容器到文件
 pwsh.exe -NoProfile -Command ^
     "docker ps --format '{{.Names}}' 2>$null | Set-Content '%RUNTIME_DIR%\containers.before.txt' -Encoding UTF8"
 
-echo [INFO] docker compose up -d ...
-docker compose -f "%COMPOSE_FILE%" up -d >"%LOGS_DIR%\infra-compose.log" 2>&1
+echo [INFO] Profile: %ARG_PROFILE%
+echo [INFO] LowMemory: %ARG_LOW_MEMORY%
+
+set "DOCKER_SERVICES="
+if /i "%ARG_PROFILE%"=="core" (
+    set "DOCKER_SERVICES=mysql redis nacos seata"
+) else if /i "%ARG_PROFILE%"=="search" (
+    set "DOCKER_SERVICES=mysql redis nacos seata elasticsearch"
+) else if /i "%ARG_PROFILE%"=="seckill" (
+    set "DOCKER_SERVICES=mysql redis nacos seata rocketmq-namesrv rocketmq-broker sentinel"
+)
+
+echo [INFO] docker compose up -d %DOCKER_SERVICES% ...
+docker compose -f "%COMPOSE_FILE%" up -d %DOCKER_SERVICES% >"%LOGS_DIR%\infra-compose.log" 2>&1
 if errorlevel 1 (
     echo [ERROR] Docker Compose failed. Log: %LOGS_DIR%\infra-compose.log
     type "%LOGS_DIR%\infra-compose.log"
@@ -300,31 +316,60 @@ set "MYSQL_HOST=127.0.0.1"
 set "REDIS_HOST=127.0.0.1"
 set "ROCKETMQ_NAMESRV=127.0.0.1:9876"
 
-call :START_SERVICE mall-user 9002
+set "START_USER=0"
+set "START_AUTH=0"
+set "START_PRODUCT=0"
+set "START_INVENTORY=0"
+set "START_CART=0"
+set "START_ORDER=0"
+set "START_PAY=0"
+set "START_MESSAGE=0"
+set "START_SEARCH=0"
+set "START_SECKILL=0"
+set "START_ADMIN=0"
+set "START_JOB=0"
+set "START_GATEWAY=0"
+
+if /i "%ARG_PROFILE%"=="core" (
+    set START_USER=1 & set START_AUTH=1 & set START_PRODUCT=1 & set START_INVENTORY=1
+    set START_CART=1 & set START_ORDER=1 & set START_GATEWAY=1
+) else if /i "%ARG_PROFILE%"=="search" (
+    set START_USER=1 & set START_AUTH=1 & set START_PRODUCT=1 & set START_INVENTORY=1
+    set START_CART=1 & set START_ORDER=1 & set START_GATEWAY=1 & set START_SEARCH=1
+) else if /i "%ARG_PROFILE%"=="seckill" (
+    set START_USER=1 & set START_AUTH=1 & set START_PRODUCT=1 & set START_INVENTORY=1
+    set START_ORDER=1 & set START_MESSAGE=1 & set START_SECKILL=1 & set START_GATEWAY=1
+) else (
+    set START_USER=1 & set START_AUTH=1 & set START_PRODUCT=1 & set START_INVENTORY=1
+    set START_CART=1 & set START_ORDER=1 & set START_PAY=1 & set START_MESSAGE=1
+    set START_SEARCH=1 & set START_SECKILL=1 & set START_ADMIN=1 & set START_JOB=1 & set START_GATEWAY=1
+)
+
+if "%START_USER%"=="1" call :START_SERVICE mall-user 9002
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-auth 9001
+if "%START_AUTH%"=="1" call :START_SERVICE mall-auth 9001
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-product 9003
+if "%START_PRODUCT%"=="1" call :START_SERVICE mall-product 9003
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-inventory 9004
+if "%START_INVENTORY%"=="1" call :START_SERVICE mall-inventory 9004
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-cart 9005
+if "%START_CART%"=="1" call :START_SERVICE mall-cart 9005
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-order 9006
+if "%START_ORDER%"=="1" call :START_SERVICE mall-order 9006
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-pay 9007
+if "%START_PAY%"=="1" call :START_SERVICE mall-pay 9007
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-message 9010
+if "%START_MESSAGE%"=="1" call :START_SERVICE mall-message 9010
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-search 9008
+if "%START_SEARCH%"=="1" call :START_SERVICE mall-search 9008
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-seckill 9009
+if "%START_SECKILL%"=="1" call :START_SERVICE mall-seckill 9009
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-admin-biz 9011
+if "%START_ADMIN%"=="1" call :START_SERVICE mall-admin-biz 9011
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-job 9012
+if "%START_JOB%"=="1" call :START_SERVICE mall-job 9012
 if errorlevel 1 goto :FAIL
-call :START_SERVICE mall-gateway 9000
+if "%START_GATEWAY%"=="1" call :START_SERVICE mall-gateway 9000
 if errorlevel 1 goto :FAIL
 
 echo.
@@ -609,8 +654,13 @@ if defined "_port_pid" (
 rem -- 启动 Java 进程 --
 echo [START] !_svc_name! (port !_svc_port!) ...
 
+set "JAVA_OPTS="
+if "%ARG_LOW_MEMORY%"=="1" (
+    set "JAVA_OPTS=-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m"
+)
+
 for /f "tokens=*" %%i in ('pwsh.exe -NoProfile -Command ^
-    "$p = Start-Process -FilePath 'java.exe' -ArgumentList '-jar','!_svc_jar!' -WorkingDirectory '%ROOT%!_svc_name!' -RedirectStandardOutput '%LOGS_DIR%\!_svc_name!.log' -RedirectStandardError '%LOGS_DIR%\!_svc_name!.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "_svc_pid=%%i"
+    "$p = Start-Process -FilePath 'java.exe' -ArgumentList !JAVA_OPTS!,'-jar','!_svc_jar!' -WorkingDirectory '%ROOT%!_svc_name!' -RedirectStandardOutput '%LOGS_DIR%\!_svc_name!.log' -RedirectStandardError '%LOGS_DIR%\!_svc_name!.err.log' -WindowStyle Hidden -PassThru; $p.Id"') do set "_svc_pid=%%i"
 
 if not defined "_svc_pid" (
     echo [ERROR] !_svc_name! process creation failed
