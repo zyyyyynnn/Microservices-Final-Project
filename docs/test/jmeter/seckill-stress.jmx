@@ -25,7 +25,7 @@
           </elementProp>
           <elementProp name="activityId" elementType="Argument">
             <stringProp name="Argument.name">activityId</stringProp>
-            <stringProp name="Argument.value">${__P(activityId,1)}</stringProp>
+            <stringProp name="Argument.value">${__P(activityId,9001)}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="skuId" elementType="Argument">
@@ -145,6 +145,17 @@ if (prev.getResponseCode() != '200' || !(body.contains('&quot;code&quot;:200') |
             <stringProp name="JSONPostProcessor.defaultValues">REQUEST_NOT_FOUND</stringProp>
           </JSONPostProcessor>
           <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Init result polling variables" enabled="true">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script">vars.put('resultDone', 'false')
+vars.put('resultAttempts', '0')
+vars.put('finalSeckillStatus', '')
+vars.put('finalOrderNo', '')</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
           <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Seckill response is expected" enabled="true">
             <stringProp name="cacheKey">true</stringProp>
             <stringProp name="filename"></stringProp>
@@ -169,24 +180,92 @@ if (status != 200 || !(body.contains('&quot;code&quot;:200') || body.contains('&
           <boolProp name="IfController.useExpression">true</boolProp>
         </IfController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/v1/seckill/result/{requestId}" enabled="true">
-            <stringProp name="HTTPSampler.protocol">${__groovy(new URL(vars.get('BaseURL')).protocol)}</stringProp>
-            <stringProp name="HTTPSampler.domain">${__groovy(new URL(vars.get('BaseURL')).host)}</stringProp>
-            <stringProp name="HTTPSampler.port">${__groovy(new URL(vars.get('BaseURL')).port == -1 ? '' : new URL(vars.get('BaseURL')).port)}</stringProp>
-            <stringProp name="HTTPSampler.path">/api/v1/seckill/result/${requestId}</stringProp>
-            <stringProp name="HTTPSampler.method">GET</stringProp>
-            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-          </HTTPSamplerProxy>
+          <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Poll result up to limit" enabled="true">
+            <boolProp name="LoopController.continue_forever">false</boolProp>
+            <stringProp name="LoopController.loops">${__P(resultPollAttempts,20)}</stringProp>
+          </LoopController>
           <hashTree>
-            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Result has business code" enabled="true">
-              <collectionProp name="Asserion.test_strings">
-                <stringProp name="1">&quot;code&quot;:</stringProp>
-              </collectionProp>
-              <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
-              <intProp name="Assertion.test_type">2</intProp>
-            </ResponseAssertion>
-            <hashTree/>
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Poll while result pending" enabled="true">
+              <stringProp name="IfController.condition">${__groovy(vars.get('resultDone') != 'true')}</stringProp>
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
+            <hashTree>
+              <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Poll delay" enabled="true">
+                <stringProp name="ConstantTimer.delay">${__P(resultPollDelayMs,500)}</stringProp>
+              </ConstantTimer>
+              <hashTree/>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/v1/seckill/result/{requestId}" enabled="true">
+                <stringProp name="HTTPSampler.protocol">${__groovy(new URL(vars.get('BaseURL')).protocol)}</stringProp>
+                <stringProp name="HTTPSampler.domain">${__groovy(new URL(vars.get('BaseURL')).host)}</stringProp>
+                <stringProp name="HTTPSampler.port">${__groovy(new URL(vars.get('BaseURL')).port == -1 ? '' : new URL(vars.get('BaseURL')).port)}</stringProp>
+                <stringProp name="HTTPSampler.path">/api/v1/seckill/result/${requestId}</stringProp>
+                <stringProp name="HTTPSampler.method">GET</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              </HTTPSamplerProxy>
+              <hashTree>
+                <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract result fields" enabled="true">
+                  <stringProp name="JSONPostProcessor.referenceNames">resultStatus;resultOrderNo</stringProp>
+                  <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.status;$.data.orderNo</stringProp>
+                  <stringProp name="JSONPostProcessor.match_numbers">1;1</stringProp>
+                  <stringProp name="JSONPostProcessor.defaultValues">RESULT_STATUS_NOT_FOUND;RESULT_ORDER_NOT_FOUND</stringProp>
+                </JSONPostProcessor>
+                <hashTree/>
+                <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Track final result" enabled="true">
+                  <stringProp name="cacheKey">true</stringProp>
+                  <stringProp name="filename"></stringProp>
+                  <stringProp name="parameters"></stringProp>
+                  <stringProp name="script">def attempts = (vars.get('resultAttempts') ?: '0') as int
+vars.put('resultAttempts', String.valueOf(attempts + 1))
+def status = vars.get('resultStatus')
+if (status == '1' || status == '2') {
+    vars.put('resultDone', 'true')
+    vars.put('finalSeckillStatus', status)
+    vars.put('finalOrderNo', vars.get('resultOrderNo') ?: '')
+}</stringProp>
+                  <stringProp name="scriptLanguage">groovy</stringProp>
+                </JSR223PostProcessor>
+                <hashTree/>
+                <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Result response is valid" enabled="true">
+                  <stringProp name="cacheKey">true</stringProp>
+                  <stringProp name="filename"></stringProp>
+                  <stringProp name="parameters"></stringProp>
+                  <stringProp name="script">def body = prev.getResponseDataAsString()
+if (prev.getResponseCode() != '200' || !(body.contains('&quot;code&quot;:200') || body.contains('&quot;code&quot;: 200'))) {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Unexpected result response: HTTP ' + prev.getResponseCode())
+}
+if (vars.get('resultStatus') == '2') {
+    AssertionResult.setFailure(true)
+    AssertionResult.setFailureMessage('Seckill final status is failed')
+}</stringProp>
+                  <stringProp name="scriptLanguage">groovy</stringProp>
+                </JSR223Assertion>
+                <hashTree/>
+              </hashTree>
+            </hashTree>
           </hashTree>
+          <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Validate final seckill result" enabled="true">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script">def status = vars.get('finalSeckillStatus')
+def orderNo = vars.get('finalOrderNo')
+SampleResult.setDataType(org.apache.jmeter.samplers.SampleResult.TEXT)
+if (status == '1' &amp;&amp; orderNo != null &amp;&amp; orderNo.trim().length() &gt; 0 &amp;&amp; orderNo != 'RESULT_ORDER_NOT_FOUND') {
+    SampleResult.setResponseCode('200')
+    SampleResult.setResponseMessage('OK')
+    SampleResult.setResponseData('final seckill result validated', 'UTF-8')
+    SampleResult.setSuccessful(true)
+} else {
+    SampleResult.setResponseCode('500')
+    SampleResult.setResponseMessage('Invalid final seckill result')
+    SampleResult.setResponseData(('status=' + status + ', orderNo=' + orderNo + ', attempts=' + vars.get('resultAttempts')), 'UTF-8')
+    SampleResult.setSuccessful(false)
+}</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223Sampler>
+          <hashTree/>
         </hashTree>
       </hashTree>
     </hashTree>

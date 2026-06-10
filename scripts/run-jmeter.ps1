@@ -9,7 +9,7 @@ param(
     [string]$Username = "zhangsan",
     [string]$Password = "123456",
     [string]$UsernamePrefix = "jmeter_seckill_",
-    [int]$ActivityId = 1,
+    [int]$ActivityId = 9001,
     [int]$SkuId = 9003,
     [string]$JMeterVersion = "5.6.3",
     [switch]$InstallOnly
@@ -123,4 +123,17 @@ if ($Scenario -eq "seckill") {
 }
 
 & $jmeterCommand @args
-exit $LASTEXITCODE
+$jmeterExitCode = $LASTEXITCODE
+if ($jmeterExitCode -ne 0) {
+    exit $jmeterExitCode
+}
+
+if (Test-Path -LiteralPath $jtlPath) {
+    $failedSamples = Import-Csv -LiteralPath $jtlPath | Where-Object { $_.success -eq "false" }
+    if (($failedSamples | Measure-Object).Count -gt 0) {
+        Write-Error "JMeter completed with failed samples. See $jtlPath"
+        exit 1
+    }
+}
+
+exit 0

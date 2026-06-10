@@ -105,7 +105,7 @@ seckillSkuId=9003
 pwsh .\scripts\run-newman.ps1
 ```
 
-秒杀用例使用 `zhangsan` 和活动 `1`，正式回归前必须清理该测试用户的限购状态，或重置 Redis 与数据库测试数据。当前本地 Docker 环境可使用：
+秒杀 Newman 用例使用 `zhangsan` 和种子活动，正式回归前必须清理该测试用户的限购状态，或重置 Redis 与数据库测试数据。当前本地 Docker 环境可使用：
 
 ```powershell
 docker exec mall-redis redis-cli DEL seckill:user:1:1001 seckill:stock:1
@@ -140,8 +140,8 @@ docs/test/jmeter/seckill-stress.jmx
 ```powershell
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
-pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 1 -SkuId 9003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 9003 -TotalStock 100 -UserCount 100
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 9003 -UsernamePrefix jmeter_seckill_
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
@@ -177,15 +177,15 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -
 正式压力测试前先准备可重复的多用户数据：
 
 ```powershell
-pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 9003 -TotalStock 100 -UserCount 100
 ```
 
-该脚本会准备 `jmeter_seckill_1..N` 测试用户，清理对应活动的测试用户秒杀订单，并清理 Redis 中该活动的库存缓存和测试用户限购 Key。默认活动 `1` 对应 `skuId=9003`。
+该脚本会准备 `jmeter_seckill_1..N` 测试用户，创建或重置专用活动 `9001`，清理该活动全部 `seckill_order` 记录，并清理 Redis 中该活动的库存缓存和限购 Key。默认活动 `9001` 对应 `skuId=9003`、总库存 100、每用户限购 1。脚本默认通过宿主机 MySQL 连接执行；如后端连接 Docker MySQL，可显式使用 `-MysqlMode docker`。
 
 压测执行示例：
 
 ```powershell
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 1 -SkuId 9003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 9003 -UsernamePrefix jmeter_seckill_
 ```
 
 建议阶梯：
@@ -197,6 +197,14 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -
 记录：
 
 - 首次触发限流的并发；
+- 成功受理数量；
+- 最终成功订单数；
+- 最终失败数量；
+- 库存不足数量；
+- 限购数量；
+- Sentinel 429 数量；
+- 其他业务失败数量；
+- 系统异常数量；
 - P95；
 - 吞吐量；
 - 错误率；
@@ -207,9 +215,11 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -
 执行后必须核验：
 
 - `seckill_order` 中测试用户订单数；
+- `seckill_order` 中该活动全部订单数；
 - 去重用户数；
 - Redis 剩余库存；
 - 订单数不得超过活动总库存；
+- JMeter 结果查询必须断言 HTTP 200、业务码 200、最终 `status=1` 和非空 `orderNo`；
 - 不得通过放宽限购或业务码断言来规避重复执行问题。
 
 未实际运行不得填写 P95、吞吐量或错误率。
