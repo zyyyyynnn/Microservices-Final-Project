@@ -231,10 +231,19 @@ Sentinel 专项至少记录：
 Sentinel Nacos 持久化规则验证还应额外记录：
 
 - Nacos 命名空间、Group、DataId；
-- 运行时 `getRules?type=flow` 查询结果；
+- 运行时 `getRules?type=flow` 或 `getRules?type=degrade` 查询结果；
 - 临时规则热更新结果；
 - 规则回滚结果；
 - 是否仍存在 Spring Config 解析错误。
+
+熔断专项还应记录：
+
+- 熔断策略类型，例如慢调用比例、异常比例或异常数；
+- 临时验证阈值和回滚后的仓库规则；
+- 正常态请求结果；
+- 触发熔断后的 HTTP 状态和 Sentinel 返回；
+- Dashboard 或 command center 统计值；
+- 临时低阈值不得写成生产阈值或容量结论。
 
 ### 5.2 Elasticsearch 搜索索引初始化
 

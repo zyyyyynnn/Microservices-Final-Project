@@ -1,0 +1,11 @@
+[
+  {
+    "resource": "/api/v1/inventory/stock/{skuId}",
+    "grade": 0,
+    "count": 1000,
+    "timeWindow": 10,
+    "minRequestAmount": 20,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 1.0
+  }
+]

@@ -29,10 +29,6 @@ spring:
           dataId: mall-inventory.yaml
           group: DEFAULT_GROUP
           refresh: true
-        extension-configs[1]:
-          dataId: mall-inventory-degrade-rules.json
-          group: SENTINEL_GROUP
-          refresh: true
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:mall_inventory}?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER:root}
@@ -72,6 +68,8 @@ spring.cloud.sentinel:
         server-addr: ${NACOS_SERVER:nacos:8848}
         dataId: mall-inventory-degrade-rules.json
         groupId: SENTINEL_GROUP
+        namespace: dev
+        data-type: json
         rule-type: degrade
 
 # Actuator

@@ -81,7 +81,7 @@ mvn clean test -DskipTests=false
 | OpenFeign | 已验证 | order→product、order→inventory |
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
-| Sentinel 限流/熔断 | 部分通过 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429，返回 `Blocked by Sentinel (flow limiting)`；摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md` 和 `docs/test/sentinel/summary/nacos-flow-rules-20260610.md`。熔断专项仍待验证 |
+| Sentinel 限流/熔断 | 已验证 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429；`mall-inventory` 慢调用比例熔断验证通过：30 个 Gateway 请求中 2 个 HTTP 200、28 个 HTTP 429。摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`、`docs/test/sentinel/summary/nacos-flow-rules-20260610.md` 和 `docs/test/sentinel/summary/inventory-degrade-20260610.md`；熔断阈值为临时低阈值验证，不代表生产容量 |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
 | JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟已执行且零失败，订单/秒杀正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟，均 0 失败；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |

@@ -44,7 +44,7 @@ MallCloud 是一个基于 Spring Cloud Alibaba 的电商微服务课程项目。
 | OpenFeign 调用 | 已验证 | order→product、order→inventory 核心链路已验证 |
 | Seata 2.0.0 | 已验证 | Server 基线和 AT 回滚已验证 |
 | RocketMQ | 已验证 | 支付结果链路已验证 |
-| Sentinel | 部分通过 | Dashboard 可达、`mall-seckill` 临时流控、Nacos 持久化流控规则加载/热更新/回滚已通过；熔断专项待完成 |
+| Sentinel | 已验证 | Dashboard 可达、`mall-seckill` 流控、Nacos 持久化流控规则加载/热更新/回滚、`mall-inventory` 慢调用比例熔断均已验证 |
 | Elasticsearch | 已验证 | 搜索索引初始化、Gateway 搜索业务码和结果校验已通过 |
 | Postman/Newman | 已验证 | 当前真实结果见 [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) |
 | JMeter | 搜索负载场景已执行且零失败，订单短冒烟已执行且零失败 | 搜索 1/50/150 用户、订单 1 用户短冒烟已完成；订单正式负载和秒杀压力待执行 |
@@ -116,7 +116,6 @@ http://localhost:5173
 
 - Docker 全栈不是当前正式交付路径；
 - Kubernetes 仅保留部分示例；
-- Sentinel 熔断专项待完成；
 - Nacos 普通业务配置热更新专项待完成；
 - JMeter 订单正式负载、秒杀压力测试待执行；
 - 前端成功态业务闭环、逐页截图和真实接口数据待补充。
