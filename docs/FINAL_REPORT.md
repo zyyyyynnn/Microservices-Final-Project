@@ -84,7 +84,7 @@ mvn clean test -DskipTests=false
 | Sentinel 限流/熔断 | 待验证 | |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
-| JMeter 脚本 | 搜索负载已验证，订单短冒烟已验证，订单/秒杀正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟，均 0 失败；摘要见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |
+| JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟已执行且零失败，订单/秒杀正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟，均 0 失败；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 部分通过 | 2026-06-09 执行 `scripts/run-special-checks.ps1 -AllowFailures`：Nacos、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；Sentinel Dashboard 连接失败，不能标记为 Sentinel 专项验收通过 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
@@ -153,12 +153,14 @@ HTML 报告状态：
 
 | 项目 | 内容 |
 |---|---|
-| CPU | |
-| 内存 | |
+| CPU | AMD Ryzen 9 7940H w/ Radeon 780M Graphics，8 核 / 16 逻辑处理器 |
+| 内存 | 物理内存 15.22GB |
 | 操作系统 | Windows 11 |
 | JDK | 21 |
-| Docker 资源限制 | |
-| 代码 Commit | |
+| Docker 资源限制 | Docker Engine 可用 16 CPU、约 7.37GB 内存 |
+| Elasticsearch JVM heap | `ES_JAVA_OPTS=-Xms512m -Xmx512m` |
+| 测试机与服务部署 | JMeter、本地后端服务和 Docker 中间件运行在同一台 Windows 主机 |
+| 代码 Commit | JMeter 输出未自动固化执行时 Commit，精确执行 Commit 未记录；结果归档提交为 `c67132d`、`8a31712` |
 
 ### 7.2 搜索短冒烟
 
@@ -174,7 +176,7 @@ HTML 报告状态：
 |---|---:|---:|---:|---:|---:|---:|---:|---|
 | 登录 + 创建订单 | 1 | 15s | 32 | 421.56ms | 278ms | 2.32/s | 0% | `docs/test/jmeter/summary/order-smoke-20260610-075501.md`；原始 JTL 为本地产物 |
 
-该结果仅作为订单链路短冒烟证据，不替代 50/75～150 用户正式负载测试。正式订单负载测试会持续创建订单并消耗库存，执行前需要准备可重复的数据重置或隔离方案。
+该结果仅作为订单链路短冒烟证据，不替代 50/75～150 用户正式负载测试。该场景每轮循环包含登录和创建订单，表中 RT、P95 和吞吐量是混合统计；单独 `POST /api/v1/orders` 的脱敏聚合指标见 `docs/test/jmeter/summary/aggregate-20260610.csv`。正式订单负载测试会持续创建订单并消耗库存，执行前需要准备可重复的数据重置或隔离方案。
 
 ### 7.4 商品查询与订单
 
@@ -184,6 +186,10 @@ HTML 报告状态：
 | 商品查询 | 150 | 5.76ms | 8ms | 363.39/s | 0% |
 | 创建订单 | 50 | | | | |
 | 创建订单 | 75～150 | | | | |
+
+50 用户和 150 用户搜索测试为连续执行，Elasticsearch、JVM、操作系统缓存和运行时预热状态未完全隔离；结果仅用于证明对应负载下业务断言零失败，不用于直接比较并发扩展趋势、线性扩展能力或系统最大吞吐。
+
+脱敏聚合指标已归档到 `docs/test/jmeter/summary/aggregate-20260610.csv`。原始 JTL 仍为本地产物，未纳入仓库。
 
 ### 7.5 秒杀阶梯压力
 
