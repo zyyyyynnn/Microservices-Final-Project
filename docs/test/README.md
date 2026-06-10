@@ -21,6 +21,8 @@ docs/test/
 │   ├── results/
 │   ├── report/
 │   └── summary/
+├── nacos/
+│   └── summary/
 ├── sentinel/
 │   └── summary/
 └── screenshots/
@@ -245,7 +247,21 @@ Sentinel Nacos 持久化规则验证还应额外记录：
 - Dashboard 或 command center 统计值；
 - 临时低阈值不得写成生产阈值或容量结论。
 
-### 5.2 Elasticsearch 搜索索引初始化
+### 5.2 Nacos 普通业务配置热更新
+
+Nacos 普通业务配置热更新至少记录：
+
+- 命名空间、Group、DataId；
+- 配置项名称；
+- 修改前业务接口结果；
+- 热更新后的业务接口结果；
+- 是否重启服务；
+- 回滚后的业务接口结果；
+- 证据摘要路径。
+
+Sentinel 规则热更新不能替代普通业务配置热更新。验证用临时配置必须在结束后回滚到仓库基线。
+
+### 5.3 Elasticsearch 搜索索引初始化
 
 ```powershell
 pwsh .\scripts\init-search-index.ps1

@@ -8,9 +8,12 @@ import com.mallcloud.mallinventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "库存接口")
+@RefreshScope
 @RestController
 @RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor
@@ -18,10 +21,13 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
 
+    @Value("${mallcloud.inventory.ping-message:mall-inventory pong}")
+    private String pingMessage;
+
     @Operation(summary = "健康检查")
     @GetMapping("/ping")
     public Result<String> ping() {
-        return Result.ok("mall-inventory pong");
+        return Result.ok(pingMessage);
     }
 
     @Operation(summary = "锁定库存")

@@ -76,7 +76,7 @@ mvn clean test -DskipTests=false
 |---|---|---|
 | Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
 | Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
-| Nacos 配置热更新 | 部分通过 | 2026-06-10 已验证 `mall-seckill-flow-rules.json` 通过 Nacos 热更新影响 Sentinel 运行时流控规则，并完成规则回滚；普通业务配置热更新仍待验证 |
+| Nacos 配置热更新 | 已验证 | 2026-06-10 已验证 `mall-seckill-flow-rules.json` 通过 Nacos 热更新影响 Sentinel 运行时流控规则并完成规则回滚；已验证 `mall-inventory.yaml` 普通业务配置 `mallcloud.inventory.ping-message` 无需重启热更新，摘要见 `docs/test/nacos/summary/inventory-config-refresh-20260610.md` |
 | Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
 | OpenFeign | 已验证 | order→product、order→inventory |
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
@@ -142,6 +142,8 @@ HTML 报告状态：
 | 修改后结果 | |
 | 是否重启 | 否 |
 | 结果 | |
+
+已验证 `mall-inventory.yaml` 普通业务配置热更新：修改前 `GET /api/v1/inventory/ping` 返回 `mall-inventory pong`；Nacos 临时发布 `mallcloud.inventory.ping-message=mall-inventory nacos hot update` 后，在不重启服务的情况下返回 `mall-inventory nacos hot update`；回滚仓库基线后恢复为 `mall-inventory pong`。摘要见 `docs/test/nacos/summary/inventory-config-refresh-20260610.md`。
 
 ---
 
@@ -269,7 +271,7 @@ HTML 报告状态：
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；
 - 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
-- 正式负载、压力测试性能目标仍未验证；
+- 订单正式负载、秒杀压力测试性能目标仍未验证；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
 ---

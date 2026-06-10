@@ -1,1 +1,4 @@
 # mall-inventory Nacos Private Config
+mallcloud:
+  inventory:
+    ping-message: "mall-inventory pong"
