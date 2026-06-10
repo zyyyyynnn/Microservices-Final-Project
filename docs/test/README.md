@@ -21,6 +21,8 @@ docs/test/
 │   ├── results/
 │   ├── report/
 │   └── summary/
+├── sentinel/
+│   └── summary/
 └── screenshots/
 ```
 
@@ -211,7 +213,22 @@ pwsh .\scripts\run-special-checks.ps1
 - `-AllowFailures` 只用于记录当前环境状态；
 - 该脚本不能替代 Newman、JMeter、Sentinel Dashboard 截图、Nacos 热更新截图或 Elasticsearch 查询结果报告。
 
-### 5.1 Elasticsearch 搜索索引初始化
+### 5.1 Sentinel 限流验证
+
+Sentinel 专项至少记录：
+
+- Dashboard HTTP 可达；
+- 业务应用是否上报到 Dashboard；
+- 资源名；
+- 规则来源；
+- 请求数量；
+- 通过数和限流数；
+- Sentinel 返回内容；
+- 验证后是否清理临时规则。
+
+临时 command center 规则只能证明当前运行实例可被限流，不等同于 Nacos 持久化规则加载成功。熔断验证必须单独模拟真实慢调用或异常比例，不得用限流结果替代。
+
+### 5.2 Elasticsearch 搜索索引初始化
 
 ```powershell
 pwsh .\scripts\init-search-index.ps1

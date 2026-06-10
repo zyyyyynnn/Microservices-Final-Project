@@ -158,7 +158,8 @@ services:
     container_name: mall-sentinel
     restart: always
     ports:
-      - "8080:8080"
+      # bladex/sentinel-dashboard 1.8.6 listens on 8858 inside the container.
+      - "8080:8858"
     networks:
       - mall-net
 

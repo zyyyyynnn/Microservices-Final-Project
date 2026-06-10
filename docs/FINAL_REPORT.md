@@ -81,12 +81,12 @@ mvn clean test -DskipTests=false
 | OpenFeign | 已验证 | order→product、order→inventory |
 | Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
-| Sentinel 限流/熔断 | 待验证 | |
+| Sentinel 限流/熔断 | 部分通过 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过：12 个并发请求中 1 个 HTTP 200、11 个 HTTP 429，返回 `Blocked by Sentinel (flow limiting)`；摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`。Nacos 持久化规则加载和熔断专项仍待验证 |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
 | Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
 | JMeter 脚本 | 搜索负载场景已执行且零失败，订单短冒烟已执行且零失败，订单/秒杀正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟，均 0 失败；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/`；订单和秒杀正式负载/压力未执行 |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
-| 技术专项冒烟入口 | 部分通过 | 2026-06-09 执行 `scripts/run-special-checks.ps1 -AllowFailures`：Nacos、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；Sentinel Dashboard 连接失败，不能标记为 Sentinel 专项验收通过 |
+| 技术专项冒烟入口 | 已通过 | 2026-06-10 执行 `scripts/run-special-checks.ps1`：Nacos、Sentinel Dashboard、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；该脚本仍只代表只读可达性检查，不替代业务专项 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
