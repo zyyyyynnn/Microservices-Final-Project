@@ -6,6 +6,11 @@ param(
     [int]$RampUp = 30,
     [int]$Duration = 300,
     [int]$Loops = 1,
+    [string]$Username = "zhangsan",
+    [string]$Password = "123456",
+    [string]$UsernamePrefix = "jmeter_seckill_",
+    [int]$ActivityId = 1,
+    [int]$SkuId = 9003,
     [string]$JMeterVersion = "5.6.3",
     [switch]$InstallOnly
 )
@@ -105,11 +110,16 @@ $args = @(
     "-JBaseURL=$BaseURL",
     "-Jusers=$Users",
     "-Jrampup=$RampUp",
-    "-Jduration=$Duration"
+    "-Jduration=$Duration",
+    "-Jusername=$Username",
+    "-Jpassword=$Password",
+    "-JskuId=$SkuId"
 )
 
 if ($Scenario -eq "seckill") {
     $args += "-Jloops=$Loops"
+    $args += "-JactivityId=$ActivityId"
+    $args += "-JusernamePrefix=$UsernamePrefix"
 }
 
 & $jmeterCommand @args

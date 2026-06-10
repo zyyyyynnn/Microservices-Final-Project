@@ -3,3 +3,6 @@
 "search-150-20260609-235918","search","GET /api/v1/search/products","21269","0","5.76","8","2","140","363.32","0","docs/test/jmeter/results/search-150-20260609-235918.jtl"
 "order-1-20260610-075501","order","POST /api/v1/auth/login","16","0","90.19","170","79","170","1.18","0","docs/test/jmeter/results/order-1-20260610-075501.jtl"
 "order-1-20260610-075501","order","POST /api/v1/orders","16","0","752.94","9324","142","9324","1.18","0","docs/test/jmeter/results/order-1-20260610-075501.jtl"
+"seckill-10-20260610-113722","seckill","POST /api/v1/auth/login","10","0","205.20","272","110","272","8.73","0","docs/test/jmeter/results/seckill-10-20260610-113722.jtl"
+"seckill-10-20260610-113722","seckill","POST /api/v1/seckill/{activityId}","10","0","90.80","144","67","144","13.02","0","docs/test/jmeter/results/seckill-10-20260610-113722.jtl"
+"seckill-10-20260610-113722","seckill","GET /api/v1/seckill/result/{requestId}","10","0","45.00","79","22","79","21.23","0","docs/test/jmeter/results/seckill-10-20260610-113722.jtl"

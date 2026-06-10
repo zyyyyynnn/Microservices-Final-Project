@@ -115,10 +115,25 @@ JMeter：
 ```powershell
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 1 -SkuId 9003 -UsernamePrefix jmeter_seckill_
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
+
+秒杀压测前置：
+
+```powershell
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
+```
+
+说明：
+
+- 默认准备 `jmeter_seckill_1..N` 测试用户，默认密码为 `123456`；
+- 默认清理 `mall_seckill.seckill_order` 中活动 `1` 的测试用户记录；
+- 默认清理 Redis `seckill:stock:1` 和测试用户限购 Key；
+- `run-jmeter.ps1` 的秒杀场景默认使用 `ActivityId=1`、`SkuId=9003`、`UsernamePrefix=jmeter_seckill_`；
+- 原始 JTL 和 HTML Dashboard 位于 `docs/test/jmeter/results/`、`docs/test/jmeter/report/`，属于本地产物，不提交仓库。
 
 技术专项冒烟检查：
 

@@ -140,7 +140,8 @@ docs/test/jmeter/seckill-stress.jmx
 ```powershell
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 1 -SkuId 9003 -UsernamePrefix jmeter_seckill_
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
@@ -173,6 +174,20 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 
 ### 4.3 秒杀压力
 
+正式压力测试前先准备可重复的多用户数据：
+
+```powershell
+pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 1 -UserCount 100
+```
+
+该脚本会准备 `jmeter_seckill_1..N` 测试用户，清理对应活动的测试用户秒杀订单，并清理 Redis 中该活动的库存缓存和测试用户限购 Key。默认活动 `1` 对应 `skuId=9003`。
+
+压测执行示例：
+
+```powershell
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 1 -SkuId 9003 -UsernamePrefix jmeter_seckill_
+```
+
 建议阶梯：
 
 ```text
@@ -188,6 +203,14 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1
 - Sentinel 返回；
 - CPU、内存；
 - 是否出现服务完全不可用。
+
+执行后必须核验：
+
+- `seckill_order` 中测试用户订单数；
+- 去重用户数；
+- Redis 剩余库存；
+- 订单数不得超过活动总库存；
+- 不得通过放宽限购或业务码断言来规避重复执行问题。
 
 未实际运行不得填写 P95、吞吐量或错误率。
 
