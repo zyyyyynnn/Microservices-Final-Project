@@ -34,13 +34,6 @@ const flowSteps = [
   { label: '订单状态', sub: '查看跟踪', icon: Check },
 ];
 
-const dashboardItems = [
-  { name: 'API Gateway', sub: '统一微服务入口与鉴权', icon: '☁️', color: '#1b61c9' },
-  { name: 'Nacos', sub: '服务注册发现与配置中心', icon: '∞', color: '#1b61c9' },
-  { name: 'Seata', sub: '分布式事务管理', icon: '🔄', color: '#1b61c9' },
-  { name: 'RocketMQ', sub: '异步消息与事件驱动', icon: '🚀', color: '#e65100' },
-  { name: 'Sentinel', sub: '高可用流量防护体系', icon: '🛡️', color: '#1b61c9' },
-];
 
 const bottomPromises = [
   { title: '30天价保', sub: '买贵退差价', icon: Lock },
@@ -156,11 +149,6 @@ onMounted(loadHome);
             </template>
           </div>
 
-          <a href="javascript:void(0)" class="flow-footer">
-            <el-icon color="#1b61c9"><CircleCheckFilled /></el-icon>
-            <span>全链路微服务支撑，保障交易安全与高可用</span>
-            <el-icon class="arrow"><ArrowRight /></el-icon>
-          </a>
         </el-card>
       </div>
 
@@ -240,30 +228,6 @@ onMounted(loadHome);
         </div>
       </el-card>
 
-      <!-- Tech Dashboard Section -->
-      <el-card class="panel tech-section" shadow="never">
-        <template #header>
-          <div class="panel-title-row">
-            <div class="panel-title-group">
-              <span class="panel-title-main">演示工具</span>
-              <span class="panel-title-sub">(微服务治理与中间件)</span>
-            </div>
-            <a href="javascript:void(0)" class="more-link panel-title-link">进入控制台 <el-icon><ArrowRight /></el-icon></a>
-          </div>
-        </template>
-
-        <div class="tech-grid">
-          <a v-for="item in dashboardItems" :key="item.name" href="javascript:void(0)" class="tech-card">
-            <div class="tc-top">
-              <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
-              <div class="tc-info">
-                <strong>{{ item.name }}</strong>
-                <span>{{ item.sub }}</span>
-              </div>
-            </div>
-          </a>
-        </div>
-      </el-card>
 
       <!-- Bottom Promises -->
       <div class="bottom-promises">
@@ -681,49 +645,6 @@ onMounted(loadHome);
   color: white;
 }
 
-/* Tech Section */
-
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
-}
-
-.tech-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.tc-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-}
-
-.tc-icon {
-  font-size: 28px;
-}
-
-.tc-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.tc-info strong {
-  font-size: 15px;
-  color: var(--color-text-secondary);
-}
-
-.tc-info span {
-  font-size: 12px;
-  color: var(--color-text-light);
-}
 
 /* Bottom Promises */
 .bottom-promises {
@@ -772,9 +693,7 @@ onMounted(loadHome);
   .product-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-  .tech-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+
 }
 
 .panel-title-row {
@@ -826,9 +745,6 @@ onMounted(loadHome);
 .sk-empty-link {
   color: var(--color-brand);
 }
-.tech-card {
-  text-decoration: none;
-  cursor: pointer;
-}
+
 
 </style>
