@@ -6,6 +6,8 @@ import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { asList, field, money, orderStatusMap, productStatusMap, statusText } from '../utils/format';
+import ProductImage from '../components/ProductImage.vue';
+import { resolveProductImage } from '../catalog/productAssets';
 
 const error = ref('');
 const dashboardLoading = ref(false);
@@ -23,6 +25,23 @@ const shipping = ref(false);
 const orders = computed(() => asList(ordersRaw.value));
 const products = computed(() => asList(productsRaw.value));
 const loading = computed(() => dashboardLoading.value || ordersLoading.value || productsLoading.value);
+
+function moneyText(value: unknown) {
+  const amount = Number(value || 0);
+  return amount > 0 ? money(amount) : '—';
+}
+
+function adminProductImage(row: UnknownRecord) {
+  return String(
+    field(row, ['mainImage', 'image', 'spuImage'], '')
+    || resolveProductImage({ spuId: Number(field(row, ['spuId'], 0)) })
+    || ''
+  );
+}
+
+function adminProductName(row: UnknownRecord) {
+  return String(field(row, ['name', 'spuName', 'title'], '商品信息不完整'));
+}
 
 async function loadAdmin() {
   error.value = '';
@@ -108,7 +127,7 @@ onMounted(loadAdmin);
       </el-card>
       <el-card class="metric-card">
         <span>销售额</span>
-        <strong>{{ money(field(dashboard, ['salesAmount', 'totalSales'], 0)) }}</strong>
+        <strong>{{ moneyText(field(dashboard, ['salesAmount', 'totalSales'], 0)) }}</strong>
       </el-card>
     </div>
 
@@ -122,30 +141,39 @@ onMounted(loadAdmin);
           :error="''"
           :empty="!ordersLoading && !ordersError && orders.length === 0"
           empty-title="订单列表为空"
-          empty-description="后台订单接口当前未返回订单。"
+          empty-description="当前暂无订单记录。"
           @retry="loadAdmin"
         />
         <div v-if="!ordersError && orders.length" class="table-scroll">
         <el-table :data="orders" class="stable-table">
-          <el-table-column prop="orderNo" label="订单号" min-width="180" />
-          <el-table-column prop="userId" label="用户" width="100" />
+          <el-table-column label="订单号" min-width="180">
+            <template #default="{ row }">{{ field(row, ['orderNo'], '—') }}</template>
+          </el-table-column>
+          <el-table-column label="用户" width="100">
+            <template #default="{ row }">{{ field(row, ['userId', 'username'], '—') }}</template>
+          </el-table-column>
           <el-table-column label="金额" width="120">
-            <template #default="{ row }">{{ money(row.payAmount) }}</template>
+            <template #default="{ row }">{{ moneyText(field(row, ['payAmount', 'totalAmount'], 0)) }}</template>
           </el-table-column>
           <el-table-column label="状态" width="120">
-            <template #default="{ row }">{{ statusText(row.status, orderStatusMap) }}</template>
+            <template #default="{ row }">{{ statusText(field(row, ['status'], null), orderStatusMap, '—') }}</template>
           </el-table-column>
-          <el-table-column prop="gmtCreate" label="创建时间" min-width="170" />
+          <el-table-column label="创建时间" min-width="170">
+            <template #default="{ row }">{{ field(row, ['gmtCreate', 'createTime'], '—') }}</template>
+          </el-table-column>
         </el-table>
         </div>
         <div class="shipping-block">
           <div class="shipping-title">订单发货操作</div>
-          <el-form class="inline-form" label-position="top">
-            <el-form-item label="发货订单号">
-              <el-input v-model="shipOrderNo" placeholder="输入 SO 开头的订单号" class="ship-input" />
-            </el-form-item>
-            <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship" class="ship-btn">确认发货</el-button>
-          </el-form>
+          <div class="ship-query">
+            <label class="ship-query-label">发货订单号</label>
+            <div class="ship-query-row">
+              <el-input v-model="shipOrderNo" />
+              <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship">
+                确认发货
+              </el-button>
+            </div>
+          </div>
         </div>
       </el-card>
 
@@ -158,13 +186,24 @@ onMounted(loadAdmin);
           :error="''"
           :empty="!productsLoading && !productsError && products.length === 0"
           empty-title="商品列表为空"
-          empty-description="后台商品接口当前未返回商品。"
+          empty-description="当前暂无商品记录。"
           @retry="loadAdmin"
         />
         <div v-if="!productsError && products.length" class="table-scroll">
         <el-table :data="products" class="stable-table">
-          <el-table-column prop="spuId" label="SPU" width="100" />
-          <el-table-column prop="name" label="商品" min-width="160" />
+          <el-table-column label="商品" min-width="220">
+            <template #default="{ row }">
+              <div class="line-item">
+                <div class="thumb">
+                  <ProductImage :src="adminProductImage(row)" :alt="adminProductName(row)" />
+                </div>
+                <div class="item-info">
+                  <strong>{{ adminProductName(row) }}</strong>
+                  <span>SPU {{ field(row, ['spuId'], '—') }}</span>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="brand" label="品牌" width="100" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">{{ statusText(row.status, productStatusMap) }}</template>
@@ -172,12 +211,6 @@ onMounted(loadAdmin);
           <el-table-column prop="sales" label="销量" width="90" />
         </el-table>
         </div>
-        <el-alert
-          class="mt"
-          title="新增、编辑、删除、上下架外部接口未在 AdminController 中确认，当前只展示状态说明，不伪造操作成功。"
-          type="warning"
-          :closable="false"
-        />
       </el-card>
     </div>
   </section>
@@ -210,11 +243,5 @@ onMounted(loadAdmin);
   font-size: var(--font-sm);
   font-weight: var(--weight-bold);
   margin-bottom: var(--spacing-sm);
-}
-.ship-input {
-  width: 200px;
-}
-.ship-btn {
-  margin-top: 14px;
 }
 </style>
