@@ -272,9 +272,7 @@ onMounted(loadHome);
 
 <style scoped>
 .home-wrapper {
-  width: min(1440px, calc(100vw - 80px));
-  margin: 0 auto;
-  padding: 24px 0 56px;
+  width: 100%;
 }
 
 .home-grid {
@@ -287,7 +285,7 @@ onMounted(loadHome);
 /* Hero Section */
 .hero-section {
   display: grid;
-  grid-template-columns: minmax(600px, 2.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(540px, 1.8fr) minmax(460px, 1.2fr);
   gap: var(--spacing-lg);
 }
 
