@@ -71,6 +71,13 @@ export const mallApi = {
       silent: true,
     });
   },
+  inventoryStock(skuId: number) {
+    return request<UnknownRecord>({
+      method: 'GET',
+      url: `/api/v1/inventory/stock/${skuId}`,
+      silent: true,
+    });
+  },
   searchProducts(keyword: string, pageNum = 1, pageSize = 10) {
     return request<UnknownRecord>({
       method: 'GET',

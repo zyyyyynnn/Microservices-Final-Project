@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { notifyError } from '../utils/notify';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
@@ -19,10 +19,29 @@ const selectedSkuId = ref<number | null>(null);
 const quantity = ref(1);
 const adding = ref(false);
 
+const remoteStock = ref<number | null>(null);
+const fetchingStock = ref(false);
+
 const skus = computed(() => skuList(product.value));
 const selectedSku = computed(() => skus.value.find((sku) => Number(field(sku, ['skuId'])) === selectedSkuId.value) || skus.value[0]);
-const stock = computed(() => Number(field(selectedSku.value, ['stock'], 0)));
-const disabled = computed(() => !selectedSku.value || stock.value <= 0 || adding.value);
+const stock = computed(() => remoteStock.value !== null ? remoteStock.value : Number(field(selectedSku.value, ['stock'], 0)));
+const disabled = computed(() => !selectedSku.value || stock.value <= 0 || adding.value || fetchingStock.value);
+
+watch(selectedSkuId, async (newId) => {
+  if (!newId) {
+    remoteStock.value = null;
+    return;
+  }
+  fetchingStock.value = true;
+  try {
+    const data = await mallApi.inventoryStock(newId);
+    remoteStock.value = Number(field(data, ['available'], 0));
+  } catch (err) {
+    remoteStock.value = 0;
+  } finally {
+    fetchingStock.value = false;
+  }
+});
 const image = computed(() => onlineProductImage(product.value) || productImage(product.value));
 
 async function loadProduct() {
@@ -88,11 +107,10 @@ onMounted(loadProduct);
             :key="String(field(sku, ['skuId']))"
             class="sku-option"
             :class="{ active: Number(field(sku, ['skuId'])) === selectedSkuId }"
-            :disabled="Number(field(sku, ['stock'], 0)) <= 0"
             @click="selectedSkuId = Number(field(sku, ['skuId']))"
           >
             <strong>{{ field(sku, ['spec'], '默认规格') }}</strong>
-            <span>SKU {{ field(sku, ['skuId']) }} / 库存 {{ field(sku, ['stock'], 0) }}</span>
+            <span>SKU {{ field(sku, ['skuId']) }} <template v-if="Number(field(sku, ['skuId'])) === selectedSkuId">/ 库存 {{ remoteStock !== null ? remoteStock : '...' }}</template></span>
           </button>
         </div>
 
@@ -109,8 +127,15 @@ onMounted(loadProduct);
           class="mt"
         />
         <el-alert
+          v-else-if="fetchingStock"
+          title="正在获取实时库存..."
+          type="info"
+          :closable="false"
+          class="mt"
+        />
+        <el-alert
           v-else-if="stock <= 0"
-          title="当前 SKU 库存不足或库存字段未返回，购买操作已禁用。"
+          title="当前 SKU 库存不足，购买操作已禁用。"
           type="warning"
           :closable="false"
           class="mt"
