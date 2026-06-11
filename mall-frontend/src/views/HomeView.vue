@@ -47,20 +47,20 @@ onMounted(loadHome);
 <template>
   <section class="commerce-layout">
     <div class="hero-band">
-      <el-tag effect="plain" round class="hero-tag">Enterprise E-commerce</el-tag>
+      <el-tag effect="plain" round class="hero-tag">企业级微商城</el-tag>
       <h1>MallCloud Microservices</h1>
-      <p>An elegant, high-performance commerce experience powered by modern microservices. Explore the end-to-end journey from product discovery to checkout.</p>
+      <p>基于现代微服务架构的高性能电商体验。探索从商品发现到订单结算的端到端完整旅程。</p>
       
       <div class="search-panel">
-        <label for="home-search">What are you looking for?</label>
+        <label for="home-search">寻找你心仪的商品</label>
         <div class="search-row">
-          <el-input id="home-search" v-model="keyword" placeholder="e.g. iPhone, MacBook" size="large" @keyup.enter="goSearch">
+          <el-input id="home-search" v-model="keyword" placeholder="例如：iPhone, MacBook" size="large" @keyup.enter="goSearch">
             <template #append>
-              <el-button type="primary" @click="goSearch">Search</el-button>
+              <el-button type="primary" @click="goSearch">搜索</el-button>
             </template>
           </el-input>
         </div>
-        <span>Powered by Elasticsearch</span>
+        <span>由 Elasticsearch 提供强力搜索支持</span>
       </div>
     </div>
 
@@ -68,7 +68,7 @@ onMounted(loadHome);
 
     <div class="page-grid two" v-if="!loading">
       <div class="panel">
-        <h2 class="panel-title">Explore Categories</h2>
+        <h2 class="panel-title">探索类目</h2>
         <div v-if="categoryCount" class="category-grid">
           <RouterLink
             v-for="category in categories"
@@ -76,19 +76,19 @@ onMounted(loadHome);
             class="category-item"
             :to="{ path: '/search', query: { categoryId: field(category, ['id', 'categoryId']) } }"
           >
-            <strong>{{ field(category, ['name'], 'Unnamed Category') }}</strong>
-            <span>Browse Products &rarr;</span>
+            <strong>{{ field(category, ['name'], '未命名类目') }}</strong>
+            <span>浏览商品 &rarr;</span>
           </RouterLink>
         </div>
-        <el-empty v-else description="No categories available" />
+        <el-empty v-else description="暂无类目" />
       </div>
 
       <div class="panel">
-        <h2 class="panel-title">Featured Products</h2>
+        <h2 class="panel-title">精选推荐</h2>
         <div class="product-grid" v-if="products.length">
           <ProductCard v-for="product in products" :key="String(field(product, ['spuId', 'id']))" :product="product" />
         </div>
-        <el-empty v-else description="Product service unavailable" />
+        <el-empty v-else description="商品服务暂时不可用" />
       </div>
     </div>
   </section>

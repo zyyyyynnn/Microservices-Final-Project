@@ -82,11 +82,13 @@ onMounted(load);
       <PageState
         :loading="loading"
         :error="error"
-        :empty="!loading && !error && cart.items.length === 0"
-        empty-title="购物车为空"
-        empty-description="从商品详情页加入商品后再进行结算。"
         @retry="load"
       />
+      <div v-if="!loading && !error && cart.items.length === 0" class="empty-action">
+        <el-empty description="购物车空空如也">
+          <el-button type="primary" round @click="router.push('/')">去逛逛</el-button>
+        </el-empty>
+      </div>
       <div v-if="cart.items.length" class="table-scroll">
       <el-table :data="cart.items" class="stable-table">
         <el-table-column label="选中" width="90">

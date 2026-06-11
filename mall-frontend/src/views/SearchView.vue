@@ -56,19 +56,19 @@ onMounted(() => {
 
 <template>
   <section class="commerce-layout">
-    <el-card class="panel">
-      <template #header>
-        <div class="panel-title">商品搜索</div>
-      </template>
-      <div class="search-row">
-        <el-input v-model="keyword" placeholder="输入商品关键字" @keyup.enter="search" />
-        <el-button type="primary" :loading="loading" @click="search">搜索</el-button>
+    <div class="search-header">
+      <div class="search-row large-search">
+        <el-input v-model="keyword" placeholder="输入商品关键字..." size="large" @keyup.enter="search">
+          <template #append>
+            <el-button type="primary" :loading="loading" @click="search">搜索</el-button>
+          </template>
+        </el-input>
       </div>
-      <div class="tag-row">
-        <el-tag v-for="word in hotWords" :key="word" effect="plain" @click="useHotWord(word)">{{ word }}</el-tag>
-        <el-tag v-if="!hotWords.length" type="info" effect="plain">热词受后端限制 / 待联调</el-tag>
+      <div class="tag-row mt">
+        <el-tag v-for="word in hotWords" :key="word" effect="plain" class="hot-chip" @click="useHotWord(word)">{{ word }}</el-tag>
+        <span v-if="!hotWords.length" class="empty-hint">暂无热词推荐</span>
       </div>
-    </el-card>
+    </div>
 
     <PageState
       :loading="loading"
@@ -94,3 +94,29 @@ onMounted(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.search-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl) 0;
+  margin-bottom: var(--spacing-lg);
+}
+.large-search {
+  width: 100%;
+  max-width: 600px;
+}
+.hot-chip {
+  cursor: pointer;
+  border-radius: 16px;
+}
+.hot-chip:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+.empty-hint {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
+</style>

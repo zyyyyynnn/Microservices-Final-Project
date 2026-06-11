@@ -76,7 +76,6 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: var(--weight-medium);
   text-decoration: none;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
 }
 
 .nav-link:hover {
@@ -259,11 +258,9 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
   text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .category-item:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-brand);
 }
@@ -287,12 +284,10 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
   box-shadow: var(--shadow-sm);
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--color-border-strong);
 }
@@ -376,7 +371,6 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 .activity-card:hover, .sku-option:hover, .address-option:hover {
@@ -480,7 +474,7 @@ h1, h2, h3, h4, h5, h6 {
   }
   .app-nav {
     overflow-x: auto;
-    width: 100vw;
+    width: 100%;
     padding-bottom: var(--spacing-xs);
   }
 }

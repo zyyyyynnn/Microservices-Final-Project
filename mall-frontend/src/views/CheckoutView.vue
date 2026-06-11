@@ -78,11 +78,13 @@ onMounted(load);
       <PageState
         :loading="loading"
         :error="error"
-        :empty="!loading && !error && items.length === 0"
-        empty-title="暂无可结算商品"
-        empty-description="请选择购物车商品或从商品详情页立即结算。"
         @retry="load"
       />
+      <div v-if="!loading && !error && items.length === 0" class="empty-action">
+        <el-empty description="暂无可结算商品，请先选购商品">
+          <el-button type="primary" round @click="router.push('/')">去逛逛</el-button>
+        </el-empty>
+      </div>
 
       <div v-if="!loading && items.length" class="checkout-section">
         <h2 class="section-title">收货地址</h2>

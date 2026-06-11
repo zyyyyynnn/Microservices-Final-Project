@@ -40,7 +40,11 @@ async function checkSearch() {
       <el-button class="mt" type="primary" :disabled="!auth.isAuthenticated" @click="checkGateway">
         调用 /api/v1/users/me
       </el-button>
-      <pre class="json-box compact">{{ display(gatewayResult) }}</pre>
+      <el-collapse class="mt" v-if="gatewayResult">
+        <el-collapse-item title="查看原始响应">
+          <pre class="json-box compact" style="margin:0">{{ display(gatewayResult) }}</pre>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
 
     <el-card class="panel">
@@ -62,7 +66,11 @@ async function checkSearch() {
         </el-timeline-item>
       </el-timeline>
       <el-button plain @click="checkSearch">验证搜索入口</el-button>
-      <pre class="json-box compact">{{ display(searchResult) }}</pre>
+      <el-collapse class="mt" v-if="searchResult">
+        <el-collapse-item title="查看原始响应">
+          <pre class="json-box compact" style="margin:0">{{ display(searchResult) }}</pre>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
   </section>
 </template>

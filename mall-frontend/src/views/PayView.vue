@@ -59,47 +59,96 @@ onMounted(loadRecord);
 </script>
 
 <template>
-  <section class="page-grid two">
-    <el-card class="panel">
-      <template #header>
-        <div class="panel-title">模拟支付</div>
-      </template>
+  <section class="commerce-layout">
+    <div class="panel wide-panel">
+      <div class="panel-title">支付收银台</div>
+      
       <PageState :loading="loading" :error="error" @retry="loadRecord" />
-      <el-descriptions border :column="1">
-        <el-descriptions-item label="订单号">{{ orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="支付单号">{{ field(payRecord, ['payNo'], field(payCreate, ['payNo'], '待创建')) }}</el-descriptions-item>
-        <el-descriptions-item label="支付渠道">{{ field(payRecord, ['payChannel'], 'ALIPAY') }}</el-descriptions-item>
-        <el-descriptions-item label="支付金额">{{ money(field(payRecord, ['payAmount'], 0)) }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          {{ statusText(field(payRecord, ['status'], 0), payStatusMap) }}
-        </el-descriptions-item>
-      </el-descriptions>
-      <div class="button-row mt">
-        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="createPay">创建支付记录</el-button>
-        <el-button plain :loading="submitting" :disabled="submitting" @click="notifyPay">发送成功通知</el-button>
+      
+      <!-- 成功态 -->
+      <div v-if="notifyResult === 'SUCCESS' || field(payRecord, ['status']) === 1" class="pay-result">
+        <el-result icon="success" title="支付成功" sub-title="感谢您的购买，订单已支付完成">
+          <template #extra>
+            <RouterLink :to="`/orders/${orderNo}`">
+              <el-button type="primary">查看订单明细</el-button>
+            </RouterLink>
+            <RouterLink to="/">
+              <el-button plain>返回首页</el-button>
+            </RouterLink>
+          </template>
+        </el-result>
       </div>
-      <el-alert
-        v-if="notifyResult"
-        class="mt"
-        :title="`支付通知返回：${notifyResult}`"
-        type="success"
-        :closable="false"
-      />
-    </el-card>
 
-    <el-card class="panel">
-      <template #header>
-        <div class="panel-title">支付说明</div>
-      </template>
-      <ol class="step-list">
-        <li>创建本地模拟支付记录。</li>
-        <li>发送 `TRADE_SUCCESS` 通知到 Gateway 白名单接口。</li>
-        <li>mall-pay 投递 PAY_RESULT，mall-message 更新订单和库存。</li>
-        <li>回到订单详情查询最终状态。</li>
-      </ol>
-      <RouterLink :to="`/orders/${orderNo}`">
-        <el-button type="primary" class="full-button">查询订单状态</el-button>
-      </RouterLink>
-    </el-card>
+      <!-- 支付态 -->
+      <div v-else-if="!loading && !error" class="pay-process">
+        <div class="pay-amount-box">
+          <span class="pay-label">待支付金额</span>
+          <span class="pay-amount">{{ money(field(payRecord, ['payAmount'], 0)) }}</span>
+        </div>
+        
+        <el-descriptions border :column="1" class="mt">
+          <el-descriptions-item label="订单号">{{ orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="支付单号">{{ field(payRecord, ['payNo'], field(payCreate, ['payNo'], '待创建')) }}</el-descriptions-item>
+          <el-descriptions-item label="支付渠道">{{ field(payRecord, ['payChannel'], 'ALIPAY') }}</el-descriptions-item>
+          <el-descriptions-item label="当前状态">
+            <el-tag :type="field(payRecord, ['status']) === 0 ? 'warning' : 'info'" effect="plain">
+              {{ statusText(field(payRecord, ['status'], 0), payStatusMap) }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="pay-actions mt">
+          <el-button type="primary" size="large" class="full-button" :loading="submitting" @click="createPay" v-if="!field(payRecord, ['payNo']) && !field(payCreate, ['payNo'])">
+            创建支付记录
+          </el-button>
+          <el-button type="success" size="large" class="full-button" :loading="submitting" @click="notifyPay" v-else>
+            模拟支付完成
+          </el-button>
+        </div>
+
+        <div class="pay-hint mt">
+          <p>模拟说明：本系统为开源演示，点击上方按钮将模拟支付渠道回调，发送 TRADE_SUCCESS 通知。</p>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.pay-result {
+  padding: var(--spacing-xl) 0;
+}
+.pay-process {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) 0;
+}
+.pay-amount-box {
+  text-align: center;
+  padding: var(--spacing-lg);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+}
+.pay-label {
+  display: block;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+.pay-amount {
+  font-size: 32px;
+  font-weight: var(--weight-bold);
+  color: var(--color-brand);
+}
+.pay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.pay-hint {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+</style>

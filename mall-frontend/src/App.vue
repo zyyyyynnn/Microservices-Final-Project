@@ -10,17 +10,14 @@ const router = useRouter();
 const navItems = [
   { label: '首页', path: '/' },
   { label: '搜索', path: '/search' },
-  { label: '购物车', path: '/cart' },
   { label: '秒杀', path: '/seckill' },
-  { label: '结算', path: '/checkout' },
-  { label: '账户', path: '/account' },
-  { label: '后台', path: '/admin' },
-  { label: '技术演示', path: '/tech' },
+  { label: '购物车', path: '/cart' },
+  { label: '我的', path: '/account' },
 ];
 
 const userLabel = computed(() => {
-  if (!auth.isAuthenticated) return 'Guest';
-  return auth.user?.username || auth.user?.nickname || `User ${auth.user?.id || ''}`;
+  if (!auth.isAuthenticated) return '游客';
+  return auth.user?.username || auth.user?.nickname || `用户 ${auth.user?.id || ''}`;
 });
 
 async function logout() {
@@ -56,10 +53,23 @@ async function logout() {
 
       <div class="session-bar">
         <span class="user-status">{{ userLabel }}</span>
+        
+        <el-dropdown trigger="click">
+          <span class="el-dropdown-link nav-link">
+            演示工具 <i class="el-icon-arrow-down el-icon--right"></i>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="router.push('/admin')">后台管理</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/tech')">技术演示</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
         <RouterLink v-if="!auth.isAuthenticated" to="/login">
-          <el-button type="primary" round>Sign In</el-button>
+          <el-button type="primary" round>登录</el-button>
         </RouterLink>
-        <el-button v-else plain round @click="logout">Sign Out</el-button>
+        <el-button v-else plain round @click="logout">退出</el-button>
       </div>
     </el-header>
 

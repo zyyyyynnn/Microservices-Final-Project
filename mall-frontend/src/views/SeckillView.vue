@@ -163,7 +163,9 @@ onBeforeUnmount(() => stopPolling());
           <strong>{{ field(activity, ['title', 'name'], `活动 ${field(activity, ['id', 'activityId'])}`) }}</strong>
           <span>SKU {{ field(activity, ['skuId'], '待联调') }}</span>
           <span>秒杀价 {{ money(field(activity, ['seckillPrice', 'price'], 0)) }}</span>
-          <el-tag size="small" effect="plain">{{ field(activity, ['status'], '状态待联调') }}</el-tag>
+          <el-tag size="small" :type="field(activity, ['status']) === 1 ? 'success' : 'info'" effect="plain">
+            {{ field(activity, ['status']) === 1 ? '进行中' : field(activity, ['status'], '未开始') }}
+          </el-tag>
         </button>
       </div>
     </el-card>
@@ -194,13 +196,36 @@ onBeforeUnmount(() => stopPolling());
         </el-form-item>
         <el-button plain :disabled="!requestId" @click="queryResult">查询结果</el-button>
       </el-form>
-      <el-descriptions v-if="result" border :column="1" class="mt">
-        <el-descriptions-item label="结果状态">
-          {{ statusText(field(result, ['status'], 0), seckillStatusMap, String(field(result, ['status'], '待确认'))) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="订单号">{{ field(result, ['orderNo'], '待生成') }}</el-descriptions-item>
-        <el-descriptions-item label="消息">{{ field(result, ['message'], '待返回') }}</el-descriptions-item>
-      </el-descriptions>
+      <div v-if="result" class="mt">
+        <!-- 成功态 -->
+        <el-result v-if="field(result, ['status']) === 1 || field(result, ['orderNo'])" icon="success" title="秒杀成功">
+          <template #sub-title>
+            <p>订单号：<strong>{{ field(result, ['orderNo']) }}</strong></p>
+            <p>{{ field(result, ['message'], '您的商品已准备就绪') }}</p>
+          </template>
+          <template #extra>
+            <RouterLink :to="`/orders/${field(result, ['orderNo'])}`">
+              <el-button type="primary">查看订单</el-button>
+            </RouterLink>
+          </template>
+        </el-result>
+
+        <!-- 失败态 -->
+        <el-alert v-else-if="field(result, ['status']) === 2 || /售罄|限流|失败/.test(String(field(result, ['message'])))" 
+          :title="String(field(result, ['message'], '秒杀失败'))" 
+          type="error" 
+          :closable="false" 
+          show-icon 
+        />
+        
+        <!-- 其他/排队态 -->
+        <el-descriptions v-else border :column="1">
+          <el-descriptions-item label="结果状态">
+            {{ statusText(field(result, ['status'], 0), seckillStatusMap, String(field(result, ['status'], '处理中'))) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="消息">{{ field(result, ['message'], '请稍候...') }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
     </el-card>
   </section>
 </template>

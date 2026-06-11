@@ -137,12 +137,15 @@ onMounted(loadAdmin);
           <el-table-column prop="gmtCreate" label="创建时间" min-width="170" />
         </el-table>
         </div>
-        <el-form class="inline-form mt" label-position="top">
-          <el-form-item label="发货订单号">
-            <el-input v-model="shipOrderNo" placeholder="SO..." />
-          </el-form-item>
-          <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship">发货</el-button>
-        </el-form>
+        <div class="shipping-block">
+          <div class="shipping-title">订单发货操作</div>
+          <el-form class="inline-form" label-position="top">
+            <el-form-item label="发货订单号">
+              <el-input v-model="shipOrderNo" placeholder="输入 SO 开头的订单号" style="width: 200px" />
+            </el-form-item>
+            <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship" style="margin-top: 14px">确认发货</el-button>
+          </el-form>
+        </div>
       </el-card>
 
       <el-card class="panel">
@@ -178,3 +181,33 @@ onMounted(loadAdmin);
     </div>
   </section>
 </template>
+
+<style scoped>
+.metric-card {
+  text-align: center;
+  border-top: 4px solid var(--color-brand);
+}
+.metric-card span {
+  display: block;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+.metric-card strong {
+  font-size: 36px;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+.shipping-block {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+.shipping-title {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--spacing-sm);
+}
+</style>
