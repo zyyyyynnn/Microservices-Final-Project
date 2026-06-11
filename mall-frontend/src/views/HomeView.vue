@@ -298,7 +298,6 @@ onMounted(loadHome);
   gap: var(--spacing-lg);
 }
 
-
 .hero-banner {
   display: flex;
   align-items: center;
@@ -323,14 +322,10 @@ onMounted(loadHome);
   }
 }
 
-
-
-
-
 .hero-title {
   font-size: 42px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -377,18 +372,12 @@ onMounted(loadHome);
   text-decoration: none;
 }
 
-
-
-
-
 /* Flow Panel */
 .flow-panel {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
-
-
 
 .flow-track {
   display: flex;
@@ -410,7 +399,7 @@ onMounted(loadHome);
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #f0f6ff;
+  background: var(--color-brand-light);
   color: var(--color-brand);
   display: flex;
   align-items: center;
@@ -429,7 +418,7 @@ onMounted(loadHome);
 }
 
 .flow-line {
-  color: #ccc;
+  color: var(--color-border);
   margin-bottom: 16px;
 }
 
@@ -437,7 +426,7 @@ onMounted(loadHome);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  background: #f7f8fa;
+  background: var(--color-surface-hover);
   padding: 12px;
   border-radius: var(--radius-md);
   text-decoration: none;
@@ -458,7 +447,7 @@ onMounted(loadHome);
 .section-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -509,7 +498,7 @@ onMounted(loadHome);
 }
 
 .product-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   overflow: hidden;
   text-decoration: none;
@@ -572,7 +561,7 @@ onMounted(loadHome);
 }
 
 .p-price {
-  color: #e62828;
+  color: var(--color-price);
   font-weight: 700;
 }
 
@@ -589,7 +578,7 @@ onMounted(loadHome);
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: #f0f6ff;
+  background: var(--color-brand-light);
   color: var(--color-brand);
   display: flex;
   align-items: center;
@@ -604,9 +593,6 @@ onMounted(loadHome);
 
 /* Seckill Section */
 
-
-
-
 .sk-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -614,8 +600,8 @@ onMounted(loadHome);
 }
 
 .sk-card {
-  background: #fdfdfd;
-  border: 1px solid #f0f0f0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   display: flex;
   padding: 16px;
@@ -631,7 +617,7 @@ onMounted(loadHome);
   width: 120px;
   height: 120px;
   flex-shrink: 0;
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-md);
 }
 
@@ -675,7 +661,7 @@ onMounted(loadHome);
 }
 
 .sk-btn {
-  background: #fff0f0;
+  background: var(--color-error-bg);
   color: var(--color-price);
   border: 1px solid var(--color-error-border);
   padding: 6px 16px;
@@ -692,7 +678,6 @@ onMounted(loadHome);
 
 /* Tech Section */
 
-
 .tech-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -700,13 +685,13 @@ onMounted(loadHome);
 }
 
 .tech-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 .tc-top {
@@ -735,14 +720,12 @@ onMounted(loadHome);
   color: var(--color-text-light);
 }
 
-
-
 /* Bottom Promises */
 .bottom-promises {
   display: flex;
   justify-content: space-between;
   padding: 40px;
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   margin-top: 20px;
 }
@@ -821,7 +804,6 @@ onMounted(loadHome);
   font-weight: normal;
   margin-left: auto;
 }
-
 
 .ml-auto {
   margin-left: auto;
