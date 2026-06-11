@@ -30,10 +30,9 @@ const categoryTabs = [
   { label: '精选推荐', keyword: '' },
   { label: '数码家电', keyword: 'iPhone' },
   { label: '美妆护肤', keyword: '美妆' },
-  { label: '家居生活', keyword: '家居' },
+  { label: '台灯', keyword: '台灯' },
   { label: '运动户外', keyword: '运动' },
   { label: '食品生鲜', keyword: '食品' },
-  { label: '母婴玩具', keyword: '母婴' },
 ];
 
 const flowSteps = [
