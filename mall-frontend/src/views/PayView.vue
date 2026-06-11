@@ -14,7 +14,7 @@ const loading = ref(false);
 const error = ref('');
 const payRecord = ref<UnknownRecord | null>(null);
 const order = ref<UnknownRecord | null>(null);
-const payCreate = ref<any>(null);
+const payCreate = ref<UnknownRecord | null>(null);
 const notifyResult = ref('');
 const submitting = ref(false);
 
@@ -45,7 +45,7 @@ async function loadRecord() {
 async function createPay() {
   submitting.value = true;
   try {
-    payCreate.value = await mallApi.createPay(orderNo);
+    payCreate.value = (await mallApi.createPay(orderNo)) as UnknownRecord;
     ElMessage.success('支付记录已创建');
     await loadRecord();
   } catch (err) {
