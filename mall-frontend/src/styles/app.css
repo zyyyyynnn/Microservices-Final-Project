@@ -793,9 +793,6 @@ h6 {
 }
 
 .summary-panel {
-  position: sticky;
-  top: 100px;
-  z-index: 10;
   align-self: start;
 }
 
