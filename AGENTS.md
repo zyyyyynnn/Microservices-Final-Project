@@ -1,7 +1,7 @@
 # MallCloud Agent 工作协议
 
 > 最高标准：`docs/PROJECT_STANDARD.md`
-> 当前阶段任务：`DEVELOPMENT_PROMPT.md`
+> 设计与重构基准：`DESIGN.md` (v2.0)
 > 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21、Maven 3.9+
 
 ---
@@ -23,8 +23,7 @@
 
 专项文档：
 
-- 当前阶段任务：`DEVELOPMENT_PROMPT.md`
-- 产品、前端、页面、路由、交互或文案：`DESIGN.md`
+- 产品、前端、页面、路由、交互或文案设计基线：`DESIGN.md` (v2.0)
 - 测试方法：`docs/test/README.md`
 - 当前测试结果和答辩材料：`docs/FINAL_REPORT.md`
 - 脚本入口和参数：`scripts/README.md`
@@ -108,12 +107,17 @@ git status --short
 
 ## 6. 前端交付规则
 
-- `DESIGN.md` 是产品流程、用户交互、页面状态、角色权限和设计约束的基线。
+- `DESIGN.md` (v2.0) 是产品流程、用户交互、页面状态、角色权限和设计约束的基线。
 - 前端业务请求必须经 Gateway `/api/v1/**`，不得直接调用内部微服务端口。
 - 不得用 raw JSON、`<pre>`、`JSON.stringify` 或接口调试台作为业务页面主要内容。
 - 不得用 mock 伪装后端未完成能力。
 - 商品、购物车、订单、支付、秒杀、后台页面必须面向真实用户任务。
-- 适用页面必须覆盖 loading、empty、error、disabled、success 状态。
+- 适用页面必须覆盖 loading、empty、error、disabled、success 状态：
+  - **色彩与设计语言**：遵循“低饱和雾霾蓝极简 + 轻电商质感”，禁止使用高饱和大红大蓝，颜色必须全部 token 化，禁止在组件或样式中裸写 hex/rgb/hsl；
+  - **动效与阴影**：允许体系化极简过渡与极浅阴影建立视觉层级，禁止任何复杂动画或厚重投影；
+  - **Disabled 状态**：必须通过 token 化的背景、边框、文本色、cursor 和控件 disabled 属性共同表达，不得仅靠 opacity 透明度来表达；
+  - **数据与金额兜底**：字段为 null、undefined、NaN、空字符串或接口未返回时，展示为 `—`。合法 0 值（如 0 元、0 件）必须正常展示；
+  - **用户可见错误**：用户可见的错误文案不得出现技术错误码、异常名和微服务名称。
 - 浏览器工具可用时，用户可见变更必须做真实浏览器验证。
 - 后端未提供或未联调的能力必须标记为受后端限制或待联调。
 

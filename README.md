@@ -129,7 +129,6 @@ http://localhost:5173
 |---|---|
 | 项目最高标准 | [docs/PROJECT_STANDARD.md](docs/PROJECT_STANDARD.md) |
 | Agent 工作协议 | [AGENTS.md](AGENTS.md) |
-| 当前阶段任务 | [DEVELOPMENT_PROMPT.md](DEVELOPMENT_PROMPT.md) |
 | 产品与 UI 设计 | [DESIGN.md](DESIGN.md) |
 | 业务需求 | [docs/PRD.md](docs/PRD.md) |
 | 架构 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |

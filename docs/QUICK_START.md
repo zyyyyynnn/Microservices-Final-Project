@@ -264,4 +264,4 @@ http://localhost:5173
 
 ## 10. 下一步
 
-当前阶段任务以 [../DEVELOPMENT_PROMPT.md](../DEVELOPMENT_PROMPT.md) 为准。当前真实测试结果和未完成项以 [FINAL_REPORT.md](FINAL_REPORT.md) 为准。
+当前前端重构与界面设计系统规范以 [../DESIGN.md](../DESIGN.md) 为准。当前真实测试结果和未完成项以 [FINAL_REPORT.md](FINAL_REPORT.md) 为准。
