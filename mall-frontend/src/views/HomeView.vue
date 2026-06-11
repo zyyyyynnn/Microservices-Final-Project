@@ -291,13 +291,14 @@ onMounted(loadHome);
 
 
 .hero-banner {
-  display: grid;
+  display: flex;
   align-items: center;
-  padding: 40px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  min-height: 310px;
+  padding: 48px 44px;
 }
 .hero-content {
   display: flex;
@@ -305,6 +306,14 @@ onMounted(loadHome);
   justify-content: center;
   min-width: 0;
 }
+@media (max-width: 768px) {
+  .hero-banner {
+    min-height: 420px;
+    background-position: center bottom !important;
+    padding: 32px 24px;
+  }
+}
+
 
 .hero-image img {
   height: 90%;

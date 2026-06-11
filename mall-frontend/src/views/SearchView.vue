@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
@@ -48,6 +48,14 @@ function useHotWord(word: string) {
   search();
 }
 
+watch(() => route.query.keyword, (newVal) => {
+  if (newVal !== undefined) {
+    keyword.value = String(newVal);
+    pageNum.value = 1;
+    search();
+  }
+});
+
 onMounted(() => {
   loadHotWords();
   search();
@@ -57,13 +65,7 @@ onMounted(() => {
 <template>
   <section class="commerce-layout">
     <div class="search-header">
-      <div class="search-row large-search">
-        <el-input v-model="keyword" placeholder="输入商品关键字..." size="large" @keyup.enter="search">
-          <template #append>
-            <el-button type="primary" :loading="loading" @click="search">搜索</el-button>
-          </template>
-        </el-input>
-      </div>
+      
       <div class="tag-row mt">
         <button v-for="word in hotWords" :key="word" class="hot-chip" @click="useHotWord(word)">{{ word }}</button>
         <span v-if="!hotWords.length" class="empty-hint">暂无热词推荐</span>
