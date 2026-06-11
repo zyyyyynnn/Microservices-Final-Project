@@ -16,7 +16,9 @@ INSERT INTO `category` (id, parent_id, name, level, sort) VALUES
 (72, 7, '健身训练', 2, 2),
 (711, 71, '跑步鞋', 3, 1),
 (721, 72, '瑜伽垫', 3, 1),
-(231, 23, '鼠标', 3, 1)
+(231, 23, '鼠标', 3, 1),
+(31, 3, '生活电器', 2, 1),
+(311, 31, '台灯', 3, 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- SPU 扩展到 12 个
