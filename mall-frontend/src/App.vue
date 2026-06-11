@@ -140,12 +140,12 @@ function isActive(path: string) {
   padding: 0;
 }
 .header-main {
-  width: min(1440px, 100%);
-  padding: 0 var(--spacing-xl);
+  width: min(var(--page-max-width), calc(100vw - var(--page-gutter) * 2));
+  margin-inline: auto;
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: var(--spacing-xl);
+  align-items: center;
 }
 .brand {
   display: flex;
@@ -239,3 +239,17 @@ function isActive(path: string) {
   color: var(--color-text-primary);
 }
 </style>
+
+@media (max-width: 1024px) {
+  .header-main {
+    grid-template-columns: 1fr;
+  }
+  .header-search {
+    width: 100%;
+    max-width: none;
+  }
+  .app-nav {
+    overflow-x: auto;
+    width: 100%;
+  }
+}

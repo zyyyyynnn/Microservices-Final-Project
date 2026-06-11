@@ -126,6 +126,7 @@ onMounted(loadHome);
               <el-button type="primary" size="large" class="hero-btn">立即选购 <el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
             </RouterLink>
           </div>
+          
         </div>
 
         <div class="flow-panel">
@@ -272,7 +273,6 @@ onMounted(loadHome);
 
 <style scoped>
 .home-wrapper {
-  width: 100%;
 }
 
 .home-grid {
@@ -289,22 +289,30 @@ onMounted(loadHome);
   gap: var(--spacing-lg);
 }
 
+
 .hero-banner {
-  background: linear-gradient(135deg, #eaf4ff 0%, #f7f8fa 100%);
-  border-radius: var(--radius-xl);
-  padding: 40px;
-  display: flex;
+  display: grid;
   align-items: center;
-  position: relative;
+  padding: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
-  min-height: 380px;
+}
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 
-.hero-content {
-  flex: 1;
-  z-index: 2;
-  max-width: 50%;
+.hero-image img {
+  height: 90%;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
 }
+
 
 .hero-title {
   font-size: 42px;
@@ -356,16 +364,7 @@ onMounted(loadHome);
   text-decoration: none;
 }
 
-.hero-image {
-  position: absolute;
-  right: -40px;
-  bottom: -20px;
-  top: 0;
-  width: 55%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+
 
 .hero-image img {
   width: 100%;
@@ -527,7 +526,7 @@ onMounted(loadHome);
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 20px;
 }
 

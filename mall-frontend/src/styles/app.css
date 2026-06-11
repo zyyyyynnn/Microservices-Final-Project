@@ -1,3 +1,8 @@
+:root {
+  --page-max-width: 1440px;
+  --page-gutter: 40px;
+}
+
 html {
   overflow-y: scroll;
 }
@@ -35,7 +40,7 @@ h6 {
   height: auto;
   min-height: 76px;
   padding: 0 var(--spacing-xl);
-  border-bottom: 1px solid var(--color-border);
+  
   background: rgba(255, 255, 255, 0.96);
 }
 
@@ -111,9 +116,15 @@ h6 {
 
 .app-main {
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 24px var(--spacing-xl) 56px;
+  padding: 24px 0 56px;
+}
+
+.home-wrapper,
+.page-grid,
+.detail-layout,
+.auth-layout {
+  width: min(var(--page-max-width), calc(100vw - var(--page-gutter) * 2));
+  margin-inline: auto;
 }
 
 .commerce-layout {
@@ -311,7 +322,7 @@ h6 {
 .panel-title {
   margin: 0;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--color-border);
+  
   background: var(--color-surface);
 }
 
@@ -400,7 +411,7 @@ h6 {
   justify-content: center;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  border-bottom: 1px solid var(--color-border);
+  
   background: var(--color-surface-hover);
 }
 
@@ -659,7 +670,7 @@ h6 {
   border: none;
 }
 .auth-card .el-card__header {
-  border-bottom: 1px solid var(--color-border);
+  
   padding: var(--spacing-lg);
   background: #fdfdfd;
 }
@@ -677,4 +688,16 @@ h6 {
 }
 .mb {
   margin-bottom: var(--spacing-md);
+}
+
+
+@media (max-width: 1024px) {
+  :root {
+    --page-gutter: 24px;
+  }
+}
+@media (max-width: 640px) {
+  :root {
+    --page-gutter: 16px;
+  }
 }
