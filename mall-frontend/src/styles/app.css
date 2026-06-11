@@ -796,6 +796,7 @@ h6 {
   position: sticky;
   top: 100px;
   z-index: 10;
+  align-self: start;
 }
 
 .line-item {
