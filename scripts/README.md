@@ -44,6 +44,7 @@ stop-all.bat --no-pause
 - BAT 会统一输出用户可见的启动摘要。
 - 启动失败时返回非 0，失败服务不得写成已启动。
 - BAT 内部会调用 PowerShell 做端口探测、状态文件读写和进程校验。
+- `stop-all.bat` 与 `scripts/stop-all.ps1` 均按 `.runtime/processes.json` 接管托管进程，并通过命令行匹配避免误停外部进程。
 
 ---
 

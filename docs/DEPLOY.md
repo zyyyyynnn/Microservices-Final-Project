@@ -13,7 +13,7 @@
 | PowerShell 启停脚本 | 已提供 | 参数化启动、自动化调用、故障排查 |
 | PowerShell 中间件脚本 | 已提供 | 本地中间件启动 |
 | IDE 单服务启动 | 补充入口 | 单服务开发调试 |
-| `docker-compose.all.yml` 全栈 | 实验性 | 构建和组合启动链路待验证 |
+| `docker-compose.all.yml` 全栈 | 实验性 | 镜像化部署示例；构建和组合启动链路待验证 |
 | Kubernetes 全栈 | 规划项 | 当前仅有部分示例 |
 
 正式人工启动路径以根目录 `start-all.bat` / `stop-all.bat` 为准。PowerShell 脚本保留为高级入口和脚本内部能力，不承担普通人工启动主入口职责。
@@ -319,10 +319,12 @@ Invoke-RestMethod http://localhost:9100/actuator/health
 
 ## 13. Docker 全栈与 Kubernetes
 
-`docker-compose.all.yml` 当前不是正式一键启动方式，原因：
+`docker-compose.all.yml` 当前不是正式一键启动方式，仅作为镜像化部署示例保留。该文件假定中间件已由 `docker-compose.middleware.yml` 或等效环境先行启动，业务服务不依赖该文件内的 `depends_on` 保证中间件就绪。
+
+原因：
 
 - 业务服务镜像构建链路尚未完整验收；
-- 组合依赖尚未验证；
+- 组合启动和应用侧重试尚未形成验收证据；
 - 前端镜像路径未形成交付证据。
 
 Kubernetes 当前提供部分示例，不作为正式验收路径。

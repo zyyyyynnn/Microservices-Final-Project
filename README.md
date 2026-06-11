@@ -115,6 +115,7 @@ http://localhost:5173
 ## 5. 已知限制
 
 - Docker 全栈不是当前正式交付路径；
+- `docker-compose.all.yml` 仅作为镜像化部署示例，当前本地验收以 BAT + 本地 JAR 为准；
 - Kubernetes 仅保留部分示例；
 - JMeter 订单正式负载待执行；秒杀 50/100/200/300/500 固定库存阶梯压力已复测通过，原始 JTL 和 Dashboard 仍为本地产物；
 - `full` 启动 Profile 本轮因 Docker 镜像源拉取 `rocketmq-console-ng`、`zipkin`、`kibana` 返回 403 未完成资源采样；

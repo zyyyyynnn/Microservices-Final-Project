@@ -251,6 +251,8 @@ HTML 报告状态：
 
 Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程；外部 9012 Java 进程未被终止，mall-job 使用 9112。
 
+资源口径：Profile 的主要收益是按场景减少无关容器和服务；本轮 Java Working Set 采样中 `core` 与 `full-backend` 差距不大，不写成“Profile 大幅降低 Java 内存”。`core + LowMemory` 对后端 JVM Working Set 的下降已有本机实测，但不用于正式 JMeter 压测。
+
 ---
 
 ## 8. 异常与容错测试
@@ -310,6 +312,7 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 如实记录：
 
 - Docker 全栈尚未完成；
+- `docker-compose.all.yml` 仅作为镜像化部署示例，当前本地验收以 BAT + 本地 JAR 为准；
 - 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
 - 本地后端端口已迁移到连续区间 `9100-9112`，用于避开本机旧端口 `9012/9013/9014` 外部占用；
 - Elasticsearch 搜索索引初始化、Gateway 搜索业务校验和搜索负载测试已通过；
@@ -319,6 +322,7 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 - 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
 - 订单正式负载仍未执行；
 - `full` 启动 Profile 本轮因 Docker 镜像源 403 未完成资源采样；
+- Profile 可按场景减少无关容器和服务，LowMemory 对 core 后端 JVM 有本机实测下降；不将 Profile 表述为已证明 Java 内存大幅下降；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
 ---

@@ -43,3 +43,5 @@
 | core + LowMemory | 7 | 2121.0 MB | mysql 516.7MiB；nacos 921.7MiB；redis 8.3MiB；seata 1.501GiB | Java 命令行均包含 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
 
 LowMemory 仅用于启动资源验证，正式 JMeter 压测未使用 LowMemory。
+
+资源解释：Profile 的主要作用是按场景减少无关容器和服务；本轮 `core` 与 `full-backend` Java Working Set 差距不大，不作为“Profile 大幅降低 Java 内存”的证据。`core + LowMemory` 对 core 后端 JVM Working Set 的下降有本机实测证据。
