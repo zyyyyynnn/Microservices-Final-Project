@@ -12,15 +12,19 @@ export const onlineImageSources = [
   'https://images.unsplash.com/photo-1542393545-10f5cde2c227', // Apple Watch / iPad
 ];
 
-const imageParams = '?auto=format&fit=crop&w=900&q=80';
-
 export const productImagesBySpuId: Record<number, string> = {
-  1001: `https://images.unsplash.com/photo-1511707171634-5f897ff02aa9${imageParams}`,
-  1002: `https://images.unsplash.com/photo-1517336714731-489689fd1ca8${imageParams}`,
-  1003: `https://images.unsplash.com/photo-1598327105666-5b89351aff97${imageParams}`,
-  1004: `https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb${imageParams}`,
-  1005: `https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5${imageParams}`,
-  1006: `https://images.unsplash.com/photo-1542393545-10f5cde2c227${imageParams}`,
+  1001: '/products/1001-iphone-15-pro.svg',
+  1002: '/products/1002-iphone-15-pink.svg',
+  1003: '/products/1003-mi-14-pro.svg',
+  1004: '/products/1004-huawei-mate-60.svg',
+  1005: '/products/1005-macbook-air.svg',
+  1006: '/products/1006-logitech-mouse.svg',
+  1007: '/products/1007-ysl-lipstick.svg',
+  1008: '/products/1008-loreal-serum.svg',
+  1009: '/products/1009-coffee-gift-box.svg',
+  1010: '/products/1010-nuts-gift-box.svg',
+  1011: '/products/1011-nike-running-shoes.svg',
+  1012: '/products/1012-yoga-mat.svg',
 };
 
 export const heroImage = new URL('../assets/hero/mallcloud-hero.png', import.meta.url).href;

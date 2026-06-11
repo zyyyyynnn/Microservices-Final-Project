@@ -97,3 +97,8 @@
 **diff check：** ✅ 通过
 **代码搜索结果：** ✅ 禁止模式均已清理
 **报告文件：** docs/test/frontend/stage1-ui-foundation-fix-20260611.md
+
+**阶段 1.7 新增/修正项：**
+- **真实演示商品目录重建**：清理了原有无意义的 5 个 SPU，重建了 12 个真实 SPU（覆盖 6 个分类，包含数码、电脑、美妆、食品、运动）。
+- **图片资产稳定化**：废弃了外链不可控的 `picsum.photos` 随机图片，统一生成了 `mall-frontend/public/products/*.svg` 真实业务含义的本地 SVG 图片。
+- **一致性同步**：同步更新了 `db/init/seed.sql`、`mall-frontend/src/catalog/productAssets.ts`（清理遗留无用类型），通过 patch SQL 同步到 MySQL 容器，并通过 `scripts/init-search-index.ps1` 验证并同步 Elasticsearch 搜索索引，搜索测试全部 100% OK。

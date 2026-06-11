@@ -2,7 +2,7 @@ param(
     [string]$BaseURL = "http://localhost:9100",
     [string]$SearchURL = "http://localhost:9108",
     [string]$ElasticsearchURL = "http://localhost:9200",
-    [string[]]$SpuIds = @("1001", "1002", "1003", "1004", "1005"),
+    [string[]]$SpuIds = @("1001", "1002", "1003", "1004", "1005", "1006", "1007", "1008", "1009", "1010", "1011", "1012"),
     [string]$Keyword = "iPhone",
     [string[]]$ExpectedSpuIds = @("1001", "1002"),
     [int]$VerifyAttempts = 10,
@@ -184,7 +184,10 @@ function Test-SearchPayload {
     $itemIds = @($items | ForEach-Object { if ($null -ne $_.spuId) { [string]$_.spuId } })
 
     if ($ExpectedSpuIds -and $ExpectedSpuIds.Count -gt 0) {
-        $expected = @($ExpectedSpuIds | ForEach-Object { [string]$_ })
+        $expected = @()
+        foreach ($e in $ExpectedSpuIds) {
+            $expected += @([string]$e -split ",")
+        }
         $matched = @($itemIds | Where-Object { $expected -contains $_ })
         if ($matched.Count -gt 0) {
             return [pscustomobject]@{

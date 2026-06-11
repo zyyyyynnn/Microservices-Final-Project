@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <rect width="600" height="600" fill="#F8F9FA"/>
+  <rect x="100" y="150" width="400" height="250" rx="15" fill="#E5E5EA"/>
+  <path d="M 50 420 L 550 420 Q 560 420 550 430 L 50 430 Q 40 420 50 420 Z" fill="#B0B0B0"/>
+  <text x="300" y="255" font-family="sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">MacBook Air</text>
+  <text x="300" y="295" font-family="sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">13-inch</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <rect width="600" height="600" fill="#F8F9FA"/>
+  <rect x="200" y="90" width="200" height="420" rx="30" fill="#FFC0CB"/>
+  <text x="300" y="280" font-family="sans-serif" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="middle">iPhone 15</text>
+  <text x="300" y="320" font-family="sans-serif" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Pink</text>
+</svg>

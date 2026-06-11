@@ -105,6 +105,15 @@ function getPrice(product: UnknownRecord) {
 function getImage(product: UnknownRecord) {
   return resolveProductImage(product);
 }
+function getSeckillImage(activity: UnknownRecord) {
+  // 秒杀活动可能包含 spuId 字段，优先使用；其次尝试从 skuId 反推（需后端配合）
+  const spuId = field<number>(activity, ['spuId'], 0);
+  if (spuId) {
+    return resolveProductImage({ spuId });
+  }
+  // 兜底：若无 spuId，返回空字符串让 ProductImage 组件显示 placeholder
+  return '';
+}
 
 onMounted(loadHome);
 </script>
@@ -258,7 +267,7 @@ onMounted(loadHome);
           </div>
           <div v-else v-for="product in seckillProducts" :key="String(field(product, ['id', 'activityId', 'spuId']))" class="sk-card">
             <div class="sk-image">
-              <ProductImage :src="field(product, ['mainImage', 'image'])" :alt="field(product, ['title', 'name'])" />
+              <ProductImage :src="getSeckillImage(product)" :alt="field(product, ['title', 'name'])" />
             </div>
             <div class="sk-info">
               <h3 class="sk-name">{{ field(product, ['title', 'name']) }}</h3>

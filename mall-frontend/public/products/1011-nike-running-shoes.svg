@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <rect width="600" height="600" fill="#F8F9FA"/>
+  <path d="M 150 350 Q 200 200 450 300 Q 500 350 450 400 L 150 400 Z" fill="#FF4500"/>
+  <text x="300" y="275" font-family="sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">Nike Pegasus</text>
+</svg>
