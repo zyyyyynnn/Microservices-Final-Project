@@ -129,14 +129,16 @@ onMounted(loadHome);
           
         </div>
 
-        <div class="flow-panel">
-          <div class="panel-header">
-            <div class="ph-left">
-              <h3>交易链路</h3>
-              <span class="ph-tag">(演示流程)</span>
+        <el-card class="panel flow-panel" shadow="never">
+          <template #header>
+            <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">交易链路</span>
+                <span style="font-size: 12px; color: var(--color-brand); background: var(--color-brand-light); padding: 2px 8px; border-radius: 12px;">(演示流程)</span>
+              </div>
+              <span style="font-size: 13px; color: #666; font-weight: normal;">完整电商交易闭环体验</span>
             </div>
-            <p class="ph-desc">完整电商交易闭环体验</p>
-          </div>
+          </template>
 
           <div class="flow-track">
             <template v-for="(step, index) in flowSteps" :key="index">
@@ -158,14 +160,14 @@ onMounted(loadHome);
             <span>全链路微服务支撑，保障交易安全与高可用</span>
             <el-icon class="arrow"><ArrowRight /></el-icon>
           </RouterLink>
-        </div>
+        </el-card>
       </div>
 
       <!-- Recommendation Section -->
-      <div class="recommend-section">
-        <div class="section-header">
-          <h2 class="section-title">为你推荐</h2>
-        </div>
+      <el-card class="panel recommend-section" shadow="never">
+        <template #header>
+          <div class="panel-title" style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">为你推荐</div>
+        </template>
         <div class="category-tabs">
           <button
             v-for="cat in categoryTabs"
@@ -203,17 +205,19 @@ onMounted(loadHome);
             </div>
           </RouterLink>
         </div>
-      </div>
+      </el-card>
 
       <!-- Flash Sale Section -->
-      <div class="seckill-section">
-        <div class="seckill-header">
-          <div class="sk-title">
-            <h2>限时秒杀</h2>
-            <span>每日优选好货</span>
+      <el-card class="panel seckill-section" shadow="never">
+        <template #header>
+          <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">限时秒杀</span>
+              <span style="font-size: 13px; color: #999; font-weight: normal;">每日优选好货</span>
+            </div>
+            <RouterLink to="/seckill" class="more-link" style="font-size: 14px; font-weight: normal;">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
           </div>
-          <RouterLink to="/seckill" class="more-link" style="margin-left: auto;">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
-        </div>
+        </template>
 
         <div class="sk-grid">
           <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty" style="grid-column: 1 / -1; padding: 40px; text-align: center; background: #f9f9f9; border-radius: 8px;">
@@ -233,14 +237,19 @@ onMounted(loadHome);
             </div>
           </div>
         </div>
-      </div>
+      </el-card>
 
       <!-- Tech Dashboard Section -->
-      <div class="tech-section">
-        <div class="tech-header">
-          <h2>演示工具 <span>(微服务治理与中间件)</span></h2>
-          <RouterLink to="/tech" class="more-link" style="margin-left: auto;">进入控制台 <el-icon><ArrowRight /></el-icon></RouterLink>
-        </div>
+      <el-card class="panel tech-section" shadow="never">
+        <template #header>
+          <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">演示工具</span>
+              <span style="font-size: 13px; color: #999; font-weight: normal;">(微服务治理与中间件)</span>
+            </div>
+            <RouterLink to="/tech" class="more-link" style="font-size: 14px; font-weight: normal;">进入控制台 <el-icon><ArrowRight /></el-icon></RouterLink>
+          </div>
+        </template>
 
         <div class="tech-grid">
           <RouterLink to="/tech" custom v-slot="{ navigate, href }">
@@ -255,7 +264,7 @@ onMounted(loadHome);
             </a>
           </RouterLink>
         </div>
-      </div>
+      </el-card>
 
       <!-- Bottom Promises -->
       <div class="bottom-promises">
@@ -383,9 +392,6 @@ onMounted(loadHome);
 
 /* Flow Panel */
 .flow-panel {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -634,11 +640,7 @@ onMounted(loadHome);
 }
 
 /* Seckill Section */
-.seckill-section {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: 24px;
-}
+
 
 .seckill-header {
   display: flex;
