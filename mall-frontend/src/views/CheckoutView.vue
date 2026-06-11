@@ -129,7 +129,7 @@ onMounted(load);
             :class="{ active: address.id === selectedAddressId }"
             @click="selectAddress(address.id || 1)"
           >
-            <el-radio :model-value="selectedAddressId" :label="address.id || 1" />
+            <el-radio :model-value="selectedAddressId" :label="address.id || 1"><span></span></el-radio>
             <div class="address-info">
               <strong>{{ address.receiver }} {{ address.phone }}</strong>
               <span>{{ address.province }}{{ address.city }}{{ address.district }} {{ address.detail }}</span>
