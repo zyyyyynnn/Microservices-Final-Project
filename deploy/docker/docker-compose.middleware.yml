@@ -106,7 +106,7 @@ services:
       - mall-net
 
   rocketmq-console:
-    image: apacherocketmq/rocketmq-console-ng:2.0.0
+    image: "${ROCKETMQ_DASHBOARD_IMAGE:-apacherocketmq/rocketmq-dashboard:latest}"
     container_name: mall-rocketmq-console
     restart: always
     depends_on:
