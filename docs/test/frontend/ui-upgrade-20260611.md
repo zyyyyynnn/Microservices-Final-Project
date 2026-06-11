@@ -35,7 +35,7 @@
 
 ## 5. 验证结果
 ### 5.1 构建结果
-`npm run build` 执行成功。没有引发构建警告。
+`npm run build` 执行成功。构建过程中出现了 Rolldown `INVALID_ANNOTATION` (来自 `@vueuse/core` 的注释忽略警告) 以及 chunk size 大于 500 kB 的常见警告，但不影响产物正确性。
 
 ### 5.2 静态搜索
 - `rg "transition|animation|transform|@keyframes"`：业务逻辑中零残留，仅剩 `element-theme` 和 `reset` 中的 `0s` 和 `none`。

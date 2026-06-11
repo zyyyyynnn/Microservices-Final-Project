@@ -46,7 +46,7 @@
 }
 
 .el-popper {
-  box-shadow: var(--shadow-md) !important;
+  box-shadow: none !important;
 }
 
 /* Disabled button: no opacity */
@@ -64,7 +64,7 @@
 .el-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: none !important;
 }
 
 .el-card__header {

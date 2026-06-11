@@ -141,9 +141,9 @@ onMounted(loadAdmin);
           <div class="shipping-title">订单发货操作</div>
           <el-form class="inline-form" label-position="top">
             <el-form-item label="发货订单号">
-              <el-input v-model="shipOrderNo" placeholder="输入 SO 开头的订单号" style="width: 200px" />
+              <el-input v-model="shipOrderNo" placeholder="输入 SO 开头的订单号" class="ship-input" />
             </el-form-item>
-            <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship" style="margin-top: 14px">确认发货</el-button>
+            <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship" class="ship-btn">确认发货</el-button>
           </el-form>
         </div>
       </el-card>
@@ -209,5 +209,11 @@ onMounted(loadAdmin);
   font-size: var(--font-sm);
   font-weight: var(--weight-bold);
   margin-bottom: var(--spacing-sm);
+}
+.ship-input {
+  width: 200px;
+}
+.ship-btn {
+  margin-top: 14px;
 }
 </style>

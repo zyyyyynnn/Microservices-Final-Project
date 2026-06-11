@@ -66,7 +66,7 @@ onMounted(loadRecord);
       <PageState :loading="loading" :error="error" @retry="loadRecord" />
       
       <!-- 成功态 -->
-      <div v-if="notifyResult === 'SUCCESS' || field(payRecord, ['status']) === 1" class="pay-result">
+      <div v-if="notifyResult === 'success' || field(payRecord, ['status']) === 1" class="pay-result">
         <el-result icon="success" title="支付成功" sub-title="感谢您的购买，订单已支付完成">
           <template #extra>
             <RouterLink :to="`/orders/${orderNo}`">

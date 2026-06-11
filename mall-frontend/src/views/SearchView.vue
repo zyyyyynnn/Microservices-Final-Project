@@ -65,7 +65,7 @@ onMounted(() => {
         </el-input>
       </div>
       <div class="tag-row mt">
-        <el-tag v-for="word in hotWords" :key="word" effect="plain" class="hot-chip" @click="useHotWord(word)">{{ word }}</el-tag>
+        <button v-for="word in hotWords" :key="word" class="hot-chip" @click="useHotWord(word)">{{ word }}</button>
         <span v-if="!hotWords.length" class="empty-hint">暂无热词推荐</span>
       </div>
     </div>
@@ -110,10 +110,17 @@ onMounted(() => {
 .hot-chip {
   cursor: pointer;
   border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  padding: 4px 12px;
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  outline: none;
 }
-.hot-chip:hover {
+.hot-chip:hover, .hot-chip:focus {
   border-color: var(--color-brand);
   color: var(--color-brand);
+  background: var(--color-surface-hover);
 }
 .empty-hint {
   font-size: var(--font-xs);
