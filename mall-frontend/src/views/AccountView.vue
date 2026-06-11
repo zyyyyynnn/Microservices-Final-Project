@@ -26,6 +26,16 @@ const addressForm = reactive<Address>({
   isDefault: true,
 });
 
+function roleText(role: unknown) {
+  const raw = Array.isArray(role) ? role[0] : role;
+  const value = String(raw || '').toUpperCase();
+
+  if (value.includes('ADMIN')) return '管理员';
+  if (value.includes('USER')) return '普通用户';
+  if (value.includes('CUSTOMER')) return '普通用户';
+  return '普通用户';
+}
+
 async function load() {
   loading.value = true;
   error.value = '';
@@ -72,20 +82,20 @@ onMounted(load);
       <PageState :loading="loading" :error="''" @retry="load" />
       <el-form v-if="!loading" label-position="top" :disabled="loading">
         <el-form-item label="昵称">
-          <el-input v-model="profile.nickname" placeholder="填写昵称" />
+          <el-input v-model="profile.nickname" />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="profile.email" placeholder="name@example.com" />
+          <el-input v-model="profile.email" />
         </el-form-item>
         <el-form-item label="头像 URL">
-          <el-input v-model="profile.avatar" placeholder="https://..." />
+          <el-input v-model="profile.avatar" />
         </el-form-item>
         <el-button type="primary" :loading="loading" @click="saveProfile">保存资料</el-button>
       </el-form>
       <el-descriptions v-if="auth.user" border :column="1" class="mt">
-        <el-descriptions-item label="用户 ID">{{ auth.user.id || auth.user.userId || '待联调' }}</el-descriptions-item>
-        <el-descriptions-item label="用户名">{{ auth.user.username || '待联调' }}</el-descriptions-item>
-        <el-descriptions-item label="角色">{{ auth.user.role || auth.user.roles || '待联调' }}</el-descriptions-item>
+        <el-descriptions-item label="用户 ID">{{ auth.user.id || auth.user.userId || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="用户名">{{ auth.user.username || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ roleText(auth.user.role || auth.user.roles) }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -101,10 +111,10 @@ onMounted(load);
           <template #default="{ row }">{{ row.province }} {{ row.city }} {{ row.district }}</template>
         </el-table-column>
         <el-table-column prop="detail" label="详细地址" min-width="220" />
-        <el-table-column label="操作" width="150">
-          <template #default>
-            <el-button text disabled>编辑待联调</el-button>
-            <el-button text type="danger" disabled>删除待联调</el-button>
+        <el-table-column label="默认" width="90">
+          <template #default="{ row }">
+            <el-tag v-if="row.isDefault" type="success" effect="plain">默认</el-tag>
+            <span v-else>—</span>
           </template>
         </el-table-column>
       </el-table>
@@ -112,16 +122,27 @@ onMounted(load);
       <el-empty v-else description="暂无地址，新增后可用于订单确认" />
 
       <el-divider />
-      <el-form class="compact-form" label-position="top" @submit.prevent="addAddress">
-        <el-form-item label="收件人">
-          <el-input v-model="addressForm.receiver" />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="addressForm.phone" />
-        </el-form-item>
-        <el-form-item label="详细地址">
-          <el-input v-model="addressForm.detail" />
-        </el-form-item>
+      <el-form class="address-form" label-position="top" @submit.prevent="addAddress">
+        <div class="form-grid two">
+          <el-form-item label="收件人">
+            <el-input v-model="addressForm.receiver" />
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="addressForm.phone" />
+          </el-form-item>
+          <el-form-item label="省份">
+            <el-input v-model="addressForm.province" />
+          </el-form-item>
+          <el-form-item label="城市">
+            <el-input v-model="addressForm.city" />
+          </el-form-item>
+          <el-form-item label="区县">
+            <el-input v-model="addressForm.district" />
+          </el-form-item>
+          <el-form-item label="详细地址">
+            <el-input v-model="addressForm.detail" />
+          </el-form-item>
+        </div>
         <el-button plain native-type="submit">新增地址</el-button>
       </el-form>
     </el-card>
