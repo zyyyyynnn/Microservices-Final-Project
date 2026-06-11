@@ -14,7 +14,6 @@ const loading = ref(false);
 const error = ref('');
 const keyword = ref(String(route.query.keyword || ''));
 const brand = ref(String(route.query.brand || ''));
-const categoryId = ref(String(route.query.categoryId || ''));
 const pageNum = ref(1);
 const pageSize = ref(8);
 const response = ref<UnknownRecord | null>(null);
@@ -23,13 +22,12 @@ const hotWords = ref<string[]>([]);
 const results = computed(() => asList(response.value));
 const total = computed(() => Number(field(response.value, ['total'], results.value.length)));
 
-// Build search query from keyword, brand, categoryId
+// Build search query from keyword, brand
 const searchQuery = computed(() => {
   const parts = [];
   if (keyword.value) parts.push(keyword.value);
   if (brand.value) parts.push(brand.value);
-  // categoryId could be mapped to keyword if backend doesn't support it directly
-  if (categoryId.value && !keyword.value && !brand.value) parts.push(categoryId.value);
+  // categoryId 不参与搜索，避免伪装成真实分类筛选
   return parts.join(' ');
 });
 
@@ -50,7 +48,6 @@ async function search() {
       query: {
         keyword: keyword.value,
         brand: brand.value || undefined,
-        categoryId: categoryId.value || undefined,
         pageNum: pageNum.value,
       },
     });
@@ -67,7 +64,6 @@ async function search() {
 function useHotWord(word: string) {
   keyword.value = word;
   brand.value = '';
-  categoryId.value = '';
   pageNum.value = 1;
   search();
 }
@@ -88,14 +84,6 @@ watch(() => route.query.brand, (newVal) => {
   }
 });
 
-watch(() => route.query.categoryId, (newVal) => {
-  if (newVal !== undefined) {
-    categoryId.value = String(newVal);
-    pageNum.value = 1;
-    search();
-  }
-});
-
 onMounted(() => {
   loadHotWords();
   search();
@@ -107,7 +95,6 @@ onMounted(() => {
     <div class="search-header">
       <h1 class="search-title">
         <span v-if="brand">「{{ brand }}」专区</span>
-        <span v-else-if="categoryId">分类：{{ categoryId }}</span>
         <span v-else-if="keyword">「{{ keyword }}」的搜索结果</span>
         <span v-else>全部商品</span>
       </h1>

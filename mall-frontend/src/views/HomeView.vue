@@ -6,7 +6,7 @@ import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
-import { heroImage, seedCatalogProducts, onlineProductImage } from '../catalog/productAssets';
+import { heroImage, seedCatalogProducts, resolveProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
 
@@ -16,6 +16,7 @@ const error = ref('');
 const categories = ref<UnknownRecord[]>([]);
 const products = ref<UnknownRecord[]>([]);
 const seckillProducts = ref<UnknownRecord[]>([]);
+const seckillError = ref(false);
 
 const displayProducts = computed(() => {
   const byId = new Map<number, UnknownRecord>();
@@ -57,6 +58,7 @@ async function loadHome() {
   error.value = '';
   products.value = [];
   seckillProducts.value = [];
+  seckillError.value = false;
   try {
     const productIds = seedCatalogProducts.map((item) => item.spuId);
     const [categoryResult, ...productResults] = await Promise.allSettled([
@@ -77,9 +79,11 @@ async function loadHome() {
         const name = String(field(activity, ['title', 'name'], ''));
         return !/JMeter|压测|测试|乱码|test/i.test(name);
       });
+      seckillError.value = false;
     } catch {
-      // 秒杀接口失败时保持空数组，模板会显示"暂无秒杀活动"
+      // 秒杀接口失败
       seckillProducts.value = [];
+      seckillError.value = true;
     }
 
     if (categoryResult.status === 'rejected' || productResults.some((result) => result.status === 'rejected')) {
@@ -103,7 +107,7 @@ function getPrice(product: UnknownRecord) {
   return Number(field(skus?.[0], ['price'], 0)).toFixed(2);
 }
 function getImage(product: UnknownRecord) {
-  return onlineProductImage(product);
+  return resolveProductImage(product);
 }
 
 onMounted(loadHome);
@@ -184,7 +188,12 @@ onMounted(loadHome);
       <!-- Recommendation Section -->
       <el-card class="panel recommend-section" shadow="never">
         <template #header>
-          <div class="panel-title-main">为你推荐</div>
+          <div class="panel-title-row">
+            <div class="panel-title-group">
+              <span class="panel-title-main">热门频道</span>
+              <span class="panel-title-sub">点击跳转搜索页</span>
+            </div>
+          </div>
         </template>
         <div class="category-tabs">
           <button
@@ -238,7 +247,10 @@ onMounted(loadHome);
         </template>
 
         <div class="sk-grid">
-          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty">
+          <div v-if="seckillError" class="sk-empty">
+            <p>秒杀活动暂不可用</p>
+          </div>
+          <div v-else-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty">
             <p>暂无秒杀活动</p>
           </div>
           <div v-else v-for="product in seckillProducts" :key="String(field(product, ['id', 'activityId', 'spuId']))" class="sk-card">

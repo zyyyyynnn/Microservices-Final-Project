@@ -132,13 +132,25 @@ export function onlineProductImage(product: unknown) {
 }
 
 /**
- * 统一商品图片解析器
+ * 统一商品图片解析器（真正的唯一入口）
  * 规则：
  * 1. 优先使用 mainImage / image / skuImage 字段
- * 2. 如果图片是 picsum.photos 或为空，且存在有效 spuId，则使用 productImagesBySpuId[spuId]
- * 3. 不允许用 skuId 替代 spuId
- * 4. 没有有效图片时返回空字符串（由 ProductImage 组件兜底为 placeholder）
+ * 2. 如果图片是 picsum.photos 或为空，且存在明确 spuId，则使用 productImagesBySpuId[spuId]
+ * 3. 只读取明确的 spuId 字段，不允许用 id/skuId 兜底为 spuId
+ * 4. 如果没有明确 spuId，就返回原图或空字符串，不强行映射
+ * 5. 没有图时由 ProductImage 组件展示 placeholder
  */
 export function resolveProductImage(product: unknown): string {
-  return onlineProductImage(product);
+  const image = readString(product, ['mainImage', 'image', 'skuImage']);
+  const spuId = readNumber(product, ['spuId']);
+
+  if (image && !image.includes('picsum.photos')) {
+    return image;
+  }
+
+  if (spuId && productImagesBySpuId[spuId]) {
+    return productImagesBySpuId[spuId];
+  }
+
+  return image || '';
 }

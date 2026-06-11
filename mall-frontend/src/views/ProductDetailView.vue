@@ -6,8 +6,8 @@ import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
-import { field, money, productImage, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
-import { onlineProductImage } from '../catalog/productAssets';
+import { field, money, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
+import { resolveProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
 
 const route = useRoute();
@@ -42,7 +42,7 @@ watch(selectedSkuId, async (newId) => {
     fetchingStock.value = false;
   }
 });
-const image = computed(() => onlineProductImage(product.value) || productImage(product.value));
+const image = computed(() => resolveProductImage(product.value));
 
 async function loadProduct() {
   loading.value = true;
