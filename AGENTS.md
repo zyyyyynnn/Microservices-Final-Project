@@ -1,7 +1,7 @@
 # MallCloud Agent 工作协议
 
 > 最高标准：`docs/PROJECT_STANDARD.md`
-> 设计与重构基准：`DESIGN.md` (v2.0)
+> 设计与重构基准：`DESIGN.md`
 > 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21、Maven 3.9+
 
 ---
@@ -23,7 +23,7 @@
 
 专项文档：
 
-- 产品、前端、页面、路由、交互或文案设计基线：`DESIGN.md` (v2.0)
+- 产品、前端、页面、路由、交互或文案设计基线：`DESIGN.md`
 - 测试方法：`docs/test/README.md`
 - 当前测试结果和答辩材料：`docs/FINAL_REPORT.md`
 - 脚本入口和参数：`scripts/README.md`
@@ -107,7 +107,7 @@ git status --short
 
 ## 6. 前端交付规则
 
-- `DESIGN.md` (v2.0) 是产品流程、用户交互、页面状态、角色权限和设计约束的基线。
+- `DESIGN.md` 是产品流程、用户交互、页面状态、角色权限和设计约束的基线。
 - 前端业务请求必须经 Gateway `/api/v1/**`，不得直接调用内部微服务端口。
 - 不得用 raw JSON、`<pre>`、`JSON.stringify` 或接口调试台作为业务页面主要内容。
 - 不得用 mock 伪装后端未完成能力。
