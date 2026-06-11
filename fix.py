@@ -20,6 +20,9 @@ def process(filepath):
     content = content.replace('<img :src="getImage(product)" :alt="String(product.name)" />', '<ProductImage :src="getImage(product)" :alt="String(product.name)" />')
     content = content.replace('<img :src="product.mainImage" :alt="product.name" />', '<ProductImage :src="product.mainImage" :alt="product.name" />')
 
+    # Transition
+    content = content.replace('transition: all', 'transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform')
+
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
 
