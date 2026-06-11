@@ -1,4 +1,4 @@
-﻿# MallCloud 期末大作业最终报告
+# MallCloud 期末大作业最终报告
 
 > 文档状态：部分填写
 > 团队规模：5 人
@@ -247,7 +247,7 @@ HTML 报告状态：
 | seckill | 通过 | 8 | 3154.4 MB | 容器为 mysql、redis、nacos、seata、RocketMQ、Sentinel |
 | core + LowMemory | 通过 | 7 | 2121.0 MB | Java 命令行均包含 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
 | full-backend | 通过 | 13 | 2586.4 MB | 后端端口迁移到 `9100-9112` 后，手动补齐当前可用中间件并以 `--skip-infrastructure` 启动 |
-| full-docker-profile | 通过 | 未采样 | 未采样 | 前后端所有微服务已可顺利一键启动，前端 IPv6 回环与 npm 启动兼容问题已修复，full 启动链路通过；业务级页面截图验收因登录状态和测试数据未准备而暂未完成。 |
+| full-docker-profile | 有条件通过 | 未采样 | 未采样 | RocketMQ Dashboard 镜像阻断已解除，full profile 启动链路可达；本轮已固化运行态、数据库状态与 Newman 业务链路证据，但业务级页面截图仍未完成，最终截图验收待下一阶段补齐。 |
 
 Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程；外部 9012 Java 进程未被终止，mall-job 使用 9112。
 
