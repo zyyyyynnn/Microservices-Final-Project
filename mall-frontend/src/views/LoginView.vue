@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -18,7 +19,7 @@ const loginForm = reactive({
 async function submitLogin() {
   error.value = '';
   if (!loginForm.username || !loginForm.password) {
-    error.value = '请输入用户名和密码';
+    notifyError('请输入用户名和密码');
     return;
   }
   loading.value = true;
@@ -27,7 +28,7 @@ async function submitLogin() {
     ElMessage.success('登录成功');
     router.push(String(route.query.redirect || '/'));
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '登录失败';
+    notifyError(err instanceof Error ? err.message : '登录失败');
   } finally {
     loading.value = false;
   }

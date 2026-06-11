@@ -65,7 +65,15 @@ function Test-Port($port, $timeout = 2) {
     try {
         $tcp = [System.Net.Sockets.TcpClient]::new()
         $result = $tcp.BeginConnect("127.0.0.1", $port, $null, $null)
-        $success = $result.AsyncWaitHandle.WaitOne($timeout * 1000)
+        $success = $result.AsyncWaitHandle.WaitOne($timeout * 500)
+        $tcp.Close()
+        if ($success) { return $true }
+    } catch { }
+
+    try {
+        $tcp = [System.Net.Sockets.TcpClient]::new([System.Net.Sockets.AddressFamily]::InterNetworkV6)
+        $result = $tcp.BeginConnect("::1", $port, $null, $null)
+        $success = $result.AsyncWaitHandle.WaitOne($timeout * 500)
         $tcp.Close()
         return $success
     } catch { return $false }
@@ -572,16 +580,34 @@ if (-not $SkipFrontend) {
                 $frontendLog = Join-Path $LogsDir "frontend.log"
                 $frontendErr = Join-Path $LogsDir "frontend.err.log"
 
-                $proc = Start-Process -FilePath "npm" `
-                    -ArgumentList "run", "dev" `
-                    -WorkingDirectory $FrontendDir `
-                    -RedirectStandardOutput $frontendLog `
-                    -RedirectStandardError $frontendErr `
-                    -WindowStyle Hidden `
-                    -PassThru
+                $npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
+                if (-not $npmCommand) {
+                    $npmCommand = Get-Command npm -ErrorAction SilentlyContinue
+                }
+                if (-not $npmCommand) {
+                    Write-Err "未找到 npm 或 npm.cmd，无法启动前端"
+                    Add-Result @{
+                        Name = "frontend"; PID = $null; Port = $FrontendPort
+                        Status = "NpmNotFound"; Type = "frontend"
+                        Log = $frontendErr
+                    }
+                    $proc = $null
+                } else {
+                    $NpmCmd = $npmCommand.Source
 
-                if (-not $proc) {
+                    $proc = Start-Process -FilePath "cmd.exe" `
+                        -ArgumentList "/c", "`"$NpmCmd`" run dev" `
+                        -WorkingDirectory $FrontendDir `
+                        -RedirectStandardOutput $frontendLog `
+                        -RedirectStandardError $frontendErr `
+                        -WindowStyle Hidden `
+                        -PassThru
+                }
+
+                if (-not $proc -and $npmCommand) {
                     Write-Err "前端进程创建失败"
+                } elseif (-not $npmCommand) {
+                    # 记录已在上方处理
                 } else {
                     $portOk = Wait-Port $FrontendPort "frontend" 60
                     if ($portOk) {

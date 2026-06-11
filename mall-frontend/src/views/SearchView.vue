@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
@@ -36,7 +37,7 @@ async function search() {
     response.value = await mallApi.searchProducts(keyword.value, pageNum.value, pageSize.value);
   } catch (err) {
     response.value = null;
-    error.value = err instanceof Error ? err.message : '搜索服务暂不可用';
+    notifyError(err instanceof Error ? err.message : '搜索服务暂不可用');
   } finally {
     loading.value = false;
   }
@@ -74,7 +75,7 @@ onMounted(() => {
 
     <PageState
       :loading="loading"
-      :error="error"
+      :error="''"
       :empty="!loading && !error && results.length === 0"
       empty-title="暂无搜索结果"
       empty-description="请调整关键字，或确认 mall-search 与 Elasticsearch 已启动。"

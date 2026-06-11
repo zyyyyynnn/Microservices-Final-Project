@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
@@ -71,7 +72,7 @@ async function loadAdmin() {
   await Promise.allSettled([dashboardTask, ordersTask, productsTask]);
 
   if (dashboardError.value || ordersError.value || productsError.value) {
-    error.value = '部分后台接口暂不可用，请查看各区域提示。';
+    notifyError('部分后台接口暂不可用，请查看各区域提示。');
   }
 }
 
@@ -83,7 +84,7 @@ async function ship() {
     ElMessage.success('发货请求已提交');
     await loadAdmin();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '发货失败';
+    notifyError(err instanceof Error ? err.message : '发货失败');
   } finally {
     shipping.value = false;
   }
@@ -94,7 +95,7 @@ onMounted(loadAdmin);
 
 <template>
   <section class="commerce-layout">
-    <PageState :loading="loading" :error="error" @retry="loadAdmin" />
+    <PageState :loading="loading" :error="''" @retry="loadAdmin" />
     <el-alert v-if="dashboardError" :title="dashboardError" type="warning" :closable="false" />
     <div class="stats-grid">
       <el-card class="metric-card">
@@ -118,7 +119,7 @@ onMounted(loadAdmin);
         </template>
         <PageState
           :loading="ordersLoading"
-          :error="ordersError"
+          :error="''"
           :empty="!ordersLoading && !ordersError && orders.length === 0"
           empty-title="订单列表为空"
           empty-description="后台订单接口当前未返回订单。"
@@ -154,7 +155,7 @@ onMounted(loadAdmin);
         </template>
         <PageState
           :loading="productsLoading"
-          :error="productsError"
+          :error="''"
           :empty="!productsLoading && !productsError && products.length === 0"
           empty-title="商品列表为空"
           empty-description="后台商品接口当前未返回商品。"

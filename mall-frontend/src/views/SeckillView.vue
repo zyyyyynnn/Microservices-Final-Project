@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
@@ -55,7 +56,7 @@ async function pollOnce() {
     }
   } catch (err) {
     stopPolling();
-    error.value = err instanceof Error ? err.message : '秒杀结果查询失败';
+    notifyError(err instanceof Error ? err.message : '秒杀结果查询失败');
   }
 }
 
@@ -80,7 +81,7 @@ async function loadActivities() {
   } catch (err) {
     activities.value = [];
     selected.value = null;
-    error.value = err instanceof Error ? err.message : '秒杀服务暂不可用';
+    notifyError(err instanceof Error ? err.message : '秒杀服务暂不可用');
   } finally {
     loading.value = false;
   }
@@ -93,7 +94,7 @@ async function loadDetail(activity: UnknownRecord) {
   try {
     selected.value = await mallApi.seckillActivity(id);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '活动详情加载失败';
+    notifyError(err instanceof Error ? err.message : '活动详情加载失败');
   }
 }
 
@@ -114,7 +115,7 @@ async function createSeckill() {
       pollMessage.value = '接口未返回 requestId，请稍后手动查询';
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '秒杀请求失败';
+    notifyError(err instanceof Error ? err.message : '秒杀请求失败');
   } finally {
     submitting.value = false;
   }
@@ -130,7 +131,7 @@ async function queryResult() {
       pollMessage.value = '结果仍在处理中，请稍后手动查询';
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '秒杀结果查询失败';
+    notifyError(err instanceof Error ? err.message : '秒杀结果查询失败');
   }
 }
 
@@ -146,7 +147,7 @@ onBeforeUnmount(() => stopPolling());
       </template>
       <PageState
         :loading="loading"
-        :error="error"
+        :error="''"
         :empty="!loading && !error && activities.length === 0"
         empty-title="暂无秒杀活动"
         empty-description="请确认 mall-seckill、Redis 和 Gateway 路由已启动。"

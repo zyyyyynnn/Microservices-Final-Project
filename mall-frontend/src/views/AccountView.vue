@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
@@ -33,7 +34,7 @@ async function load() {
     Object.assign(profile, auth.user || {});
     addresses.value = await mallApi.listAddresses();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '账户信息加载失败';
+    notifyError(err instanceof Error ? err.message : '账户信息加载失败');
   } finally {
     loading.value = false;
   }
@@ -45,7 +46,7 @@ async function saveProfile() {
     await load();
     ElMessage.success('资料已更新');
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '资料保存失败';
+    notifyError(err instanceof Error ? err.message : '资料保存失败');
   }
 }
 
@@ -55,7 +56,7 @@ async function addAddress() {
     await load();
     ElMessage.success('地址已新增');
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '地址新增失败';
+    notifyError(err instanceof Error ? err.message : '地址新增失败');
   }
 }
 
@@ -68,7 +69,7 @@ onMounted(load);
       <template #header>
         <div class="panel-title">账户资料</div>
       </template>
-      <PageState :loading="loading" :error="error" @retry="load" />
+      <PageState :loading="loading" :error="''" @retry="load" />
       <el-form v-if="!loading" label-position="top" :disabled="loading">
         <el-form-item label="昵称">
           <el-input v-model="profile.nickname" placeholder="填写昵称" />

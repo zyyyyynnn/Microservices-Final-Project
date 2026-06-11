@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -23,7 +24,7 @@ async function loadRecord() {
     payRecord.value = await mallApi.payRecord(orderNo);
   } catch (err) {
     payRecord.value = null;
-    error.value = err instanceof Error ? err.message : '支付记录加载失败';
+    notifyError(err instanceof Error ? err.message : '支付记录加载失败');
   } finally {
     loading.value = false;
   }
@@ -36,7 +37,7 @@ async function createPay() {
     ElMessage.success('支付记录已创建');
     await loadRecord();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '创建支付记录失败';
+    notifyError(err instanceof Error ? err.message : '创建支付记录失败');
   } finally {
     submitting.value = false;
   }
@@ -49,7 +50,7 @@ async function notifyPay() {
     ElMessage.success(`通知结果：${notifyResult.value}`);
     await loadRecord();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '支付通知失败';
+    notifyError(err instanceof Error ? err.message : '支付通知失败');
   } finally {
     submitting.value = false;
   }
@@ -63,7 +64,7 @@ onMounted(loadRecord);
     <div class="panel wide-panel">
       <div class="panel-title">支付收银台</div>
       
-      <PageState :loading="loading" :error="error" @retry="loadRecord" />
+      <PageState :loading="loading" :error="''" @retry="loadRecord" />
       
       <!-- 成功态 -->
       <div v-if="notifyResult === 'success' || field(payRecord, ['status']) === 1" class="pay-result">

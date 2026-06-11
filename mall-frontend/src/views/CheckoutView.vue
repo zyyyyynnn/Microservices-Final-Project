@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -42,7 +43,7 @@ async function load() {
       items.value = cart.items.filter((item) => item.selected !== false);
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '订单确认信息加载失败';
+    notifyError(err instanceof Error ? err.message : '订单确认信息加载失败');
   } finally {
     loading.value = false;
   }
@@ -60,7 +61,7 @@ async function submitOrder() {
     ElMessage.success(`订单已创建：${result.orderNo}`);
     router.push(`/orders/${result.orderNo}`);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '创建订单失败';
+    notifyError(err instanceof Error ? err.message : '创建订单失败');
   } finally {
     submitting.value = false;
   }
@@ -77,7 +78,7 @@ onMounted(load);
       </template>
       <PageState
         :loading="loading"
-        :error="error"
+        :error="''"
         @retry="load"
       />
       <div v-if="!loading && !error && items.length === 0" class="empty-action">

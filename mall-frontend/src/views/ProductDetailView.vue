@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -34,7 +35,7 @@ async function loadProduct() {
     selectedSkuId.value = dataSkus.length ? Number(field(dataSkus[0], ['skuId'], null)) : null;
   } catch (err) {
     product.value = null;
-    error.value = err instanceof Error ? err.message : '商品详情加载失败';
+    notifyError(err instanceof Error ? err.message : '商品详情加载失败');
   } finally {
     loading.value = false;
   }
@@ -67,7 +68,7 @@ onMounted(loadProduct);
 
 <template>
   <section>
-    <PageState :loading="loading" :error="error" @retry="loadProduct" />
+    <PageState :loading="loading" :error="''" @retry="loadProduct" />
 
     <div v-if="product && !loading" class="detail-layout">
       <div class="detail-media">

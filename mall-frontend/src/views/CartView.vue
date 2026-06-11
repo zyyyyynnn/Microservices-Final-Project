@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -23,7 +24,7 @@ async function load() {
   try {
     cart.value = await mallApi.cart();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '购物车加载失败';
+    notifyError(err instanceof Error ? err.message : '购物车加载失败');
   } finally {
     loading.value = false;
   }
@@ -36,7 +37,7 @@ async function updateQuantity(item: CartItem) {
     await load();
     ElMessage.success('数量已更新');
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '数量更新失败';
+    notifyError(err instanceof Error ? err.message : '数量更新失败');
   } finally {
     submittingSku.value = null;
   }
@@ -48,7 +49,7 @@ async function updateSelected(item: CartItem) {
     await mallApi.updateCartSelected(item.skuId, item.selected !== false);
     await load();
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '选中状态更新失败';
+    notifyError(err instanceof Error ? err.message : '选中状态更新失败');
   } finally {
     submittingSku.value = null;
   }
@@ -61,7 +62,7 @@ async function removeItem(item: CartItem) {
     await load();
     ElMessage.success('已删除商品');
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '删除失败';
+    notifyError(err instanceof Error ? err.message : '删除失败');
   } finally {
     submittingSku.value = null;
   }
@@ -82,7 +83,7 @@ onMounted(load);
       </template>
       <PageState
         :loading="loading"
-        :error="error"
+        :error="''"
         @retry="load"
       />
       <div v-if="!loading && !error && cart.items.length === 0" class="empty-action">

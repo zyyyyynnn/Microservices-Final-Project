@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
@@ -68,7 +69,7 @@ async function loadHome() {
       .filter((result): result is PromiseFulfilledResult<UnknownRecord> => result.status === 'fulfilled')
       .map((result) => result.value);
     if (categoryResult.status === 'rejected' || productResults.some((result) => result.status === 'rejected')) {
-      error.value = 'Gateway 或商品服务暂不可用，首页已进入错误状态。';
+      notifyError('Gateway 或商品服务暂不可用，首页已进入错误状态。');
     }
   } finally {
     loading.value = false;
@@ -88,7 +89,7 @@ onMounted(loadHome);
 
 <template>
   <div class="home-wrapper">
-    <PageState :loading="loading" :error="error" @retry="loadHome" />
+    <PageState :loading="loading" :error="''" @retry="loadHome" />
 
     <div v-if="!loading" class="home-grid">
       <!-- Top Section: Hero & Flow -->
@@ -312,6 +313,8 @@ onMounted(loadHome);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  width: 38%;
+  max-width: 400px;
   min-width: 0;
 }
 @media (max-width: 768px) {
@@ -323,24 +326,30 @@ onMounted(loadHome);
 }
 
 .hero-title {
-  font-size: 42px;
+  max-width: 400px;
+  font-size: 36px;
   font-weight: 800;
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
   letter-spacing: -0.02em;
-  white-space: nowrap;
+  line-height: 1.14;
+  white-space: normal;
 }
 
 .hero-subtitle {
+  max-width: 380px;
   font-size: 18px;
   color: var(--color-text-muted);
-  margin-bottom: 30px;
+  margin-bottom: 22px;
 }
 
 .hero-guarantees {
   display: flex;
   gap: var(--spacing-lg);
-  margin-bottom: 30px;
+  margin-bottom: 22px;
+  max-width: 390px;
+  flex-wrap: wrap;
+  row-gap: 10px;
 }
 
 .guarantee-item {

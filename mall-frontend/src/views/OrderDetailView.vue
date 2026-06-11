@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { mallApi } from '../api/mall';
@@ -21,7 +22,7 @@ async function load() {
     order.value = await mallApi.order(orderNo.value);
   } catch (err) {
     order.value = null;
-    error.value = err instanceof Error ? err.message : '订单详情加载失败';
+    notifyError(err instanceof Error ? err.message : '订单详情加载失败');
   } finally {
     loading.value = false;
   }
@@ -36,7 +37,7 @@ onMounted(load);
       <template #header>
         <div class="panel-title">订单详情</div>
       </template>
-      <PageState :loading="loading" :error="error" @retry="load" />
+      <PageState :loading="loading" :error="''" @retry="load" />
       <div v-if="order && !loading" class="order-header">
         <div>
           <span class="hint">订单号</span>

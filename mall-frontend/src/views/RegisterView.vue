@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { notifyError } from '../utils/notify';
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -21,7 +22,7 @@ function validate() {
 }
 
 async function submit() {
-  error.value = validate();
+  notifyError(validate());
   if (error.value) return;
   loading.value = true;
   try {
@@ -29,7 +30,7 @@ async function submit() {
     ElMessage.success('注册成功，请登录');
     router.push({ path: '/login', query: { username: form.username } });
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '注册失败';
+    notifyError(err instanceof Error ? err.message : '注册失败');
   } finally {
     loading.value = false;
   }
