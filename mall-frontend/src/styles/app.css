@@ -857,7 +857,7 @@ h6 {
 
 .summary-value {
   color: var(--color-text-primary);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
 }
 
 .summary-value.total-price {
