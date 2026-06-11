@@ -6,7 +6,7 @@ import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
-import { heroImage, seedCatalogProducts, resolveProductImage } from '../catalog/productAssets';
+import { heroImage, resolveProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
 
@@ -18,15 +18,9 @@ const products = ref<UnknownRecord[]>([]);
 const seckillProducts = ref<UnknownRecord[]>([]);
 const seckillError = ref(false);
 
-const displayProducts = computed(() => {
-  const byId = new Map<number, UnknownRecord>();
-  for (const item of seedCatalogProducts) byId.set(item.spuId, item);
-  for (const item of products.value) {
-    const id = Number(field(item, ['spuId', 'id'], 0));
-    if (id) byId.set(id, item);
-  }
-  return Array.from(byId.values()).slice(0, 6);
-});
+const homeProductIds = [1001, 1002, 1003, 1004, 1005, 1006];
+
+const displayProducts = computed(() => products.value.slice(0, 6));
 
 const categoryTabs = [
   { label: '精选推荐', keyword: '' },
@@ -60,10 +54,9 @@ async function loadHome() {
   seckillProducts.value = [];
   seckillError.value = false;
   try {
-    const productIds = seedCatalogProducts.map((item) => item.spuId);
     const [categoryResult, ...productResults] = await Promise.allSettled([
       mallApi.categories(),
-      ...productIds.map((id) => mallApi.product(id)),
+      ...homeProductIds.map((id) => mallApi.product(id)),
     ]);
     categories.value = categoryResult.status === 'fulfilled' ? categoryResult.value || [] : [];
     products.value = productResults
@@ -86,9 +79,12 @@ async function loadHome() {
       seckillError.value = true;
     }
 
-    if (categoryResult.status === 'rejected' || productResults.some((result) => result.status === 'rejected')) {
+    if (categoryResult.status === 'rejected' || products.value.length === 0) {
+      error.value = '商品服务暂不可用，无法加载首页商品';
       notifyError('Gateway 或商品服务暂不可用，首页已进入错误状态。');
     }
+  } catch (err) {
+    error.value = '商品服务暂不可用，无法加载首页商品';
   } finally {
     loading.value = false;
   }
@@ -115,7 +111,14 @@ onMounted(loadHome);
 
 <template>
   <div class="home-wrapper">
-    <PageState :loading="loading" :error="''" @retry="loadHome" />
+    <PageState
+      :loading="loading"
+      :error="error"
+      :empty="!loading && !error && displayProducts.length === 0"
+      empty-title="暂无推荐商品"
+      empty-description="请确认商品服务已启动并存在演示商品。"
+      @retry="loadHome"
+    />
 
     <div v-if="!loading" class="home-grid">
       <!-- Top Section: Hero & Flow -->

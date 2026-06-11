@@ -62,7 +62,7 @@
 - admin 登录后：可看到后台管理并进入 `/admin`
 
 ## 5. 结论
-**阶段一（含 1.5 补齐）有条件通过**
+**阶段一（含 1.5 和 1.6 补齐）有条件通过，待人工浏览器验收**
 
 条件：需人工完成上述 9 个页面的浏览器真实验收，确认无回归。
 
@@ -79,6 +79,12 @@
 - `mall-frontend/src/stores/auth.ts`
 - `mall-frontend/src/App.vue`
 - `mall-frontend/src/styles/app.css`
+
+**阶段 1.6 新增/修正项：**
+- **移除首页假数据兜底**：`seedCatalogProducts` 已从数据流中彻底移除。
+- **首页商品只来自接口**：首页商品现已完全依赖 `mallApi.product(id)` 接口，不再伪造商品属性（名称、价格、库存等）。
+- **首页错误态与空态处理**：通过修复 `PageState` 传参，若接口无法返回数据，则明确展示为错误态或空态。
+- **文案清理**：清理了 `ProductCard.vue` 里的 `精选商品` 营销假文案，替换为中性的真实缺省表达 `暂无商品描述`。
 
 **阶段 1.5 新增/修正项：**
 - **商品图 resolver 真正统一**：`resolveProductImage` 重写为唯一入口（只读 spuId，不兜底 id/skuId），ProductCard/Home/ProductDetail 全部切换

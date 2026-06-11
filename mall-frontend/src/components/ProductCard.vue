@@ -30,7 +30,7 @@ const image = computed(() => resolveProductImage(props.product));
         <span>销量 {{ field(product, ['sales'], 0) }}</span>
       </div>
       <h2>{{ productName(product) }}</h2>
-      <p>{{ field(product, ['description', 'brand'], '精选商品') }}</p>
+      <p>{{ field(product, ['description', 'brand'], '暂无商品描述') }}</p>
       <div class="product-bottom">
         <strong>{{ money(price) }}</strong>
         <span v-if="stock !== null">库存 {{ stock }}</span>
