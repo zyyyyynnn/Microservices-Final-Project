@@ -32,7 +32,7 @@ INSERT INTO `spu` (id, name, description, main_image, category_id, brand, mercha
 (1009, '蓝山挂耳咖啡礼盒', '香醇阿拉比卡豆', '/products/1009-coffee-gift-box.svg', 611, '蓝山', 1006, 1, 1200),
 (1010, '每日坚果礼盒 30 包', '健康营养补充', '/products/1010-nuts-gift-box.svg', 621, '三只松鼠', 1006, 1, 3000),
 (1011, 'Nike Pegasus 跑步鞋', '减震透气', '/products/1011-nike-running-shoes.svg', 711, 'Nike', 1005, 1, 950),
-(1012, '迪卡侬加厚瑜伽垫', '环保防滑', '/products/1012-yoga-mat.svg', 721, '迪卡侬', 1006, 1, 1800)
+(1012, '小米智能台灯', '护眼防蓝光', '/products/1012-desk-lamp.svg', 311, '小米', 1006, 1, 1800)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   description = VALUES(description),
@@ -56,7 +56,7 @@ INSERT INTO `sku` (id, spu_id, spec_json, price, original_price, image, status) 
 (9009, 1009, '{"口味":"经典蓝山"}', 199.00, 259.00, '/products/1009-coffee-gift-box.svg', 1),
 (9010, 1010, '{"规格":"30包/箱"}', 129.00, 169.00, '/products/1010-nuts-gift-box.svg', 1),
 (9011, 1011, '{"尺码":"42"}', 699.00, 899.00, '/products/1011-nike-running-shoes.svg', 1),
-(9012, 1012, '{"厚度":"10mm"}', 89.00, 129.00, '/products/1012-yoga-mat.svg', 1)
+(9012, 1012, '{"颜色":"白色"}', 149.00, 169.00, '/products/1012-desk-lamp.svg', 1)
 ON DUPLICATE KEY UPDATE
   spu_id = VALUES(spu_id),
   spec_json = VALUES(spec_json),

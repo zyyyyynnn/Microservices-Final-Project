@@ -18,9 +18,13 @@ const products = ref<UnknownRecord[]>([]);
 const seckillProducts = ref<UnknownRecord[]>([]);
 const seckillError = ref(false);
 
-const homeProductIds = [1001, 1002, 1003, 1004, 1005, 1006];
+const homeProductIds = [
+  1001, 1007, 1009, 1011,
+  1005, 1008, 1010, 1012,
+  1002, 1003, 1004, 1006,
+];
 
-const displayProducts = computed(() => products.value.slice(0, 6));
+const displayProducts = computed(() => products.value.slice(0, 12));
 
 const categoryTabs = [
   { label: '精选推荐', keyword: '' },

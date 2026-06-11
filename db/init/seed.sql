@@ -57,87 +57,42 @@ INSERT INTO `category` (id, parent_id, name, level, sort) VALUES
 (4, 0, '服饰鞋包', 1, 4),
 (5, 0, '美妆个护', 1, 5),
 (6, 0, '食品生鲜', 1, 6),
-(7, 0, '运动户外', 1, 7),
-(8, 0, '图书音像', 1, 8),
-(9, 0, '母婴玩具', 1, 9),
-(10, 0, '汽车用品', 1, 10),
 
-(11, 1, '手机通讯', 2, 1),
-(12, 1, '手机配件', 2, 2),
-(13, 1, '摄影摄像', 2, 3),
--- ============================================================
--- MallCloud 种子数据
--- 所有测试账号密码统一为 123456（BCrypt cost=10）
--- ============================================================
-
-USE `mall_user`;
-
--- 测试用户
-INSERT INTO `user` (id, username, phone, nickname, status) VALUES
-(1001, 'zhangsan', '13800138001', '张三', 1),
-(1002, 'lisi',     '13800138002', '李四', 1),
-(1003, 'wangwu',   '13800138003', '王五', 1),
-(1004, 'zhaoliu',  '13800138004', '赵六', 1),
-(1005, 'merchant01','13800138005', '苹果旗舰店', 1),
-(1006, 'merchant02','13800138006', '小米之家', 1),
-(1007, 'admin',    '13800138000', '超级管理员', 1),
-(1008, 'user1',    '13800138011', '测试1', 1),
-(1009, 'user2',    '13800138012', '测试2', 1),
-(1010, 'user3',    '13800138013', '测试3', 1);
-
--- 用户地址
-INSERT INTO `address` (user_id, receiver, phone, province, city, district, detail, is_default) VALUES
-(1001, '张三', '13800138001', '北京市', '北京市', '海淀区', '中关村大街1号院1号楼101', 1),
-(1001, '张三', '13800138001', '北京市', '北京市', '朝阳区', '国贸中心B座2008', 0),
-(1002, '李四', '13800138002', '上海市', '上海市', '浦东新区', '世纪大道100号', 1);
-
--- ============================================================
-USE `mall_auth`;
-
--- BCrypt cost=10 of "123456"
-SET @BCRYPT_PWD = '$2y$10$k8Z56rLWfoKE6XNip7PenuX5tiKdD.QB93WSNZLHH4Y2fOg7.16Ku';
-
-INSERT INTO `sys_user_auth`
-    (user_id, identity_type, identifier, credential, role)
-VALUES
-(1001, 'PASSWORD', 'zhangsan',    @BCRYPT_PWD, 'USER'),
-(1002, 'PASSWORD', 'lisi',        @BCRYPT_PWD, 'USER'),
-(1003, 'PASSWORD', 'wangwu',      @BCRYPT_PWD, 'USER'),
-(1004, 'PASSWORD', 'zhaoliu',     @BCRYPT_PWD, 'USER'),
-(1005, 'PASSWORD', 'merchant01',  @BCRYPT_PWD, 'MERCHANT'),
-(1006, 'PASSWORD', 'merchant02',  @BCRYPT_PWD, 'MERCHANT'),
-(1007, 'PASSWORD', 'admin',       @BCRYPT_PWD, 'ADMIN'),
-(1008, 'PASSWORD', 'user1',       @BCRYPT_PWD, 'USER'),
-(1009, 'PASSWORD', 'user2',       @BCRYPT_PWD, 'USER'),
-(1010, 'PASSWORD', 'user3',       @BCRYPT_PWD, 'USER'),
-(1001, 'PHONE',    '13800138001', @BCRYPT_PWD, 'USER'),
-(1002, 'PHONE',    '13800138002', @BCRYPT_PWD, 'USER');
-
--- ============================================================
-USE `mall_product`;
-
--- 三级类目
-INSERT INTO `category` (id, parent_id, name, level, sort) VALUES
-(1, 0, '手机数码', 1, 1),
-(2, 0, '电脑办公', 1, 2),
-(3, 0, '家用电器', 1, 3),
-(4, 0, '服饰鞋包', 1, 4),
-(5, 0, '美妆个护', 1, 5),
-(6, 0, '食品生鲜', 1, 6),
-(7, 0, '运动户外', 1, 7),
-(8, 0, '图书音像', 1, 8),
-(9, 0, '母婴玩具', 1, 9),
-(10, 0, '汽车用品', 1, 10),
-
-(11, 1, '手机通讯', 2, 1),
-(12, 1, '手机配件', 2, 2),
-(13, 1, '摄影摄像', 2, 3),
-(14, 1, '数码配件', 2, 4),
-(15, 1, '影音娱乐', 2, 5),
 
 (111, 11, '智能手机', 3, 1),
 (112, 11, '老人机', 3, 2),
 (113, 11, '对讲机', 3, 3),
+
+(21, 2, '电脑整机', 2, 1),
+(22, 2, '电脑配件', 2, 2),
+(23, 2, '外设产品', 2, 3),
+(24, 2, '办公设备', 2, 4),
+(211, 21, '笔记本', 3, 1),
+(212, 21, '台式机', 3, 2),
+(213, 21, '一体机', 3, 3),
+(221, 22, 'CPU', 3, 1),
+(222, 22, '主板', 3, 2),
+(223, 22, '显卡', 3, 3),
+(231, 23, '鼠标', 3, 1),
+
+(31, 3, '生活电器', 2, 1),
+(311, 31, '台灯', 3, 1),
+
+(51, 5, '彩妆', 2, 1),
+(52, 5, '面部护肤', 2, 2),
+(511, 51, '口红', 3, 1),
+(521, 52, '精华', 3, 1),
+
+(61, 6, '冲调饮品', 2, 1),
+(62, 6, '休闲零食', 2, 2),
+(611, 61, '咖啡', 3, 1),
+(621, 62, '坚果', 3, 1),
+
+(71, 7, '运动鞋包', 2, 1),
+(72, 7, '健身训练', 2, 2),
+(711, 71, '跑步鞋', 3, 1),
+(721, 72, '瑜伽垫', 3, 1);
+
 -- 演示 SPU
 INSERT INTO `spu` (id, name, description, main_image, category_id, brand, merchant_id, status, sales) VALUES
 (1001, 'iPhone 15 Pro 256G 钛原色', 'Apple iPhone 15 Pro 256G 钛原色', '/products/1001-iphone-15-pro.svg', 111, 'Apple', 1005, 1, 234),
@@ -151,7 +106,7 @@ INSERT INTO `spu` (id, name, description, main_image, category_id, brand, mercha
 (1009, '蓝山挂耳咖啡礼盒', '香醇阿拉比卡豆', '/products/1009-coffee-gift-box.svg', 611, '蓝山', 1006, 1, 1200),
 (1010, '每日坚果礼盒 30 包', '健康营养补充', '/products/1010-nuts-gift-box.svg', 621, '三只松鼠', 1006, 1, 3000),
 (1011, 'Nike Pegasus 跑步鞋', '减震透气', '/products/1011-nike-running-shoes.svg', 711, 'Nike', 1005, 1, 950),
-(1012, '迪卡侬加厚瑜伽垫', '环保防滑', '/products/1012-yoga-mat.svg', 721, '迪卡侬', 1006, 1, 1800);
+(1012, '小米智能台灯', '护眼防蓝光', '/products/1012-desk-lamp.svg', 311, '小米', 1006, 1, 1800);
 
 -- 演示 SKU
 INSERT INTO `sku` (id, spu_id, spec_json, price, original_price, image, status) VALUES
@@ -166,7 +121,7 @@ INSERT INTO `sku` (id, spu_id, spec_json, price, original_price, image, status) 
 (9009, 1009, '{"口味":"经典蓝山"}', 199.00, 259.00, '/products/1009-coffee-gift-box.svg', 1),
 (9010, 1010, '{"规格":"30包/箱"}', 129.00, 169.00, '/products/1010-nuts-gift-box.svg', 1),
 (9011, 1011, '{"尺码":"42"}', 699.00, 899.00, '/products/1011-nike-running-shoes.svg', 1),
-(9012, 1012, '{"厚度":"10mm"}', 89.00, 129.00, '/products/1012-yoga-mat.svg', 1);
+(9012, 1012, '{"颜色":"白色"}', 149.00, 169.00, '/products/1012-desk-lamp.svg', 1);
 
 -- SPU 属性
 INSERT INTO `spu_attr` (spu_id, attr_name, attr_value) VALUES
