@@ -15,10 +15,10 @@ type CatalogProduct = UnknownRecord & {
 export const onlineImageSources = [
   'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9', // iPhone
   'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', // MacBook
-  'https://images.unsplash.com/photo-1620916566398-39f1143ab7be', // Beauty
-  'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a', // Nike Shoes
-  'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30', // Fridge
-  'https://images.unsplash.com/photo-1518843875459-f738682238a6', // Coffee Machine
+  'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5', // iPad/Phone
+  'https://images.unsplash.com/photo-1598327105666-5b89351aff97', // Xiaomi 14
+  'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb', // Huawei Mate
+  'https://images.unsplash.com/photo-1542393545-10f5cde2c227', // Apple Watch / iPad
 ];
 
 const imageParams = '?auto=format&fit=crop&w=900&q=80';
@@ -26,10 +26,10 @@ const imageParams = '?auto=format&fit=crop&w=900&q=80';
 export const productImagesBySpuId: Record<number, string> = {
   1001: `https://images.unsplash.com/photo-1511707171634-5f897ff02aa9${imageParams}`,
   1002: `https://images.unsplash.com/photo-1517336714731-489689fd1ca8${imageParams}`,
-  1003: `https://images.unsplash.com/photo-1620916566398-39f1143ab7be${imageParams}`,
-  1004: `https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a${imageParams}`,
-  1005: `https://images.unsplash.com/photo-1584568694244-14fbdf83bd30${imageParams}`,
-  1006: `https://images.unsplash.com/photo-1518843875459-f738682238a6${imageParams}`,
+  1003: `https://images.unsplash.com/photo-1598327105666-5b89351aff97${imageParams}`,
+  1004: `https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb${imageParams}`,
+  1005: `https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5${imageParams}`,
+  1006: `https://images.unsplash.com/photo-1542393545-10f5cde2c227${imageParams}`,
 };
 
 export const heroImage = new URL('../assets/hero/mallcloud-hero.png', import.meta.url).href;
@@ -37,18 +37,18 @@ export const heroImage = new URL('../assets/hero/mallcloud-hero.png', import.met
 export const seedCatalogProducts: CatalogProduct[] = [
   {
     spuId: 1001,
-    name: 'iPhone 15 128GB',
+    name: 'iPhone 15 Pro 256GB',
     description: '支持移动联通电信5G',
     brand: 'Apple',
     mainImage: productImagesBySpuId[1001],
     status: 1,
     sales: 234,
-    skus: [{ skuId: 9001, spec: '默认 / 128G', price: 5999, stock: 128 }],
+    skus: [{ skuId: 9001, spec: '钛金属 / 256G', price: 7999, stock: 128 }],
   },
   {
     spuId: 1002,
     name: 'Apple MacBook Air 15.3英寸',
-    description: 'M2芯片 8G 256G',
+    description: 'M3芯片 8G 256G',
     brand: 'Apple',
     mainImage: productImagesBySpuId[1002],
     status: 1,
@@ -57,43 +57,43 @@ export const seedCatalogProducts: CatalogProduct[] = [
   },
   {
     spuId: 1003,
-    name: 'SK-II 神仙水护肤套装',
-    description: '经典礼盒，深度保湿修护',
-    brand: 'SK-II',
+    name: '小米 14 Pro 16+512 黑色',
+    description: '骁龙 8 Gen3，徕卡光学',
+    brand: '小米',
     mainImage: productImagesBySpuId[1003],
     status: 1,
     sales: 890,
-    skus: [{ skuId: 9004, spec: '经典版', price: 1540, stock: 140 }],
+    skus: [{ skuId: 9004, spec: '黑色 / 512G', price: 5499, stock: 140 }],
   },
   {
     spuId: 1004,
-    name: "Nike Air Force 1 '07",
-    description: '经典纯白 男女子款',
-    brand: 'Nike',
+    name: '华为 Mate 60 Pro 12+512',
+    description: '麒麟 9000S，卫星通话',
+    brand: '华为',
     mainImage: productImagesBySpuId[1004],
     status: 1,
     sales: 1500,
-    skus: [{ skuId: 9006, spec: '纯白 / 42码', price: 699, stock: 88 }],
+    skus: [{ skuId: 9006, spec: '雅川青 / 512G', price: 6999, stock: 88 }],
   },
   {
     spuId: 1005,
-    name: '小米米家冰箱 十字对开门',
-    description: '485L 超薄嵌入',
-    brand: '小米',
+    name: 'Apple iPad Pro 11英寸',
+    description: 'M4芯片 256G WLAN版',
+    brand: 'Apple',
     mainImage: productImagesBySpuId[1005],
     status: 1,
     sales: 345,
-    skus: [{ skuId: 9007, spec: '银色 / 485L', price: 2699, stock: 64 }],
+    skus: [{ skuId: 9007, spec: '深空灰色 / 256G', price: 8999, stock: 64 }],
   },
   {
     spuId: 1006,
-    name: '德龙 (DeLonghi) 半自动',
-    description: '意式咖啡机，家用专业级',
-    brand: 'DeLonghi',
+    name: 'Apple Watch Ultra 2',
+    description: 'GPS+蜂窝 钛金属表壳',
+    brand: 'Apple',
     mainImage: productImagesBySpuId[1006],
     status: 1,
     sales: 120,
-    skus: [{ skuId: 9008, spec: '银色款', price: 1899, stock: 45 }],
+    skus: [{ skuId: 9008, spec: '原色 / 海洋表带', price: 6499, stock: 45 }],
   },
 ];
 

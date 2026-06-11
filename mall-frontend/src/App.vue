@@ -45,7 +45,7 @@ function isActive(path: string) {
     <el-header class="app-header">
       <div class="header-main">
         <RouterLink class="brand" to="/" aria-label="MallCloud 首页">
-          <svg class="brand-logo" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="brand-logo" style="flex-shrink: 0;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.5 29C10.0147 29 8 26.9853 8 24.5C8 22.0147 10.0147 20 12.5 20C13.0697 20 13.6152 20.1066 14.1197 20.3015C15.0113 16.1438 18.6836 13 23 13C27.9706 13 32 17.0294 32 22C32 22.0844 31.9988 21.849 31.9965 21.9324C32.32 21.9772 32.656 22 33 22C36.3137 22 39 24.6863 39 28C39 31.3137 36.3137 34 33 34H12.5C10.0147 34 8 31.9853 8 29.5C8 27.0147 10.0147 25 12.5 25Z" fill="var(--color-brand)"/>
             <path d="M21 21H27L25.8 30H22.2L21 21Z" fill="var(--color-surface)"/>
             <path d="M22 21V19C22 17.8954 22.8954 17 24 17C25.1046 17 26 17.8954 26 19V21" stroke="var(--color-surface)" stroke-width="2" stroke-linecap="round"/>
@@ -187,18 +187,18 @@ function isActive(path: string) {
   flex: 1;
   max-width: 400px;
 }
+
 .search-input :deep(.el-input-group__append) {
   background-color: var(--color-brand);
   color: white;
+  border: 1px solid var(--color-brand);
+}
+.search-input :deep(.el-input-group__append button.el-button) {
+  color: white;
   border: none;
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
 }
-.search-input :deep(.el-input__wrapper) {
-  border-top-left-radius: 20px;
-  border-bottom-left-radius: 20px;
-  box-shadow: 0 0 0 1px var(--color-brand) inset;
-}
+
+
 .header-actions {
   display: flex;
   align-items: center;

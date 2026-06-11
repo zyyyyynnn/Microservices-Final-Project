@@ -93,7 +93,7 @@ onMounted(loadHome);
     <div v-if="!loading" class="home-grid">
       <!-- Top Section: Hero & Flow -->
       <div class="hero-section">
-        <div class="hero-banner">
+        <div class="hero-banner" :style="{ backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center right', backgroundRepeat: 'no-repeat' }">
           <div class="hero-content">
             <h1 class="hero-title">MallCloud 让购物更简单</h1>
             <p class="hero-subtitle">精选好物 · 品质保障 · 极速送达</p>
@@ -125,10 +125,6 @@ onMounted(loadHome);
             <RouterLink to="/search" class="hero-action">
               <el-button type="primary" size="large" class="hero-btn">立即选购 <el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
             </RouterLink>
-          </div>
-
-          <div class="hero-image">
-            <img :src="heroImage" alt="MallCloud Products" />
           </div>
         </div>
 
@@ -276,7 +272,7 @@ onMounted(loadHome);
 
 <style scoped>
 .home-wrapper {
-  width: min(1720px, calc(100vw - 48px));
+  width: min(1440px, calc(100vw - 80px));
   margin: 0 auto;
   padding: 24px 0 56px;
 }
@@ -291,7 +287,7 @@ onMounted(loadHome);
 /* Hero Section */
 .hero-section {
   display: grid;
-  grid-template-columns: minmax(420px, 0.92fr) minmax(520px, 1.08fr);
+  grid-template-columns: minmax(600px, 2.2fr) minmax(320px, 0.8fr);
   gap: var(--spacing-lg);
 }
 
