@@ -101,6 +101,8 @@ function selectCategory(tab: { label: string; keyword: string }) {
   }
 }
 
+import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
+
 function getPrice(product: UnknownRecord) {
   const skus = product.skus as UnknownRecord[] | undefined;
   return Number(field(skus?.[0], ['price'], 0)).toFixed(2);
@@ -109,12 +111,12 @@ function getImage(product: UnknownRecord) {
   return resolveProductImage(product);
 }
 function getSeckillImage(activity: UnknownRecord) {
-  // 秒杀活动可能包含 spuId 字段，优先使用；其次尝试从 skuId 反推（需后端配合）
-  const spuId = field<number>(activity, ['spuId'], 0);
-  if (spuId) {
-    return resolveProductImage({ spuId });
-  }
-  // 兜底：若无 spuId，返回空字符串让 ProductImage 组件显示 placeholder
+  const directImage = field<string>(activity, ['mainImage', 'image'], '');
+  if (directImage) return directImage;
+
+  const spuId = Number(field(activity, ['spuId'], 0)) || demoSpuIdBySkuId(field(activity, ['skuId'], 0));
+  if (spuId) return resolveProductImage({ spuId });
+
   return '';
 }
 

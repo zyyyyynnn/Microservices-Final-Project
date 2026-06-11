@@ -6,9 +6,26 @@ import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import OrderSummary from '../components/OrderSummary.vue';
-import type { Cart, CartItem } from '../api/types';
-import { money } from '../utils/format';
+import type { Cart, CartItem, UnknownRecord } from '../api/types';
+import { money, field } from '../utils/format';
 import ProductImage from '../components/ProductImage.vue';
+import { demoSkuById } from '../catalog/catalogLookup';
+
+function cartSkuMeta(row: UnknownRecord) {
+  return demoSkuById(field(row, ['skuId']));
+}
+
+function cartItemName(row: UnknownRecord) {
+  return field(row, ['skuName', 'productName', 'name'], '') || cartSkuMeta(row)?.name || '商品信息不完整';
+}
+
+function cartItemSpec(row: UnknownRecord) {
+  return field(row, ['spec', 'skuSpec'], '') || cartSkuMeta(row)?.spec || `SKU ${field(row, ['skuId'], '-')}`;
+}
+
+function cartItemImage(row: UnknownRecord) {
+  return field(row, ['skuImage', 'image', 'mainImage'], '') || cartSkuMeta(row)?.image || '';
+}
 
 const router = useRouter();
 const loading = ref(false);
@@ -102,16 +119,15 @@ onMounted(load);
             />
           </template>
         </el-table-column>
-        <el-table-column prop="skuName" label="商品" min-width="220">
+        <el-table-column label="商品" min-width="220">
           <template #default="{ row }">
             <div class="line-item">
               <div class="thumb">
-                <ProductImage v-if="row.skuImage" :src="row.skuImage" :alt="row.skuName || '商品图片'" />
-                <span v-else>SKU</span>
+                <ProductImage :src="cartItemImage(row)" :alt="cartItemName(row)" />
               </div>
               <div>
-                <strong>{{ row.skuName || '商品名称待联调' }}</strong>
-                <span>SKU {{ row.skuId }}</span>
+                <strong>{{ cartItemName(row) }}</strong>
+                <span>{{ cartItemSpec(row) }}</span>
               </div>
             </div>
           </template>

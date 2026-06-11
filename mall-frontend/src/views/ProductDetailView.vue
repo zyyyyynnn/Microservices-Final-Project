@@ -105,17 +105,24 @@ onMounted(loadProduct);
         <p>{{ field(product, ['description'], '商品描述由商品服务返回，当前为空。') }}</p>
         <div class="price-line">{{ money(field(selectedSku, ['price'], 0)) }}</div>
 
-        <div class="sku-list">
-          <button
-            v-for="sku in skus"
-            :key="String(field(sku, ['skuId']))"
-            class="sku-option"
-            :class="{ active: Number(field(sku, ['skuId'])) === selectedSkuId }"
-            @click="selectedSkuId = Number(field(sku, ['skuId']))"
-          >
-            <strong>{{ formatSkuSpec(sku) }}</strong>
-            <span>SKU {{ field(sku, ['skuId']) }} <template v-if="Number(field(sku, ['skuId'])) === selectedSkuId">/ 库存 {{ remoteStock !== null ? remoteStock : '...' }}</template></span>
-          </button>
+        <div class="sku-section">
+          <div class="sku-label">选择规格</div>
+          <div class="sku-options">
+            <button
+              v-for="sku in skus"
+              :key="String(field(sku, ['skuId']))"
+              class="sku-chip"
+              :class="{ active: Number(field(sku, ['skuId'])) === selectedSkuId }"
+              @click="selectedSkuId = Number(field(sku, ['skuId']))"
+            >
+              {{ formatSkuSpec(sku) }}
+            </button>
+          </div>
+          <div class="stock-line">
+            <span v-if="fetchingStock">正在获取实时库存...</span>
+            <span v-else-if="remoteStock !== null">实时库存：{{ remoteStock }}</span>
+            <span v-else>请选择规格</span>
+          </div>
         </div>
 
         <div class="purchase-row">
@@ -125,7 +132,7 @@ onMounted(loadProduct);
         </div>
         <el-alert
           v-if="skus.length === 0"
-          title="SKU 数据待联调，加入购物车和立即结算已禁用。"
+          title="SKU 数据缺失，加入购物车和立即结算已禁用。"
           type="warning"
           :closable="false"
           class="mt"
