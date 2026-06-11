@@ -7,7 +7,6 @@ import { mallApi } from '../api/mall';
 
 const router = useRouter();
 const loading = ref(false);
-const error = ref('');
 const form = reactive({
   username: '',
   phone: '',
@@ -22,8 +21,11 @@ function validate() {
 }
 
 async function submit() {
-  notifyError(validate());
-  if (error.value) return;
+  const validationError = validate();
+  if (validationError) {
+    notifyError(validationError);
+    return;
+  }
   loading.value = true;
   try {
     await mallApi.register(form);
@@ -43,7 +45,6 @@ async function submit() {
       <template #header>
         <div class="panel-title">注册 MallCloud 用户</div>
       </template>
-      <el-alert v-if="error" :title="error" type="error" :closable="false" class="mb" />
       <el-form label-position="top" @submit.prevent="submit">
         <el-form-item label="用户名">
           <el-input v-model="form.username" autocomplete="username" />
@@ -54,9 +55,9 @@ async function submit() {
         <el-form-item label="密码">
           <el-input v-model="form.password" type="password" show-password autocomplete="new-password" />
         </el-form-item>
-        <div style="display: flex; gap: var(--spacing-md);">
-          <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading" style="flex: 1;">注册</el-button>
-          <el-button plain @click="router.push('/login')" style="flex: 1;">返回登录</el-button>
+        <div class="auth-actions">
+          <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading">注册</el-button>
+          <el-button plain @click="router.push('/login')">返回登录</el-button>
         </div>
       </el-form>
       <p class="hint">公开注册只创建 USER 角色，商家和管理员使用演示账号登录。</p>
