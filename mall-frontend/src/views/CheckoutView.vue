@@ -8,6 +8,35 @@ import PageState from '../components/PageState.vue';
 import OrderSummary from '../components/OrderSummary.vue';
 import type { Address, CartItem } from '../api/types';
 import { money } from '../utils/format';
+import { demoSkuById } from '../catalog/catalogLookup';
+import ProductImage from '../components/ProductImage.vue';
+
+function checkoutSkuMeta(row: CartItem) {
+  return demoSkuById(row.skuId);
+}
+
+function checkoutItemName(row: CartItem) {
+  return row.skuName || checkoutSkuMeta(row)?.name || '商品信息不完整';
+}
+
+function checkoutItemSpec(row: CartItem) {
+  return checkoutSkuMeta(row)?.spec || `SKU ${row.skuId}`;
+}
+
+function checkoutItemImage(row: CartItem) {
+  return row.skuImage || checkoutSkuMeta(row)?.image || '';
+}
+
+function checkoutItemPrice(row: CartItem) {
+  const price = Number(row.price ?? 0);
+  return price > 0 ? money(price) : '—';
+}
+
+function checkoutItemSubtotal(row: CartItem) {
+  const subtotal = Number(row.subtotal ?? Number(row.price || 0) * Number(row.quantity || 0));
+  return subtotal > 0 ? money(subtotal) : '—';
+}
+
 
 const route = useRoute();
 const router = useRouter();
@@ -32,9 +61,12 @@ async function load() {
     addresses.value = await mallApi.listAddresses();
     selectedAddressId.value = addresses.value[0]?.id || 1;
     if (directItem.value) {
+      const skuId = Number(route.query.skuId);
+      const meta = demoSkuById(skuId);
       items.value = [{
-        skuId: Number(route.query.skuId),
-        skuName: '来自商品详情的直接结算商品',
+        skuId,
+        skuName: meta?.name,
+        skuImage: meta?.image,
         quantity: Number(route.query.quantity || 1),
         selected: true,
       }];
@@ -71,7 +103,7 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="page-grid two">
+  <section class="cart-layout">
     <el-card class="panel wide-panel">
       <template #header>
         <div class="panel-title">订单确认</div>
@@ -104,17 +136,35 @@ onMounted(load);
             </div>
           </div>
         </div>
-        <el-alert v-if="!addresses.length" title="地址接口未返回数据，默认使用地址 ID 1 创建订单。" type="warning" :closable="false" />
+        <el-alert v-if="!addresses.length" title="暂无收货地址，请先在账户页维护地址；演示环境将使用默认地址提交。" type="warning" :closable="false" />
 
         <h2 class="section-title">订单商品</h2>
         <div class="table-scroll">
           <el-table :data="items" class="stable-table">
-            <el-table-column prop="skuName" label="商品" min-width="220" />
-            <el-table-column prop="skuId" label="SKU" width="120" />
-            <el-table-column label="单价" width="120">
-              <template #default="{ row }">{{ row.price ? money(row.price) : '以订单服务为准' }}</template>
+            <el-table-column label="商品" min-width="280">
+              <template #default="{ row }">
+                <div class="line-item">
+                  <div class="thumb">
+                    <ProductImage :src="checkoutItemImage(row)" :alt="checkoutItemName(row)" />
+                  </div>
+                  <div class="item-info">
+                    <strong>{{ checkoutItemName(row) }}</strong>
+                    <span>{{ checkoutItemSpec(row) }}</span>
+                  </div>
+                </div>
+              </template>
             </el-table-column>
-            <el-table-column prop="quantity" label="数量" width="100" />
+            <el-table-column label="单价" width="120">
+              <template #default="{ row }">
+                <span class="price-cell">{{ checkoutItemPrice(row) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="quantity" label="数量" width="100" align="center" />
+            <el-table-column label="小计" width="120">
+              <template #default="{ row }">
+                <span class="subtotal-cell">{{ checkoutItemSubtotal(row) }}</span>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
         <el-form label-position="top" class="mt">
@@ -125,7 +175,7 @@ onMounted(load);
       </div>
     </el-card>
 
-    <el-card class="panel">
+    <el-card class="panel summary-panel">
       <template #header>
         <div class="panel-title">金额汇总</div>
       </template>
