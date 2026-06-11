@@ -6,7 +6,7 @@ import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
-import { field, money, productImage, productName, productStatusMap, skuList, statusText } from '../utils/format';
+import { field, money, productImage, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
 import { onlineProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
 
@@ -48,7 +48,11 @@ async function loadProduct() {
   loading.value = true;
   error.value = '';
   try {
-    const data = await mallApi.product(Number(route.params.id || 1001));
+    const id = Number(route.params.id);
+    if (!id) {
+      throw new Error('商品 ID 缺失');
+    }
+    const data = await mallApi.product(id);
     product.value = data;
     const dataSkus = skuList(data);
     selectedSkuId.value = dataSkus.length ? Number(field(dataSkus[0], ['skuId'], null)) : null;
@@ -109,7 +113,7 @@ onMounted(loadProduct);
             :class="{ active: Number(field(sku, ['skuId'])) === selectedSkuId }"
             @click="selectedSkuId = Number(field(sku, ['skuId']))"
           >
-            <strong>{{ field(sku, ['spec'], '默认规格') }}</strong>
+            <strong>{{ formatSkuSpec(sku) }}</strong>
             <span>SKU {{ field(sku, ['skuId']) }} <template v-if="Number(field(sku, ['skuId'])) === selectedSkuId">/ 库存 {{ remoteStock !== null ? remoteStock : '...' }}</template></span>
           </button>
         </div>

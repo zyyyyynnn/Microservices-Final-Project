@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/orders/:orderNo', name: 'order-detail', component: OrderDetailView, meta: { auth: true } },
   { path: '/pay/:orderNo', name: 'pay', component: PayView, meta: { auth: true } },
   { path: '/seckill', name: 'seckill', component: SeckillView, meta: { auth: true } },
-  { path: '/admin', name: 'admin', component: AdminView, meta: { auth: true } },
+  { path: '/admin', name: 'admin', component: AdminView, meta: { auth: true, roles: ['ADMIN', 'MERCHANT'] } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ];
 
@@ -35,10 +35,21 @@ export const router = createRouter({
   routes,
 });
 
+function hasRole(userRoles: string[], requiredRoles: string[]): boolean {
+  return requiredRoles.some(role => userRoles.includes(role));
+}
+
 router.beforeEach((to) => {
   const auth = useAuthStore();
   if (to.meta.auth && !auth.isAuthenticated) {
     return { path: '/login', query: { redirect: to.fullPath } };
+  }
+  const requiredRoles = to.meta.roles as string[] | undefined;
+  if (requiredRoles && requiredRoles.length > 0) {
+    if (!hasRole(auth.roles, requiredRoles)) {
+      // 普通用户无权限访问后台，重定向到首页
+      return { path: '/' };
+    }
   }
   return true;
 });

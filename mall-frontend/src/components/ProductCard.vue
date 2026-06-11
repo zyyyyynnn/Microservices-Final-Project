@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const sku = computed(() => firstSku(props.product));
 const spuId = computed(() => field<number>(props.product, ['spuId', 'id'], 0));
+const hasValidSpuId = computed(() => Number(spuId.value) > 0);
 const price = computed(() => field(sku.value || props.product, ['price', 'minPrice'], 0));
 const stock = computed(() => field(sku.value || props.product, ['stock', 'available'], null));
 const status = computed(() => statusText(field(props.product, ['status'], 1), productStatusMap));
@@ -35,9 +36,10 @@ const image = computed(() => onlineProductImage(props.product) || productImage(p
         <span v-if="stock !== null">库存 {{ stock }}</span>
         <span v-else>库存待联调</span>
       </div>
-      <RouterLink :to="`/products/${spuId || 1001}`" class="product-card-link">
+      <RouterLink v-if="hasValidSpuId" :to="`/products/${spuId}`" class="product-card-link">
         <el-button type="primary" round class="full-button">查看详情</el-button>
       </RouterLink>
+      <el-button v-else disabled round class="full-button">商品信息不完整</el-button>
     </div>
   </article>
 </template>

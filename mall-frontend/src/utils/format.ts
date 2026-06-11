@@ -82,3 +82,20 @@ export function firstSku(product: unknown) {
   const skus = skuList(product);
   return skus.length ? skus[0] : null;
 }
+
+export function formatSkuSpec(sku: unknown): string {
+  const raw = field<string>(sku, ['spec', 'specJson', 'spec_json'], '');
+  if (!raw) return '默认规格';
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return Object.entries(parsed)
+        .map(([key, value]) => `${key}：${value}`)
+        .join(' / ');
+    }
+  } catch {
+    // Not valid JSON, return as-is
+  }
+  return String(raw);
+}

@@ -17,12 +17,25 @@ function readUser(): UserInfo | null {
   }
 }
 
+function normalizeRoles(user: UserInfo | null): string[] {
+  if (!user) return ['USER'];
+  const roles = user.roles;
+  if (Array.isArray(roles)) return roles;
+  if (typeof roles === 'string') return roles.split(',').map(r => r.trim()).filter(Boolean);
+  if (user.role) return [user.role];
+  return ['USER'];
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY) || '');
   const refreshToken = ref(localStorage.getItem(REFRESH_KEY) || '');
   const user = ref<UserInfo | null>(readUser());
 
   const isAuthenticated = computed(() => Boolean(token.value));
+  const roles = computed(() => normalizeRoles(user.value));
+  const isAdmin = computed(() => roles.value.includes('ADMIN'));
+  const isMerchant = computed(() => roles.value.includes('MERCHANT'));
+  const canAccessAdmin = computed(() => isAdmin.value || isMerchant.value);
 
   async function login(username: string, password: string) {
     const result = await mallApi.login({ username, password, loginType: 'PASSWORD' });
@@ -61,6 +74,10 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     user,
     isAuthenticated,
+    roles,
+    isAdmin,
+    isMerchant,
+    canAccessAdmin,
     login,
     reloadUser,
     logout,

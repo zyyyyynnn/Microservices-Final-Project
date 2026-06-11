@@ -130,3 +130,15 @@ export function onlineProductImage(product: unknown) {
   if (image && !image.includes('picsum.photos')) return image;
   return productImagesBySpuId[spuId] || '';
 }
+
+/**
+ * 统一商品图片解析器
+ * 规则：
+ * 1. 优先使用 mainImage / image / skuImage 字段
+ * 2. 如果图片是 picsum.photos 或为空，且存在有效 spuId，则使用 productImagesBySpuId[spuId]
+ * 3. 不允许用 skuId 替代 spuId
+ * 4. 没有有效图片时返回空字符串（由 ProductImage 组件兜底为 placeholder）
+ */
+export function resolveProductImage(product: unknown): string {
+  return onlineProductImage(product);
+}

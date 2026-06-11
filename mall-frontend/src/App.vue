@@ -11,8 +11,8 @@ const route = useRoute();
 
 const navItems = [
   { label: '首页', path: '/' },
-  { label: '分类', path: '/search' },
-  { label: '品牌', path: '/search?keyword=Apple' },
+  { label: '全部商品', path: '/search' },
+  { label: 'Apple 专区', path: '/search?brand=Apple' },
   { label: '秒杀', path: '/seckill' },
 ];
 
@@ -34,8 +34,8 @@ async function logout() {
 
 function isActive(path: string) {
   if (path === '/') return route.path === '/';
-  if (path === '/search') return route.path === '/search' && route.query.keyword !== 'Apple';
-  if (path === '/search?keyword=Apple') return route.path === '/search' && route.query.keyword === 'Apple';
+  if (path === '/search') return route.path === '/search' && route.query.brand !== 'Apple';
+  if (path === '/search?brand=Apple') return route.path === '/search' && route.query.brand === 'Apple';
   return route.path.startsWith(path);
 }
 </script>
@@ -113,7 +113,7 @@ function isActive(path: string) {
               <el-dropdown-menu>
                 <el-dropdown-item v-if="!auth.isAuthenticated" @click="router.push('/login')">登录</el-dropdown-item>
                 <el-dropdown-item @click="router.push('/account')">我的订单</el-dropdown-item>
-                <el-dropdown-item @click="router.push('/admin')">后台管理</el-dropdown-item>
+                <el-dropdown-item v-if="auth.canAccessAdmin" @click="router.push('/admin')">后台管理</el-dropdown-item>
                 <el-dropdown-item v-if="auth.isAuthenticated" divided @click="logout">退出</el-dropdown-item>
               </el-dropdown-menu>
             </template>

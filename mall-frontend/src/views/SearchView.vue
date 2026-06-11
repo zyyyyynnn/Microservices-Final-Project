@@ -12,7 +12,9 @@ const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const error = ref('');
-const keyword = ref(String(route.query.keyword || 'iPhone'));
+const keyword = ref(String(route.query.keyword || ''));
+const brand = ref(String(route.query.brand || ''));
+const categoryId = ref(String(route.query.categoryId || ''));
 const pageNum = ref(1);
 const pageSize = ref(8);
 const response = ref<UnknownRecord | null>(null);
@@ -20,6 +22,16 @@ const hotWords = ref<string[]>([]);
 
 const results = computed(() => asList(response.value));
 const total = computed(() => Number(field(response.value, ['total'], results.value.length)));
+
+// Build search query from keyword, brand, categoryId
+const searchQuery = computed(() => {
+  const parts = [];
+  if (keyword.value) parts.push(keyword.value);
+  if (brand.value) parts.push(brand.value);
+  // categoryId could be mapped to keyword if backend doesn't support it directly
+  if (categoryId.value && !keyword.value && !brand.value) parts.push(categoryId.value);
+  return parts.join(' ');
+});
 
 async function loadHotWords() {
   try {
@@ -33,8 +45,17 @@ async function search() {
   loading.value = true;
   error.value = '';
   try {
-    router.replace({ path: '/search', query: { keyword: keyword.value, pageNum: pageNum.value } });
-    response.value = await mallApi.searchProducts(keyword.value, pageNum.value, pageSize.value);
+    router.replace({
+      path: '/search',
+      query: {
+        keyword: keyword.value,
+        brand: brand.value || undefined,
+        categoryId: categoryId.value || undefined,
+        pageNum: pageNum.value,
+      },
+    });
+    const query = searchQuery.value;
+    response.value = await mallApi.searchProducts(query || ' ', pageNum.value, pageSize.value);
   } catch (err) {
     response.value = null;
     notifyError(err instanceof Error ? err.message : '搜索服务暂不可用');
@@ -45,6 +66,8 @@ async function search() {
 
 function useHotWord(word: string) {
   keyword.value = word;
+  brand.value = '';
+  categoryId.value = '';
   pageNum.value = 1;
   search();
 }
@@ -52,6 +75,22 @@ function useHotWord(word: string) {
 watch(() => route.query.keyword, (newVal) => {
   if (newVal !== undefined) {
     keyword.value = String(newVal);
+    pageNum.value = 1;
+    search();
+  }
+});
+
+watch(() => route.query.brand, (newVal) => {
+  if (newVal !== undefined) {
+    brand.value = String(newVal);
+    pageNum.value = 1;
+    search();
+  }
+});
+
+watch(() => route.query.categoryId, (newVal) => {
+  if (newVal !== undefined) {
+    categoryId.value = String(newVal);
     pageNum.value = 1;
     search();
   }
@@ -66,7 +105,13 @@ onMounted(() => {
 <template>
   <section class="commerce-layout">
     <div class="search-header">
-      
+      <h1 class="search-title">
+        <span v-if="brand">「{{ brand }}」专区</span>
+        <span v-else-if="categoryId">分类：{{ categoryId }}</span>
+        <span v-else-if="keyword">「{{ keyword }}」的搜索结果</span>
+        <span v-else>全部商品</span>
+      </h1>
+
       <div class="tag-row mt">
         <button v-for="word in hotWords" :key="word" class="hot-chip" @click="useHotWord(word)">{{ word }}</button>
         <span v-if="!hotWords.length" class="empty-hint">暂无热词推荐</span>

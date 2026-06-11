@@ -15,6 +15,7 @@ const loading = ref(false);
 const error = ref('');
 const categories = ref<UnknownRecord[]>([]);
 const products = ref<UnknownRecord[]>([]);
+const seckillProducts = ref<UnknownRecord[]>([]);
 
 const displayProducts = computed(() => {
   const byId = new Map<number, UnknownRecord>();
@@ -26,6 +27,16 @@ const displayProducts = computed(() => {
   return Array.from(byId.values()).slice(0, 6);
 });
 
+const categoryTabs = [
+  { label: '精选推荐', keyword: '' },
+  { label: '数码家电', keyword: 'iPhone' },
+  { label: '美妆护肤', keyword: '美妆' },
+  { label: '家居生活', keyword: '家居' },
+  { label: '运动户外', keyword: '运动' },
+  { label: '食品生鲜', keyword: '食品' },
+  { label: '母婴玩具', keyword: '母婴' },
+];
+
 const flowSteps = [
   { label: '登录', sub: '账户登录', icon: User },
   { label: '购物车', sub: '加入商品', icon: ShoppingCart },
@@ -34,7 +45,6 @@ const flowSteps = [
   { label: '订单状态', sub: '查看跟踪', icon: Check },
 ];
 
-
 const bottomPromises = [
   { title: '30天价保', sub: '买贵退差价', icon: Lock },
   { title: '破损包退', sub: '免费上门取件', icon: Document },
@@ -42,15 +52,11 @@ const bottomPromises = [
   { title: '24小时客服', sub: '专业服务', icon: User },
 ];
 
-const currentCategory = ref('精选推荐');
-const categoryTabs = ['精选推荐', '数码家电', '美妆护肤', '家居生活', '运动户外', '食品生鲜', '母婴玩具'];
-
-const seckillProducts = ref<any[]>([]);
-
 async function loadHome() {
   loading.value = true;
   error.value = '';
   products.value = [];
+  seckillProducts.value = [];
   try {
     const productIds = seedCatalogProducts.map((item) => item.spuId);
     const [categoryResult, ...productResults] = await Promise.allSettled([
@@ -61,11 +67,34 @@ async function loadHome() {
     products.value = productResults
       .filter((result): result is PromiseFulfilledResult<UnknownRecord> => result.status === 'fulfilled')
       .map((result) => result.value);
+
+    // 加载秒杀活动
+    try {
+      const seckillResult = await mallApi.seckillActivities();
+      const activities = Array.isArray(seckillResult) ? seckillResult : [];
+      // 过滤掉明显的测试/乱码活动
+      seckillProducts.value = activities.filter((activity: UnknownRecord) => {
+        const name = String(field(activity, ['title', 'name'], ''));
+        return !/JMeter|压测|测试|乱码|test/i.test(name);
+      });
+    } catch {
+      // 秒杀接口失败时保持空数组，模板会显示"暂无秒杀活动"
+      seckillProducts.value = [];
+    }
+
     if (categoryResult.status === 'rejected' || productResults.some((result) => result.status === 'rejected')) {
       notifyError('Gateway 或商品服务暂不可用，首页已进入错误状态。');
     }
   } finally {
     loading.value = false;
+  }
+}
+
+function selectCategory(tab: { label: string; keyword: string }) {
+  if (tab.keyword) {
+    router.push({ path: '/search', query: { keyword: tab.keyword } });
+  } else {
+    router.push('/search');
   }
 }
 
@@ -159,12 +188,12 @@ onMounted(loadHome);
         </template>
         <div class="category-tabs">
           <button
-            v-for="cat in categoryTabs"
-            :key="cat"
-            :class="['tab-btn', { active: currentCategory === cat }]"
-            @click="currentCategory = cat"
+            v-for="tab in categoryTabs"
+            :key="tab.label"
+            :class="['tab-btn']"
+            @click="selectCategory(tab)"
           >
-            {{ cat }}
+            {{ tab.label }}
           </button>
           <RouterLink to="/search" class="more-link ml-auto">更多 <el-icon><ArrowRight /></el-icon></RouterLink>
         </div>
@@ -209,20 +238,20 @@ onMounted(loadHome);
         </template>
 
         <div class="sk-grid">
-          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty" >
-            <p class="sk-empty-text">秒杀服务未连接，<RouterLink to="/seckill" class="sk-empty-link">进入秒杀页查看</RouterLink></p>
+          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty">
+            <p>暂无秒杀活动</p>
           </div>
-          <div v-else v-for="product in seckillProducts" :key="product.spuId" class="sk-card">
+          <div v-else v-for="product in seckillProducts" :key="String(field(product, ['id', 'activityId', 'spuId']))" class="sk-card">
             <div class="sk-image">
-              <ProductImage :src="product.mainImage" :alt="product.name" />
+              <ProductImage :src="field(product, ['mainImage', 'image'])" :alt="field(product, ['title', 'name'])" />
             </div>
             <div class="sk-info">
-              <h3 class="sk-name">{{ product.name }}</h3>
+              <h3 class="sk-name">{{ field(product, ['title', 'name']) }}</h3>
               <div class="sk-prices">
-                <strong class="sk-price">¥{{ product.price }}</strong>
-                <span class="sk-old">¥{{ product.oldPrice }}</span>
+                <strong class="sk-price">¥{{ field(product, ['seckillPrice', 'price'], 0) }}</strong>
+                <span class="sk-old">¥{{ field(product, ['price', 'oldPrice', 'originalPrice'], 0) }}</span>
               </div>
-              <button class="sk-btn">立即抢购</button>
+              <button class="sk-btn" @click="router.push('/seckill')">立即抢购</button>
             </div>
           </div>
         </div>
@@ -454,15 +483,10 @@ onMounted(loadHome);
   color: var(--color-brand);
 }
 
-.tab-btn.active {
-  background: var(--color-brand);
-  color: white;
-  font-weight: 500;
-}
-
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  justify-content: start;
   gap: 20px;
 }
 
@@ -679,9 +703,6 @@ onMounted(loadHome);
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .product-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
   .sk-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -690,10 +711,6 @@ onMounted(loadHome);
   .hero-section {
     grid-template-columns: 1fr;
   }
-  .product-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
 }
 
 .panel-title-row {
@@ -738,12 +755,6 @@ onMounted(loadHome);
   text-align: center;
   background: var(--color-surface-hover);
   border-radius: 8px;
-}
-.sk-empty-text {
-  color: var(--color-text-muted);
-}
-.sk-empty-link {
-  color: var(--color-brand);
 }
 
 
