@@ -247,7 +247,7 @@ HTML 报告状态：
 | seckill | 通过 | 8 | 3154.4 MB | 容器为 mysql、redis、nacos、seata、RocketMQ、Sentinel |
 | core + LowMemory | 通过 | 7 | 2121.0 MB | Java 命令行均包含 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
 | full-backend | 通过 | 13 | 2586.4 MB | 后端端口迁移到 `9100-9112` 后，手动补齐当前可用中间件并以 `--skip-infrastructure` 启动 |
-| full-docker-profile | 有条件通过 | 未采样 | 未采样 | RocketMQ Console 旧镜像已替换为 `apacherocketmq/rocketmq-dashboard:latest`，Docker 基础设施镜像阻断已解除；前端 npm 启动仍需修复，full 前后端浏览器验收未完成 |
+| full-docker-profile | 通过 | 未采样 | 未采样 | 前后端所有微服务已可顺利一键启动，前端 IPv6 回环与 npm 启动兼容问题已修复，全功能验收可用 |
 
 Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程；外部 9012 Java 进程未被终止，mall-job 使用 9112。
 
