@@ -96,7 +96,7 @@ onMounted(loadHome);
       <div class="hero-section">
         <div class="hero-banner" :style="{ backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center right', backgroundRepeat: 'no-repeat' }">
           <div class="hero-content">
-            <h1 class="hero-title">MallCloud 让购物更简单</h1>
+            <h1 class="hero-title">MallCloud<br/>让购物更简单</h1>
             <p class="hero-subtitle">精选好物 · 品质保障 · 极速送达</p>
 
             <div class="hero-guarantees">
@@ -347,9 +347,7 @@ onMounted(loadHome);
   display: flex;
   gap: var(--spacing-lg);
   margin-bottom: 22px;
-  max-width: 390px;
-  flex-wrap: wrap;
-  row-gap: 10px;
+  white-space: nowrap;
 }
 
 .guarantee-item {
@@ -792,7 +790,7 @@ onMounted(loadHome);
   gap: 8px;
 }
 .panel-title-main {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: bold;
   color: var(--color-text-primary);
 }

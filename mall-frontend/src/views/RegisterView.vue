@@ -54,7 +54,10 @@ async function submit() {
         <el-form-item label="密码">
           <el-input v-model="form.password" type="password" show-password autocomplete="new-password" />
         </el-form-item>
-        <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading">注册</el-button>
+        <div style="display: flex; gap: var(--spacing-md);">
+          <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading" style="flex: 1;">注册</el-button>
+          <el-button plain @click="router.push('/login')" style="flex: 1;">返回登录</el-button>
+        </div>
       </el-form>
       <p class="hint">公开注册只创建 USER 角色，商家和管理员使用演示账号登录。</p>
     </el-card>
