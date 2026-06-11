@@ -58,7 +58,7 @@ async function loadAdmin() {
     })
     .catch(() => {
       dashboard.value = null;
-      dashboardError.value = '看板接口暂不可用';
+      dashboardError.value = '看板数据暂时无法加载';
     })
     .finally(() => {
       dashboardLoading.value = false;
@@ -70,7 +70,7 @@ async function loadAdmin() {
     })
     .catch(() => {
       ordersRaw.value = null;
-      ordersError.value = '订单列表暂不可用';
+      ordersError.value = '订单数据暂时无法加载';
     })
     .finally(() => {
       ordersLoading.value = false;
@@ -82,7 +82,7 @@ async function loadAdmin() {
     })
     .catch(() => {
       productsRaw.value = null;
-      productsError.value = '商品列表暂不可用';
+      productsError.value = '商品数据暂时无法加载';
     })
     .finally(() => {
       productsLoading.value = false;
@@ -91,7 +91,7 @@ async function loadAdmin() {
   await Promise.allSettled([dashboardTask, ordersTask, productsTask]);
 
   if (dashboardError.value || ordersError.value || productsError.value) {
-    notifyError('部分后台接口暂不可用，请查看各区域提示。');
+    notifyError('部分后台数据暂时无法加载，请稍后重试。');
   }
 }
 
