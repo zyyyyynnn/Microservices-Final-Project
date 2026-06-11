@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, RouterView, useRouter } from 'vue-router';
+import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from './stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const navItems = [
   { label: '首页', path: '/' },
-  { label: '搜索', path: '/search' },
+  { label: '分类', path: '/search' },
+  { label: '品牌', path: '/search?keyword=Apple' },
   { label: '秒杀', path: '/seckill' },
   { label: '购物车', path: '/cart' },
-  { label: '我的', path: '/account' },
+  { label: '我的订单', path: '/account' },
 ];
 
 const userLabel = computed(() => {
@@ -25,6 +27,13 @@ async function logout() {
   ElMessage.success('已退出登录');
   router.push('/login');
 }
+
+function isActive(path: string) {
+  if (path === '/') return route.path === '/';
+  if (path === '/search') return route.path === '/search' && route.query.keyword !== 'Apple';
+  if (path === '/search?keyword=Apple') return route.path === '/search' && route.query.keyword === 'Apple';
+  return route.path.startsWith(path);
+}
 </script>
 
 <template>
@@ -32,11 +41,17 @@ async function logout() {
     <el-header class="app-header">
       <div class="header-left">
         <RouterLink class="brand" to="/" aria-label="MallCloud 首页">
-          <svg class="brand-logo" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="36" height="36" rx="12" fill="var(--color-brand)" />
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12.5 14C12.5 12.6193 13.6193 11.5 15 11.5H21C22.3807 11.5 23.5 12.6193 23.5 14V16H25C26.1046 16 27 16.8954 27 18V25C27 26.1046 26.1046 27 25 27H11C9.89543 27 9 26.1046 9 25V18C9 16.8954 9.89543 16 11 16H12.5V14ZM14.5 16V14C14.5 13.7239 14.7239 13.5 15 13.5H21C21.2761 13.5 21.5 13.7239 21.5 14V16H14.5ZM11 18V25H25V18H11ZM18 20C17.4477 20 17 20.4477 17 21C17 21.5523 17.4477 22 18 22C18.5523 22 19 21.5523 19 21C19 20.4477 18.5523 20 18 20Z" fill="white"/>
+          <svg class="brand-logo" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="38" height="38" rx="13" fill="#EAF4FF" stroke="#BFD8FF" stroke-width="2" />
+            <path d="M12.2 23.4C9.9 23.2 8.2 21.4 8.2 19.1C8.2 16.7 10.1 14.8 12.5 14.8H13.3C14.2 11.9 16.9 9.8 20.2 9.8C23.9 9.8 26.9 12.4 27.4 15.9H28.1C30.5 15.9 32.4 17.8 32.4 20.2C32.4 22.6 30.5 24.5 28.1 24.5H12.8" stroke="#1B61C9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M14.3 19.8H25.8L24.8 29.2C24.7 30.1 24 30.8 23.1 30.8H17C16.1 30.8 15.4 30.1 15.3 29.2L14.3 19.8Z" fill="#1B61C9" />
+            <path d="M17.4 19.6V18.5C17.4 17.1 18.5 16 19.9 16C21.3 16 22.4 17.1 22.4 18.5V19.6" stroke="white" stroke-width="1.7" stroke-linecap="round" />
+            <path d="M17.8 25.2L19.4 26.8L22.6 23.5" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <span class="brand-text">MallCloud</span>
+          <span class="brand-copy">
+            <strong class="brand-text">MallCloud</strong>
+            <span>微服务商城</span>
+          </span>
         </RouterLink>
 
         <nav class="app-nav" aria-label="主导航">
@@ -44,9 +59,17 @@ async function logout() {
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            class="nav-link"
+            custom
+            v-slot="{ navigate, href }"
           >
-            {{ item.label }}
+            <a 
+              :href="href" 
+              @click="navigate" 
+              class="nav-link" 
+              :class="{ 'router-link-active': isActive(item.path) }"
+            >
+              {{ item.label }}
+            </a>
           </RouterLink>
         </nav>
       </div>

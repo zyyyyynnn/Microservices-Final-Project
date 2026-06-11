@@ -6,6 +6,7 @@ import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field, money, productImage, productName, productStatusMap, skuList, statusText } from '../utils/format';
+import { onlineProductImage } from '../catalog/productAssets';
 
 const route = useRoute();
 const router = useRouter();
@@ -20,6 +21,7 @@ const skus = computed(() => skuList(product.value));
 const selectedSku = computed(() => skus.value.find((sku) => Number(field(sku, ['skuId'])) === selectedSkuId.value) || skus.value[0]);
 const stock = computed(() => Number(field(selectedSku.value, ['stock'], 0)));
 const disabled = computed(() => !selectedSku.value || stock.value <= 0 || adding.value);
+const image = computed(() => onlineProductImage(product.value) || productImage(product.value));
 
 async function loadProduct() {
   loading.value = true;
@@ -68,7 +70,7 @@ onMounted(loadProduct);
 
     <div v-if="product && !loading" class="detail-layout">
       <div class="detail-media">
-        <img v-if="productImage(product)" :src="productImage(product)" :alt="productName(product)" />
+        <img v-if="image" :src="image" :alt="productName(product)" />
         <span v-else>商品图片待联调</span>
       </div>
       <el-card class="panel detail-main">

@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard.vue';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
+import { heroImage, seedCatalogProducts } from '../catalog/productAssets';
 
 const router = useRouter();
 const loading = ref(false);
@@ -15,21 +16,45 @@ const products = ref<UnknownRecord[]>([]);
 const keyword = ref('iPhone');
 
 const categoryCount = computed(() => categories.value.length);
+const displayProducts = computed(() => {
+  const byId = new Map<number, UnknownRecord>();
+  for (const item of seedCatalogProducts) byId.set(item.spuId, item);
+  for (const item of products.value) {
+    const id = Number(field(item, ['spuId', 'id'], 0));
+    if (id) byId.set(id, item);
+  }
+  return Array.from(byId.values()).slice(0, 6);
+});
+
+const flowSteps = [
+  { label: '登录', value: 'JWT 鉴权' },
+  { label: '购物车', value: '勾选结算' },
+  { label: '订单', value: '库存锁定' },
+  { label: '支付', value: 'MQ 通知' },
+  { label: '履约', value: '状态回写' },
+];
+
+const serviceItems = [
+  { title: 'Gateway 统一入口', desc: '/api/v1/** 业务请求' },
+  { title: '微服务链路完整', desc: '商品、购物车、订单、支付、秒杀' },
+  { title: '真实状态反馈', desc: '不使用假成功或调试 JSON 占位' },
+];
 
 async function loadHome() {
   loading.value = true;
   error.value = '';
   products.value = [];
   try {
-    const [categoryResult, productResult] = await Promise.allSettled([
+    const productIds = seedCatalogProducts.map((item) => item.spuId);
+    const [categoryResult, ...productResults] = await Promise.allSettled([
       mallApi.categories(),
-      mallApi.product(1001),
+      ...productIds.map((id) => mallApi.product(id)),
     ]);
     categories.value = categoryResult.status === 'fulfilled' ? categoryResult.value || [] : [];
-    if (productResult.status === 'fulfilled') {
-      products.value = [productResult.value];
-    }
-    if (categoryResult.status === 'rejected' || productResult.status === 'rejected') {
+    products.value = productResults
+      .filter((result): result is PromiseFulfilledResult<UnknownRecord> => result.status === 'fulfilled')
+      .map((result) => result.value);
+    if (categoryResult.status === 'rejected' || productResults.some((result) => result.status === 'rejected')) {
       error.value = 'Gateway 或商品服务暂不可用，首页已进入错误状态。';
     }
   } finally {
@@ -46,28 +71,77 @@ onMounted(loadHome);
 
 <template>
   <section class="commerce-layout">
-    <div class="hero-band">
-      <el-tag effect="plain" round class="hero-tag">企业级微商城</el-tag>
-      <h1>MallCloud Microservices</h1>
-      <p>基于现代微服务架构的高性能电商体验。探索从商品发现到订单结算的端到端完整旅程。</p>
-      
-      <div class="search-panel">
-        <label for="home-search">寻找你心仪的商品</label>
-        <div class="search-row">
-          <el-input id="home-search" v-model="keyword" placeholder="例如：iPhone, MacBook" size="large" @keyup.enter="goSearch">
-            <template #append>
-              <el-button type="primary" @click="goSearch">搜索</el-button>
-            </template>
-          </el-input>
+    <div class="home-dashboard">
+      <section class="commerce-hero">
+        <div class="hero-copy">
+          <el-tag effect="plain" round class="hero-tag">MallCloud 微商城</el-tag>
+          <h1>把微服务链路做成真实电商首页</h1>
+          <p>从商品发现、购物车、订单到模拟支付，围绕课程项目的真实后端能力组织可演示的用户任务。</p>
+
+          <div class="hero-search">
+            <label for="home-search">搜索商品</label>
+            <div class="search-row">
+              <el-input id="home-search" v-model="keyword" placeholder="试试 iPhone 或 MacBook" size="large" @keyup.enter="goSearch">
+                <template #append>
+                  <el-button type="primary" @click="goSearch">搜索</el-button>
+                </template>
+              </el-input>
+            </div>
+            <span>Elasticsearch 搜索入口</span>
+          </div>
+
+          <div class="hero-actions">
+            <RouterLink to="/search">
+              <el-button type="primary" size="large">立即选购</el-button>
+            </RouterLink>
+            <RouterLink to="/seckill">
+              <el-button plain size="large">查看秒杀</el-button>
+            </RouterLink>
+          </div>
         </div>
-        <span>由 Elasticsearch 提供强力搜索支持</span>
-      </div>
+
+        <div class="hero-visual" aria-label="精选商品展示">
+          <img :src="heroImage" alt="MallCloud 精选数码商品" />
+          <div class="hero-stat">
+            <span>核心链路</span>
+            <strong>5 步完成</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside class="flow-panel">
+        <div class="section-heading">
+          <span>交易链路</span>
+          <strong>真实服务流转</strong>
+        </div>
+        <div class="flow-steps">
+          <div v-for="step in flowSteps" :key="step.label" class="flow-step">
+            <span>{{ step.label }}</span>
+            <strong>{{ step.value }}</strong>
+          </div>
+        </div>
+        <RouterLink to="/tech" class="flow-link">查看技术演示</RouterLink>
+      </aside>
     </div>
 
     <PageState :loading="loading" :error="error" @retry="loadHome" />
 
+    <section v-if="!loading" class="section-block">
+      <div class="section-heading">
+        <span>种子商品</span>
+        <strong>精选推荐</strong>
+      </div>
+      <div class="product-grid">
+        <ProductCard
+          v-for="product in displayProducts"
+          :key="String(field(product, ['spuId', 'id']))"
+          :product="product"
+        />
+      </div>
+    </section>
+
     <div class="page-grid two" v-if="!loading">
-      <div class="panel">
+      <section class="panel">
         <h2 class="panel-title">探索类目</h2>
         <div v-if="categoryCount" class="category-grid">
           <RouterLink
@@ -81,15 +155,17 @@ onMounted(loadHome);
           </RouterLink>
         </div>
         <el-empty v-else description="暂无类目" />
-      </div>
+      </section>
 
-      <div class="panel">
-        <h2 class="panel-title">精选推荐</h2>
-        <div class="product-grid" v-if="products.length">
-          <ProductCard v-for="product in products" :key="String(field(product, ['spuId', 'id']))" :product="product" />
+      <section class="panel promise-panel">
+        <h2 class="panel-title">服务承诺</h2>
+        <div class="promise-list">
+          <div v-for="item in serviceItems" :key="item.title" class="promise-item">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.desc }}</span>
+          </div>
         </div>
-        <el-empty v-else description="商品服务暂时不可用" />
-      </div>
+      </section>
     </div>
   </section>
 </template>
