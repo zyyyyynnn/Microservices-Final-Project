@@ -1,3 +1,6 @@
+﻿-- 仅用于本地业务验收前修正秒杀活动有效时间。
+-- 不创建账号、商品、SKU、库存等基础数据。
+-- 依赖 db/seed.sql 或既有初始化脚本已完成基础数据导入。
 USE `mall_seckill`;
 
 UPDATE `seckill_activity` 

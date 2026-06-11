@@ -1,64 +1,64 @@
-# MallCloud 前端 UI 交付质量全盘消杀报告
+﻿# MallCloud 鍓嶇 UI 浜や粯璐ㄩ噺鍏ㄧ洏娑堟潃鎶ュ憡
 
-**时间**: 2026-06-11
-**任务目标**: 修复主界面过窄、组件异常和假功能问题，清理毛坯房/脚手架交付感。
+**鏃堕棿**: 2026-06-11
+**浠诲姟鐩爣**: 淇涓荤晫闈㈣繃绐勩€佺粍浠跺紓甯稿拰鍋囧姛鑳介棶棰橈紝娓呯悊姣涘澂鎴?鑴氭墜鏋朵氦浠樻劅銆?
 
-## 1. 修复的问题总结
+## 1. 淇鐨勯棶棰樻€荤粨
 
-### 主界面宽度修复
-- **移除硬编码宽度限制**：将 `app.css` 中 `.app-main` 的固定居中 `1240px` 与 `padding` 限制移除，释放内容宽度。
-- **重构首页布局容器**：将 `HomeView.vue` 的 `.home-wrapper` 调整为 `width: min(1720px, calc(100vw - 48px)); margin: 0 auto; padding: 24px 0 56px;`。大屏环境下能够充分利用横向空间，且左右边距保持规范的 `24px`，避免了之前两侧灰色空白过大的问题。
+### 涓荤晫闈㈠搴︿慨澶?
+- **绉婚櫎纭紪鐮佸搴﹂檺鍒?*锛氬皢 `app.css` 涓?`.app-main` 鐨勫浐瀹氬眳涓?`1240px` 涓?`padding` 闄愬埗绉婚櫎锛岄噴鏀惧唴瀹瑰搴︺€?
+- **閲嶆瀯棣栭〉甯冨眬瀹瑰櫒**锛氬皢 `HomeView.vue` 鐨?`.home-wrapper` 璋冩暣涓?`width: min(1720px, calc(100vw - 48px)); margin: 0 auto; padding: 24px 0 56px;`銆傚ぇ灞忕幆澧冧笅鑳藉鍏呭垎鍒╃敤妯悜绌洪棿锛屼笖宸﹀彸杈硅窛淇濇寔瑙勮寖鐨?`24px`锛岄伩鍏嶄簡涔嬪墠涓や晶鐏拌壊绌虹櫧杩囧ぇ鐨勯棶棰樸€?
 
-### 假入口与假状态清理
-- **Header 假入口清理**：已核查 `App.vue` 与 `router/index.ts`，主导航只保留了 `首页`、`分类`、`品牌`、`秒杀` 真实路由。之前已经移除了 `/coupons`, `/points`, `/help`, `/account/wishlist` 等伪装路由。
-- **技术工具区重写**：将伪实时状态（如 Seata 99.96%、Nacos 32 个实例等）全部清除，修正了说明文案，并将卡片链接定向到真实的演示环境页面 `/tech`。
-- **秒杀区修复**：首页秒杀区不再展示假倒计时和假商品；当前作为 /seckill 入口与服务未连接兜底展示。真实秒杀链路以 /seckill 页面和 JMeter 证据为准。
-- **移除假角标**：`ShoppingCart` 按钮恢复无徽标的单纯形态，没有写死“3”。
+### 鍋囧叆鍙ｄ笌鍋囩姸鎬佹竻鐞?
+- **Header 鍋囧叆鍙ｆ竻鐞?*锛氬凡鏍告煡 `App.vue` 涓?`router/index.ts`锛屼富瀵艰埅鍙繚鐣欎簡 `棣栭〉`銆乣鍒嗙被`銆乣鍝佺墝`銆乣绉掓潃` 鐪熷疄璺敱銆備箣鍓嶅凡缁忕Щ闄や簡 `/coupons`, `/points`, `/help`, `/account/wishlist` 绛変吉瑁呰矾鐢便€?
+- **鎶€鏈伐鍏峰尯閲嶅啓**锛氬皢浼疄鏃剁姸鎬侊紙濡?Seata 99.96%銆丯acos 32 涓疄渚嬬瓑锛夊叏閮ㄦ竻闄わ紝淇浜嗚鏄庢枃妗堬紝骞跺皢鍗＄墖閾炬帴瀹氬悜鍒扮湡瀹炵殑婕旂ず鐜椤甸潰 `/tech`銆?
+- **绉掓潃鍖轰慨澶?*锛氶椤电鏉€鍖轰笉鍐嶅睍绀哄亣鍊掕鏃跺拰鍋囧晢鍝侊紱褰撳墠浣滀负 /seckill 鍏ュ彛涓庢湇鍔℃湭杩炴帴鍏滃簳灞曠ず銆傜湡瀹炵鏉€閾捐矾浠?/seckill 椤甸潰鍜?JMeter 璇佹嵁涓哄噯銆?
+- **绉婚櫎鍋囪鏍?*锛歚ShoppingCart` 鎸夐挳鎭㈠鏃犲窘鏍囩殑鍗曠函褰㈡€侊紝娌℃湁鍐欐鈥?鈥濄€?
 
-### 视觉动效清理
-- 全站范围搜索并清除了所有违背零动效约束的 `transition` 和 `transform`。
-- 包括卡片悬浮时的 `translateY` 以及缓慢的颜色 `transition`。目前交互仅保留即时的边框和背景颜色变化，没有过渡时间。
+### 瑙嗚鍔ㄦ晥娓呯悊
+- 鍏ㄧ珯鑼冨洿鎼滅储骞舵竻闄や簡鎵€鏈夎繚鑳岄浂鍔ㄦ晥绾︽潫鐨?`transition` 鍜?`transform`銆?
+- 鍖呮嫭鍗＄墖鎮诞鏃剁殑 `translateY` 浠ュ強缂撴參鐨勯鑹?`transition`銆傜洰鍓嶄氦浜掍粎淇濈暀鍗虫椂鐨勮竟妗嗗拰鑳屾櫙棰滆壊鍙樺寲锛屾病鏈夎繃娓℃椂闂淬€?
 
-### 模块重排与响应式修复
-- **Hero 模块**：调整为可靠的 `grid-template-columns: minmax(420px, 0.92fr) minmax(520px, 1.08fr);` 以避免文案与图片重叠挤压。
-- **商品卡片**：从硬编码 `repeat(6, 1fr)` 改为 `grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));`，以适应不同屏幕大小，保障商品图片与文案正常显示，不折行不挤压。
+### 妯″潡閲嶆帓涓庡搷搴斿紡淇
+- **Hero 妯″潡**锛氳皟鏁翠负鍙潬鐨?`grid-template-columns: minmax(420px, 0.92fr) minmax(520px, 1.08fr);` 浠ラ伩鍏嶆枃妗堜笌鍥剧墖閲嶅彔鎸ゅ帇銆?
+- **鍟嗗搧鍗＄墖**锛氫粠纭紪鐮?`repeat(6, 1fr)` 鏀逛负 `grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));`锛屼互閫傚簲涓嶅悓灞忓箷澶у皬锛屼繚闅滃晢鍝佸浘鐗囦笌鏂囨姝ｅ父鏄剧ず锛屼笉鎶樿涓嶆尋鍘嬨€?
 
-## 2. 静态检查与验证记录
+## 2. 闈欐€佹鏌ヤ笌楠岃瘉璁板綍
 
-### 构建结果
-- 重新运行了 `npm run build`。
-- 构建结果：TypeScript 类型检查通过，Vue 文件编译正常，Rollup 成功输出构建产物（`✓ built in 890ms`）。
+### 鏋勫缓缁撴灉
+- 閲嶆柊杩愯浜?`npm run build`銆?
+- 鏋勫缓缁撴灉锛歍ypeScript 绫诲瀷妫€鏌ラ€氳繃锛孷ue 鏂囦欢缂栬瘧姝ｅ父锛孯ollup 鎴愬姛杈撳嚭鏋勫缓浜х墿锛坄鉁?built in 890ms`锛夈€?
 
-### 静态搜索验证
-运行了各项正则搜索，确认全部通过/清理：
-- `rg "transition:|transform:|@keyframes" mall-frontend/src` -> 已清理（仅 reset.css 中保留 `none !important`）。
-- `rg "/coupons|/points|/help|/account/wishlist" mall-frontend/src` -> 无命中。
-- `rg "dicebear" mall-frontend/src` -> 无命中。
-- `rg "99.96|32 个|02 : 18 : 36|运行中|正在疯抢|:value=\"3\"" mall-frontend/src` -> 无命中。
+### 闈欐€佹悳绱㈤獙璇?
+杩愯浜嗗悇椤规鍒欐悳绱紝纭鍏ㄩ儴閫氳繃/娓呯悊锛?
+- `rg "transition:|transform:|@keyframes" mall-frontend/src` -> 宸叉竻鐞嗭紙浠?reset.css 涓繚鐣?`none !important`锛夈€?
+- `rg "/coupons|/points|/help|/account/wishlist" mall-frontend/src` -> 鏃犲懡涓€?
+- `rg "dicebear" mall-frontend/src` -> 鏃犲懡涓€?
+- `rg "99.96|32 涓獆02 : 18 : 36|杩愯涓瓅姝ｅ湪鐤姠|:value=\"3\"" mall-frontend/src` -> 鏃犲懡涓€?
 
-### 全站核心页面检查
-通过走查（及 Browser Agent），确认了 `/`, `/search`, `/products/:id`, `/cart`, `/account`, `/checkout`, `/seckill`, `/admin`, `/tech`, `/login`, `/register`, `/not-found` 皆可访问。未实现的功能均已做对应的入口隐藏或提示。
+### 鍏ㄧ珯鏍稿績椤甸潰妫€鏌?
+閫氳繃璧版煡锛堝強 Browser Agent锛夛紝纭浜?`/`, `/search`, `/products/:id`, `/cart`, `/account`, `/checkout`, `/seckill`, `/admin`, `/tech`, `/login`, `/register`, `/not-found` 鐨嗗彲璁块棶銆傛湭瀹炵幇鐨勫姛鑳藉潎宸插仛瀵瑰簲鐨勫叆鍙ｉ殣钘忔垨鎻愮ず銆?
 
-## 3. 响应式截图验收索引
-使用 `/browser` 子代理验证了首页在多种分辨率下的排版：
-- `1920x1080`: 正常（`screenshot_1920x1080.png`）
-- `1440x900`: 正常（`screenshot_1440x900.png`）
-- `1366x768`: 正常（`screenshot_1366x768.png`）
-- `1024x768`: 正常（`screenshot_1024x768.png`）
-- `768x1024`: 正常（`screenshot_768x1024.png`）
-- `430x932`: 正常（`screenshot_430x932.png`）
-- `390x844`: 正常（`screenshot_390x844.png`）
-- `375x812`: 正常（`screenshot_375x812.png`）
+## 3. 鍝嶅簲寮忔埅鍥鹃獙鏀剁储寮?
+浣跨敤 `/browser` 瀛愪唬鐞嗛獙璇佷簡棣栭〉鍦ㄥ绉嶅垎杈ㄧ巼涓嬬殑鎺掔増锛?
+- `1920x1080`: 姝ｅ父锛坄screenshot_1920x1080.png`锛?
+- `1440x900`: 姝ｅ父锛坄screenshot_1440x900.png`锛?
+- `1366x768`: 姝ｅ父锛坄screenshot_1366x768.png`锛?
+- `1024x768`: 姝ｅ父锛坄screenshot_1024x768.png`锛?
+- `768x1024`: 姝ｅ父锛坄screenshot_768x1024.png`锛?
+- `430x932`: 姝ｅ父锛坄screenshot_430x932.png`锛?
+- `390x844`: 姝ｅ父锛坄screenshot_390x844.png`锛?
+- `375x812`: 姝ｅ父锛坄screenshot_375x812.png`锛?
 
-**验收结论**：内容宽度正常，Grid 布局表现出优异的弹性，组件未见变形或文本异常折行，灰色冗余边距已消除。
+**楠屾敹缁撹**锛氬唴瀹瑰搴︽甯革紝Grid 甯冨眬琛ㄧ幇鍑轰紭寮傜殑寮规€э紝缁勪欢鏈鍙樺舰鎴栨枃鏈紓甯告姌琛岋紝鐏拌壊鍐椾綑杈硅窛宸叉秷闄ゃ€?
 
-## 4. 未验证项
-- 后端秒杀 API 返回的真实时区倒计时逻辑暂未验证，目前以兜底态呈现，待与后端正式联调时补充。
+## 4. 鏈獙璇侀」
+- 鍚庣绉掓潃 API 杩斿洖鐨勭湡瀹炴椂鍖哄€掕鏃堕€昏緫鏆傛湭楠岃瘉锛岀洰鍓嶄互鍏滃簳鎬佸憟鐜帮紝寰呬笌鍚庣姝ｅ紡鑱旇皟鏃惰ˉ鍏呫€?
 
-## 补充状态 (Canvas & Hero Fix)
-- 本轮只进行细节样式微调；
-- Hero 背景图锁定不变；
-- 未进行最终成功态截图；
-- 未声明全站视觉最终通过。
-- 未进行全站成功态截图；
-- 未声明最终视觉验收通过。
+## 琛ュ厖鐘舵€?(Canvas & Hero Fix)
+- 鏈疆鍙繘琛岀粏鑺傛牱寮忓井璋冿紱
+- Hero 鑳屾櫙鍥鹃攣瀹氫笉鍙橈紱
+- 鏈繘琛屾渶缁堟垚鍔熸€佹埅鍥撅紱
+- 鏈０鏄庡叏绔欒瑙夋渶缁堥€氳繃銆?
+- 鏈繘琛屽叏绔欐垚鍔熸€佹埅鍥撅紱
+- 鏈０鏄庢渶缁堣瑙夐獙鏀堕€氳繃銆?
