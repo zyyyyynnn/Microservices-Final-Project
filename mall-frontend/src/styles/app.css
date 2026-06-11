@@ -894,3 +894,11 @@ h6 {
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
+
+.mt {
+  margin-top: var(--spacing-md);
+}
+
+.table-scroll {
+  margin-top: var(--spacing-lg);
+}
