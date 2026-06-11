@@ -50,13 +50,11 @@ async function submitLogin() {
         <el-form-item label="密码">
           <el-input v-model="loginForm.password" type="password" autocomplete="current-password" show-password />
         </el-form-item>
-        <div class="button-row">
-          <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading">
+        <div style="display: flex; gap: var(--spacing-md);">
+          <el-button type="primary" native-type="submit" :loading="loading" :disabled="loading" style="flex: 1;">
             登录
           </el-button>
-          <RouterLink to="/register">
-            <el-button plain>注册新用户</el-button>
-          </RouterLink>
+          <el-button plain @click="router.push('/register')" style="flex: 1;">注册新用户</el-button>
         </div>
       </el-form>
       <p class="hint">演示账号：zhangsan / merchant01 / admin，统一密码 123456。</p>
