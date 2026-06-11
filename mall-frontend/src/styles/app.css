@@ -876,3 +876,23 @@ h6 {
     grid-template-columns: 1fr;
   }
 }
+
+/* Checkout Spacing & Layout */
+.checkout-section .section-title {
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.checkout-section .section-title:first-of-type {
+  margin-top: 0;
+}
+
+.address-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}

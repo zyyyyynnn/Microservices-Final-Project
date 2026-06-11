@@ -136,7 +136,7 @@ onMounted(load);
             </div>
           </div>
         </div>
-        <el-alert v-if="!addresses.length" title="暂无收货地址，请先在账户页维护地址；演示环境将使用默认地址提交。" type="warning" :closable="false" />
+        <el-alert v-if="!addresses.length" title="暂无收货地址，请先在账户页维护地址；演示环境将使用默认地址提交。" type="warning" :closable="false" class="mb" />
 
         <h2 class="section-title">订单商品</h2>
         <div class="table-scroll">
