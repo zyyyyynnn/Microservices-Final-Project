@@ -96,6 +96,13 @@ export const seedCatalogProducts: CatalogProduct[] = [
   },
 ];
 
+export const seckillProducts = [
+  { spuId: 2001, name: '小米真无线降噪耳机', price: 199, oldPrice: 399, mainImage: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80' },
+  { spuId: 2002, name: 'YSL小金条口红', price: 129, oldPrice: 310, mainImage: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=600&q=80' },
+  { spuId: 2003, name: '维达超韧抽纸 3层', price: 39.9, oldPrice: 79.9, mainImage: 'https://images.unsplash.com/photo-1584473457406-6240486414e9?auto=format&fit=crop&w=600&q=80' },
+  { spuId: 2004, name: '飞利浦电动牙刷', price: 269, oldPrice: 599, mainImage: 'https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&w=600&q=80' },
+];
+
 function readNumber(value: unknown, keys: string[]) {
   if (!value || typeof value !== 'object') return 0;
   const record = value as UnknownRecord;
