@@ -307,17 +307,12 @@ h6 {
   overflow: hidden;
 }
 
-.section-block > .section-heading {
+.section-block > .section-heading,
+.panel-title {
   margin: 0;
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
-}
-
-.panel-title {
-  margin: 0;
-  font-weight: 600;
-  font-size: 16px;
 }
 
 .page-grid {
