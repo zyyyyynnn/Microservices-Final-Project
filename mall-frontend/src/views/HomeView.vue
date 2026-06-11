@@ -156,11 +156,11 @@ onMounted(loadHome);
             </template>
           </div>
 
-          <RouterLink to="/tech" class="flow-footer">
+          <a href="javascript:void(0)" class="flow-footer">
             <el-icon color="#1b61c9"><CircleCheckFilled /></el-icon>
             <span>全链路微服务支撑，保障交易安全与高可用</span>
             <el-icon class="arrow"><ArrowRight /></el-icon>
-          </RouterLink>
+          </a>
         </el-card>
       </div>
 
@@ -248,22 +248,20 @@ onMounted(loadHome);
               <span class="panel-title-main">演示工具</span>
               <span class="panel-title-sub">(微服务治理与中间件)</span>
             </div>
-            <RouterLink to="/tech" class="more-link panel-title-link">进入控制台 <el-icon><ArrowRight /></el-icon></RouterLink>
+            <a href="javascript:void(0)" class="more-link panel-title-link">进入控制台 <el-icon><ArrowRight /></el-icon></a>
           </div>
         </template>
 
         <div class="tech-grid">
-          <RouterLink to="/tech" custom v-slot="{ navigate, href }">
-            <a v-for="item in dashboardItems" :key="item.name" :href="href" @click="navigate" class="tech-card">
-              <div class="tc-top">
-                <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
-                <div class="tc-info">
-                  <strong>{{ item.name }}</strong>
-                  <span>{{ item.sub }}</span>
-                </div>
+          <a v-for="item in dashboardItems" :key="item.name" href="javascript:void(0)" class="tech-card">
+            <div class="tc-top">
+              <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
+              <div class="tc-info">
+                <strong>{{ item.name }}</strong>
+                <span>{{ item.sub }}</span>
               </div>
-            </a>
-          </RouterLink>
+            </div>
+          </a>
         </div>
       </el-card>
 
