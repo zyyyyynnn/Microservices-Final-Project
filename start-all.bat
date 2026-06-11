@@ -32,6 +32,11 @@ if /I "%~1"=="--profile" (
         echo [ERROR] --profile requires a value
         exit /b 1
     )
+    echo %~2 | findstr /B /C:"--" >nul
+    if not errorlevel 1 (
+        echo [ERROR] --profile requires a value
+        exit /b 1
+    )
     if /I not "%~2"=="core" if /I not "%~2"=="search" if /I not "%~2"=="seckill" if /I not "%~2"=="full" (
         echo [ERROR] Invalid profile: %~2
         exit /b 1

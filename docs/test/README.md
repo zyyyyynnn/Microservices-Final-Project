@@ -67,7 +67,7 @@ docs/test/postman/local.postman_environment.json
 推荐环境变量：
 
 ```text
-BaseURL=http://localhost:9000
+BaseURL=http://localhost:9100
 username=zhangsan
 password=123456
 token=
@@ -105,11 +105,12 @@ seckillSkuId=9003
 pwsh .\scripts\run-newman.ps1
 ```
 
-秒杀 Newman 用例使用 `zhangsan` 和种子活动，正式回归前必须清理该测试用户的限购状态，或重置 Redis 与数据库测试数据。当前本地 Docker 环境可使用：
+秒杀 Newman 用例使用 `zhangsan` 和当前进行中的种子活动，正式回归前必须清理该测试用户对目标活动的限购状态，或重置 Redis 与数据库测试数据。先通过秒杀活动接口或数据库确认当前目标 `activityId`，再清理对应 key 和订单。当前本地 Docker 环境示例：
 
 ```powershell
-docker exec mall-redis redis-cli DEL seckill:user:1:1001 seckill:stock:1
-docker exec mall-mysql mysql -uroot -proot -e "USE mall_seckill; DELETE FROM seckill_order WHERE activity_id=1 AND user_id=1001;"
+$activityId = 3
+docker exec mall-redis redis-cli DEL "seckill:user:$activityId:1001"
+docker exec mall-mysql mysql -uroot -proot -e "DELETE FROM mall_seckill.seckill_order WHERE activity_id=$activityId AND user_id=1001;"
 ```
 
 不得通过放宽秒杀限购断言来规避重复执行问题。
@@ -141,7 +142,7 @@ docs/test/jmeter/seckill-stress.jmx
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
 pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalStock 100 -UserCount 100
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_ -ResultPollAttempts 120 -ResultPollDelayMs 500
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
@@ -185,7 +186,7 @@ pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalSt
 压测执行示例：
 
 ```powershell
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_ -ResultPollAttempts 120 -ResultPollDelayMs 500
 ```
 
 进入阶梯压力前，必须先完成 10 用户完整链路验证，并确认 JMeter 失败样本为 0、最终成功 10、`orderNo` 去重数 10、Redis 剩余库存 90、真实库存锁定增量 10。
@@ -195,6 +196,8 @@ pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -
 ```text
 50 → 100 → 200 → 300 → 500
 ```
+
+当前固定库存阶梯复测已按 120 次、500ms 结果轮询窗口执行，最新脱敏摘要见 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md`。报告中的 `Total P95` 和 `Total TPS` 必须保持为 JMeter 全部样本聚合口径，不得写成秒杀最终订单 TPS 或完整链路 P95。
 
 记录：
 
@@ -322,8 +325,8 @@ pwsh .\scripts\init-search-index.ps1 -AllowFailures
 说明：
 
 - 该脚本不伪造商品数据，索引内容来自 `mall-product` 真实商品详情接口；
-- `SearchURL` 默认 `http://localhost:9008`，用于调用内部同步接口；
-- `BaseURL` 默认 `http://localhost:9000`，用于验证 Gateway 搜索业务入口；
+- `SearchURL` 默认 `http://localhost:9108`，用于调用内部同步接口；
+- `BaseURL` 默认 `http://localhost:9100`，用于验证 Gateway 搜索业务入口；
 - 默认搜索关键字为 `iPhone`，预期结果包含种子商品 `1001` 或 `1002`；
 - 搜索验证会按 `VerifyAttempts` / `VerifyDelayMs` 轮询，降低 ES 写入后刷新延迟导致的假失败；
 - `-AllowFailures` 只用于记录当前环境状态，不得写成搜索专项通过；

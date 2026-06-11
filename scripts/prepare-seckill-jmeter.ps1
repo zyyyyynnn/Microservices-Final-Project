@@ -57,6 +57,8 @@ $authValues = for ($i = 1; $i -le $UserCount; $i++) {
 }
 
 $sql = @"
+SET time_zone = '+08:00';
+
 USE mall_user;
 INSERT INTO user (id, username, phone, nickname, status)
 VALUES
@@ -150,21 +152,64 @@ if ($LASTEXITCODE -ne 0) {
     throw "MySQL preparation failed."
 }
 
+$validationSql = @"
+SET time_zone = '+08:00';
+
+SELECT 'source_sku_9003_available' AS check_name
+WHERE (SELECT COUNT(*) FROM mall_product.sku WHERE id = 9003 AND status = 1) <> 1
+UNION ALL
+SELECT 'test_sku_exists_once'
+WHERE (SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId) <> 1
+UNION ALL
+SELECT 'test_sku_available'
+WHERE (SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId AND status = 1) <> 1
+UNION ALL
+SELECT 'test_sku_spu_exists'
+WHERE (SELECT COUNT(*)
+       FROM mall_product.sku sk
+       JOIN mall_product.spu sp ON sp.id = sk.spu_id
+       WHERE sk.id = $SkuId) <> 1
+UNION ALL
+SELECT 'activity_bound_to_sku'
+WHERE (SELECT COUNT(*) FROM mall_seckill.seckill_activity WHERE id = $ActivityId AND sku_id = $SkuId) <> 1
+UNION ALL
+SELECT 'activity_total_stock'
+WHERE (SELECT COUNT(*) FROM mall_seckill.seckill_activity WHERE id = $ActivityId AND total_stock = $TotalStock) <> 1
+UNION ALL
+SELECT 'inventory_baseline'
+WHERE (SELECT COUNT(*) FROM mall_inventory.stock WHERE sku_id = $SkuId AND total = $TotalStock AND locked = 0 AND available = $TotalStock) <> 1
+UNION ALL
+SELECT 'activity_start_before_mysql_now'
+WHERE (SELECT COUNT(*) FROM mall_seckill.seckill_activity WHERE id = $ActivityId AND start_time < NOW()) <> 1
+UNION ALL
+SELECT 'activity_end_after_mysql_now'
+WHERE (SELECT COUNT(*) FROM mall_seckill.seckill_activity WHERE id = $ActivityId AND end_time > NOW()) <> 1;
+"@
+
 if ($MysqlMode -eq "docker") {
-    $skuCount = docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N -e "SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId;"
-    if ($skuCount -ne "1") {
-        throw "SKU $SkuId verification failed. Source SKU 9003 might be missing or status invalid. Count = $skuCount"
-    }
-    $timeMetrics = docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N -e "SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
-    Write-Host "[INFO] Time metrics: $timeMetrics"
+    $validationFailures = $validationSql | docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N
+    $validationExitCode = $LASTEXITCODE
+    $timeMetrics = docker exec -i $MysqlContainer mysql "-u$MysqlUser" "-p$MysqlPassword" -s -N -e "SET time_zone = '+08:00'; SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
+    $timeMetricsExitCode = $LASTEXITCODE
 } else {
     $mysqlArgs = @("--host=$MysqlHost", "--port=$MysqlPort", "--user=$MysqlUser", "--password=$MysqlPassword", "-s", "-N", "-e")
-    $skuCount = & mysql @mysqlArgs "SELECT COUNT(*) FROM mall_product.sku WHERE id = $SkuId;"
-    if ($skuCount -ne "1") {
-        throw "SKU $SkuId verification failed. Count = $skuCount"
+    $validationFailures = & mysql @mysqlArgs $validationSql
+    $validationExitCode = $LASTEXITCODE
+    $timeMetrics = & mysql @mysqlArgs "SET time_zone = '+08:00'; SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
+    $timeMetricsExitCode = $LASTEXITCODE
+}
+if ($validationExitCode -ne 0) {
+    throw "MySQL validation failed."
+}
+if ($timeMetricsExitCode -ne 0) {
+    throw "MySQL time metrics query failed."
+}
+Write-Host "[INFO] Time metrics: $timeMetrics"
+if ($validationFailures) {
+    $failureText = ($validationFailures | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ", "
+    if (-not [string]::IsNullOrWhiteSpace($failureText)) {
+        throw "Seckill JMeter data validation failed: $failureText"
     }
-    $timeMetrics = & mysql @mysqlArgs "SELECT CONCAT('NOW()=', NOW(), ', start_time=', start_time, ', end_time=', end_time) FROM mall_seckill.seckill_activity WHERE id=$ActivityId;"
-    Write-Host "[INFO] Time metrics: $timeMetrics"
 }
 
 Write-Host "[INFO] Clearing Redis seckill stock and user keys for activity $ActivityId"

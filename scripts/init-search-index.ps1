@@ -1,6 +1,6 @@
 param(
-    [string]$BaseURL = "http://localhost:9000",
-    [string]$SearchURL = "http://localhost:9008",
+    [string]$BaseURL = "http://localhost:9100",
+    [string]$SearchURL = "http://localhost:9108",
     [string]$ElasticsearchURL = "http://localhost:9200",
     [string[]]$SpuIds = @("1001", "1002", "1003", "1004", "1005"),
     [string]$Keyword = "iPhone",

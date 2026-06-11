@@ -20,6 +20,6 @@ public class MallGatewayApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MallGatewayApplication.class, args);
-        log.info("MallGateway started on port 9000");
+        log.info("MallGateway started on port 9100");
     }
 }

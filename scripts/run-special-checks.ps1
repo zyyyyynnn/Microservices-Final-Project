@@ -1,5 +1,5 @@
 param(
-    [string]$BaseURL = "http://localhost:9000",
+    [string]$BaseURL = "http://localhost:9100",
     [string]$NacosURL = "http://localhost:8848",
     [string]$SentinelURL = "http://localhost:8080",
     [string]$ElasticsearchURL = "http://localhost:9200",

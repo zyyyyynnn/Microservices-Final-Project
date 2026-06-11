@@ -14,7 +14,7 @@
 | 项目名称 | MallCloud 微商城 |
 | 团队成员与分工 | 待填写 5 名真实成员 |
 | 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
-| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载；2026-06-10 补充 JMeter 订单短冒烟、秒杀请求受理短冒烟、1 用户完整链路短冒烟、10 用户完整链路连续验证和秒杀阶梯阶段执行结果 |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载；2026-06-10 补充 JMeter 订单短冒烟、秒杀请求受理短冒烟、1 用户完整链路短冒烟、10 用户完整链路连续验证、秒杀阶梯复测和启动 Profile 资源采样；2026-06-11 补充后端端口迁移与 9100 Gateway 回归 |
 | 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
 | 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
@@ -75,7 +75,7 @@ mvn clean test -DskipTests=false
 | 能力 | 状态 | 证据 |
 |---|---|---|
 | Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
-| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；脚本启动验证中，除 `mall-job` 因 9012 外部占用未启动外，12 个后端服务注册到 Nacos `dev` 命名空间且 healthy=true |
+| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；当前后端端口已迁移到连续区间 `9100-9112`，全量启动需以本轮端口迁移后的复测结果为准 |
 | Nacos 配置热更新 | 已验证 | 2026-06-10 已验证 `mall-seckill-flow-rules.json` 通过 Nacos 热更新影响 Sentinel 运行时流控规则并完成规则回滚；已验证 `mall-inventory.yaml` 普通业务配置 `mallcloud.inventory.ping-message` 无需重启热更新，摘要见 `docs/test/nacos/summary/inventory-config-refresh-20260610.md` |
 | Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
 | OpenFeign | 已验证 | order→product、order→inventory |
@@ -83,8 +83,8 @@ mvn clean test -DskipTests=false
 | RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
 | Sentinel 限流/熔断 | 已验证 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429；`mall-inventory` 慢调用比例熔断验证通过：30 个 Gateway 请求中 2 个 HTTP 200、28 个 HTTP 429。摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`、`docs/test/sentinel/summary/nacos-flow-rules-20260610.md` 和 `docs/test/sentinel/summary/inventory-degrade-20260610.md`；熔断阈值为临时低阈值验证，不代表生产容量 |
 | Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
-| Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md` |
-| JMeter 脚本 | 搜索负载场景已执行且零失败；订单短冒烟和秒杀 10 用户完整链路已执行且零失败；秒杀阶梯已阶段执行但 100/500 用户存在失败样本，未验收通过；订单正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟和秒杀 10 用户完整链路连续 3 次验证；50/100/200/300/500 阶梯压力已生成阶段结果，100 用户 2 个失败样本、500 用户 5 个失败样本；摘要与脱敏聚合指标见 `docs/test/jmeter/summary/` |
+| Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；2026-06-11 后端端口迁移到 `9100-9112` 后复跑 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、0 个失败。复跑前按测试规范清理 `zhangsan` 对当前秒杀种子活动的历史限购状态；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md`、`docs/test/postman/summary/newman-20260611-port-migration.md` |
+| JMeter 脚本 | 搜索负载场景已执行且零失败；订单短冒烟和秒杀固定库存阶梯压力已执行且零失败；订单正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟、秒杀 10 用户完整链路连续 3 次验证和 50/100/200/300/500 固定库存阶梯复测；最新秒杀阶梯 5 档失败样本均为 0，摘要与脱敏聚合指标见 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
 | Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
 | 技术专项冒烟入口 | 已通过 | 2026-06-10 执行 `scripts/run-special-checks.ps1`：Nacos、Sentinel Dashboard、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；该脚本仍只代表只读可达性检查，不替代业务专项 |
 | 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
@@ -97,7 +97,9 @@ HTML 报告状态：
 
 ```text
 原始 HTML 报告包含动态 Token，不纳入仓库。
-脱敏摘要：docs/test/postman/summary/newman-20260609.md
+脱敏摘要：
+- docs/test/postman/summary/newman-20260609.md
+- docs/test/postman/summary/newman-20260611-port-migration.md
 ```
 
 | 指标 | 结果 |
@@ -107,6 +109,7 @@ HTML 报告状态：
 | 断言总数 | 60 |
 | 通过 | 60 |
 | 失败 | 0 |
+| 最近一次端口迁移后复跑 | 2026-06-11，BaseURL=`http://localhost:9100`，28 请求、60 断言、0 失败 |
 
 核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
 
@@ -151,7 +154,7 @@ HTML 报告状态：
 
 ### 7.1 测试环境
 
-记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟和秒杀 10 用户完整链路连续 3 次验证。秒杀 50/100/200/300/500 阶梯已阶段执行，其中 100 用户和 500 用户存在 `success=false` 样本，因此不能标记为完整验收通过。订单正式负载尚未执行，未运行场景不得填写估算值。
+记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟、秒杀 10 用户完整链路连续 3 次验证和秒杀 50/100/200/300/500 固定库存阶梯复测。订单正式负载尚未执行，未运行场景不得填写估算值。
 
 | 项目 | 内容 |
 |---|---|
@@ -162,7 +165,7 @@ HTML 报告状态：
 | Docker 资源限制 | Docker Engine 可用 16 CPU、约 7.37GB 内存 |
 | Elasticsearch JVM heap | `ES_JAVA_OPTS=-Xms512m -Xmx512m` |
 | 测试机与服务部署 | JMeter、本地后端服务和 Docker 中间件运行在同一台 Windows 主机 |
-| 代码 Commit | JMeter 输出未自动固化执行时 Commit，精确执行 Commit 未记录；搜索/订单结果归档提交为 `c67132d`、`8a31712`；秒杀阶梯阶段结果来自本地 JTL 复算，口径修正后归档到 `docs/test/jmeter/summary/seckill-ladder-20260610-220116.md` |
+| 代码 Commit | JMeter 输出未自动固化执行时 Commit，精确执行 Commit 未记录；搜索/订单结果归档提交为 `c67132d`、`8a31712`；秒杀阶梯最新复测来自本地 JTL 复算，归档到 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
 
 ### 7.2 搜索短冒烟
 
@@ -215,23 +218,38 @@ HTML 报告状态：
 
 最终状态核验：专用活动 `9001`、`skuId=9003`、总库存 100；第 3 轮结束后 `mall_seckill.seckill_order` 中最终成功 10、最终失败 0、非空 `orderNo` 10、`orderNo` 去重数 10、去重用户数 10；`mall_order.order_info` 秒杀订单 10、`mall_order.order_item` 秒杀明细 10；`mall_inventory.stock` 中 `skuId=9003,total=100,locked=10,available=90`；库存锁定流水 10；Redis `seckill:stock:9001` 剩余 90。日志未命中 `Duplicate entry`、`秒杀订单创建失败`、`秒杀结果回写失败`、`Global lock wait timeout`、`ERROR`。
 
-秒杀 50/100/200/300/500 阶梯阶段执行结果：
+秒杀 50/100/200/300/500 固定库存阶梯复测结果：
 
 | 并发阶梯 | 固定库存 | JMeter 总样本 | 失败样本 | 秒杀受理 | 库存不足 | 最终订单成功 | 结果轮询超时 | Total P95 | Total TPS | 结论 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 50 用户 | 100 | 383 | 0 | 50 | 0 | 50 | 0 | 287ms | 13.09/s | 阶段通过 |
-| 100 用户 | 100 | 441 | 2 | 100 | 0 | 98 | 2 | 73ms | 13.63/s | 部分通过，存在结果轮询超时 |
-| 200 用户 | 100 | 731 | 0 | 100 | 100 | 100 | 0 | 73ms | 25.08/s | 阶段通过 |
-| 300 用户 | 100 | 1533 | 0 | 100 | 200 | 100 | 0 | 70ms | 52.86/s | 阶段通过 |
-| 500 用户 | 100 | 2284 | 5 | 100 | 400 | 95 | 5 | 71ms | 78.30/s | 部分通过，存在结果轮询超时 |
+| 50 用户 | 100 | 439 | 0 | 50 | 0 | 50 | 0 | 83ms | 52.08/s | 通过 |
+| 100 用户 | 100 | 1830 | 0 | 100 | 0 | 100 | 0 | 158ms | 106.09/s | 通过 |
+| 200 用户 | 100 | 2084 | 0 | 100 | 100 | 100 | 0 | 261ms | 124.27/s | 通过 |
+| 300 用户 | 100 | 2379 | 0 | 100 | 200 | 100 | 0 | 777ms | 132.02/s | 通过 |
+| 500 用户 | 100 | 2677 | 0 | 100 | 400 | 100 | 0 | 2586ms | 138.63/s | 通过 |
 
-证据：`docs/test/jmeter/summary/seckill-ladder-20260610-220116.md`、`docs/test/jmeter/summary/aggregate-20260610.csv`。原始 JTL 与 HTML Dashboard 为本地产物，未纳入仓库。
+证据：`docs/test/jmeter/summary/seckill-ladder-20260610-234029.md`、`docs/test/jmeter/summary/seckill-ladder-20260610-234029.csv`。原始 JTL 与 HTML Dashboard 为本地产物，未纳入仓库。
 
 口径说明：
 
-- 100 用户和 500 用户存在 `success=false` 样本，不能标记为秒杀阶梯压力完整验收通过。
 - 表中的 `Total P95` 和 `Total TPS` 来自 JMeter 全部样本聚合，包含登录、秒杀受理、结果轮询和最终校验，不等同于单个业务接口 P95 或最终成功订单 TPS。
-- 当前结果只能证明 50/200/300 用户阶梯在本地记录中无 JMeter 失败样本，并暴露 100/500 用户结果轮询超时问题；正式通过前需重跑并确保各阶梯失败样本为 0，且数据库最终状态与固定库存一致。
+- 本轮未生成独立 Transaction Controller 父样本，因此不记录“秒杀完整链路 P95”或“最终订单 TPS”。
+- 50/100/200/300/500 五档均已按固定库存 100 完成 DB/Redis 一致性核验：成功订单不超过 100，`order_info` 与 `order_item` 数量一致，`locked` 与成功订单数一致，Redis 库存未小于 0。
+
+### 7.6 启动 Profile 与资源采样
+
+证据：`docs/test/jmeter/summary/profile-resource-20260610.md`。
+
+| 模式 | 启动结果 | Java 进程 | Java Working Set 总量 | 说明 |
+|---|---|---:|---:|---|
+| core | 通过 | 7 | 2525.9 MB | 容器为 mysql、redis、nacos、seata |
+| search | 通过 | 8 | 未单独采样 | 容器为 core + elasticsearch + rocketmq-namesrv + rocketmq-broker |
+| seckill | 通过 | 8 | 3154.4 MB | 容器为 mysql、redis、nacos、seata、RocketMQ、Sentinel |
+| core + LowMemory | 通过 | 7 | 2121.0 MB | Java 命令行均包含 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
+| full-backend | 通过 | 13 | 2586.4 MB | 后端端口迁移到 `9100-9112` 后，手动补齐当前可用中间件并以 `--skip-infrastructure` 启动 |
+| full-docker-profile | 未通过 | 未采样 | 未采样 | Docker 镜像源拉取 `rocketmq-console-ng`、`zipkin`、`kibana` 返回 403，未进入后端启动 |
+
+Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程；外部 9012 Java 进程未被终止，mall-job 使用 9112。
 
 ---
 
@@ -293,13 +311,14 @@ HTML 报告状态：
 
 - Docker 全栈尚未完成；
 - 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
-- 本地脚本后端启动当前可拉起 12 个后端服务；`mall-job` 因本机 9012 被外部 `ArmourySocketServer` 占用未启动；
+- 本地后端端口已迁移到连续区间 `9100-9112`，用于避开本机旧端口 `9012/9013/9014` 外部占用；
 - Elasticsearch 搜索索引初始化、Gateway 搜索业务校验和搜索负载测试已通过；
 - Kubernetes 只有示例；
 - 部分辅助接口未覆盖；
 - 未部署完整监控平台；
 - 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
-- 订单正式负载、秒杀压力测试性能目标仍未验证；
+- 订单正式负载仍未执行；
+- `full` 启动 Profile 本轮因 Docker 镜像源 403 未完成资源采样；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
 ---

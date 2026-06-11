@@ -116,7 +116,7 @@ JMeter：
 pwsh .\scripts\run-jmeter.ps1 -Scenario search -Users 50 -Duration 300
 pwsh .\scripts\run-jmeter.ps1 -Scenario order -Users 50 -Duration 300
 pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalStock 100 -UserCount 100
-pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_
+pwsh .\scripts\run-jmeter.ps1 -Scenario seckill -Users 100 -RampUp 10 -Loops 1 -ActivityId 9001 -SkuId 99003 -UsernamePrefix jmeter_seckill_ -ResultPollAttempts 120 -ResultPollDelayMs 500
 ```
 
 搜索和订单场景使用 `-Duration` 控制持续时间；`-Loops` 只用于秒杀场景。
@@ -134,7 +134,7 @@ pwsh .\scripts\prepare-seckill-jmeter.ps1 -ActivityId 9001 -SkuId 99003 -TotalSt
 - 默认清理活动 `9001` 对应的下游秒杀订单、订单明细、库存流水、SKU 库存；
 - 默认清理 Redis `seckill:stock:9001` 和该活动全部用户限购 Key；
 - 默认通过宿主机 MySQL 连接执行，后端连接 Docker MySQL 时可使用 `-MysqlMode docker`；
-- `run-jmeter.ps1` 的秒杀场景默认使用 `ActivityId=9001`、`SkuId=99003`、`UsernamePrefix=jmeter_seckill_`；
+- `run-jmeter.ps1` 的秒杀场景默认使用 `ActivityId=9001`、`SkuId=99003`、`UsernamePrefix=jmeter_seckill_`、`ResultPollAttempts=120`、`ResultPollDelayMs=500`；
 - JTL 中存在失败样本时，`run-jmeter.ps1` 返回 1；
 - 原始 JTL 和 HTML Dashboard 位于 `docs/test/jmeter/results/`、`docs/test/jmeter/report/`，属于本地产物，不提交仓库。
 
@@ -158,7 +158,7 @@ pwsh .\scripts\init-search-index.ps1 -AllowFailures
 - 检查 Gateway health 后，通过 Gateway `/api/v1/search/products` 校验 HTTP 状态、统一响应业务码和搜索结果；
 - 默认最多轮询 10 次、每次间隔 500ms，避免 ES 索引刷新时序导致假失败；
 - 默认要求搜索结果包含 `1001` 或 `1002`，避免只用“结果非空”误判搜索通过；
-- 内部同步接口默认直连 `http://localhost:9008`，不是 Gateway 业务入口；
+- 内部同步接口默认直连 `http://localhost:9108`，不是 Gateway 业务入口；
 - `-AllowFailures` 只用于记录当前环境状态，不能作为搜索专项通过证据。
 
 测试脚本的结果统一记录到 `docs/FINAL_REPORT.md`。脚本存在不等于测试通过。

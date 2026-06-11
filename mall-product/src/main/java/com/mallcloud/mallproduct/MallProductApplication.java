@@ -26,6 +26,6 @@ public class MallProductApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MallProductApplication.class, args);
-        log.info("MallProduct started on port 9003");
+        log.info("MallProduct started on port 9103");
     }
 }

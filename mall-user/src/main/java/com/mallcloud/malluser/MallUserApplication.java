@@ -26,6 +26,6 @@ public class MallUserApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MallUserApplication.class, args);
-        log.info("MallUser started on port 9002");
+        log.info("MallUser started on port 9102");
     }
 }

@@ -254,19 +254,19 @@ sequenceDiagram
 
 | 服务 | 端口 | 数据存储 | 核心职责 |
 |---|---:|---|---|
-| mall-gateway | 9000 | 无 | 路由、JWT、用户上下文 |
-| mall-auth | 9001 | mall_auth、Redis | 认证与 Token |
-| mall-user | 9002 | mall_user | 用户与地址 |
-| mall-product | 9003 | mall_product、Redis | 商品与类目 |
-| mall-inventory | 9004 | mall_inventory | 库存状态 |
-| mall-cart | 9005 | Redis | 购物车 |
-| mall-order | 9006 | mall_order | 订单 |
-| mall-pay | 9007 | mall_pay | 支付记录和模拟通知 |
-| mall-search | 9008 | Elasticsearch | 商品搜索 |
-| mall-seckill | 9009 | mall_seckill、Redis | 秒杀 |
-| mall-message | 9010 | 无 | MQ 消费和业务分发 |
-| mall-admin-biz | 9011 | Redis | 后台聚合 |
-| mall-job | 9012 | 无 | 定时任务 |
+| mall-gateway | 9100 | 无 | 路由、JWT、用户上下文 |
+| mall-auth | 9101 | mall_auth、Redis | 认证与 Token |
+| mall-user | 9102 | mall_user | 用户与地址 |
+| mall-product | 9103 | mall_product、Redis | 商品与类目 |
+| mall-inventory | 9104 | mall_inventory | 库存状态 |
+| mall-cart | 9105 | Redis | 购物车 |
+| mall-order | 9106 | mall_order | 订单 |
+| mall-pay | 9107 | mall_pay | 支付记录和模拟通知 |
+| mall-search | 9108 | Elasticsearch | 商品搜索 |
+| mall-seckill | 9109 | mall_seckill、Redis | 秒杀 |
+| mall-message | 9110 | 无 | MQ 消费和业务分发 |
+| mall-admin-biz | 9111 | Redis | 后台聚合 |
+| mall-job | 9112 | 无 | 定时任务 |
 
 后续不增加新的服务。
 

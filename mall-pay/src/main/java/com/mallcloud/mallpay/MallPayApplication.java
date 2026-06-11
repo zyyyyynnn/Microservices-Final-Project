@@ -26,6 +26,6 @@ public class MallPayApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MallPayApplication.class, args);
-        log.info("MallPay started on port 9007");
+        log.info("MallPay started on port 9107");
     }
 }

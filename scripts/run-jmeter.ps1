@@ -1,7 +1,7 @@
 param(
     [ValidateSet("search", "order", "seckill")]
     [string]$Scenario = "search",
-    [string]$BaseURL = "http://localhost:9000",
+    [string]$BaseURL = "http://localhost:9100",
     [int]$Users = 50,
     [int]$RampUp = 30,
     [int]$Duration = 300,
@@ -11,7 +11,7 @@ param(
     [string]$UsernamePrefix = "jmeter_seckill_",
     [int]$ActivityId = 9001,
     [int]$SkuId = 99003,
-    [int]$ResultPollAttempts = 20,
+    [int]$ResultPollAttempts = 120,
     [int]$ResultPollDelayMs = 500,
     [string]$JMeterVersion = "5.6.3",
     [switch]$InstallOnly

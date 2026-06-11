@@ -1,5 +1,3 @@
-version: '3.8'
-
 # MallCloud 全栈编排（含 13 个微服务 + 中间件）
 # 启动：docker compose -f docker-compose.all.yml up -d
 # 注意：依赖 docker-compose.middleware.yml 先启动中间件
@@ -11,9 +9,6 @@ services:
     image: mallcloud/mall-gateway:1.0.0
     container_name: mall-gateway
     restart: always
-    depends_on:
-      - nacos
-      - redis
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -21,7 +16,7 @@ services:
       REDIS_HOST: mall-redis
       JWT_SECRET: mallcloud-dev-jwt-secret-20260609-rotated-after-report-leak-change-me-hs512-signing-key
     ports:
-      - "9000:9000"
+      - "9100:9100"
     networks:
       - mall-net
 
@@ -30,9 +25,6 @@ services:
     image: mallcloud/mall-auth:1.0.0
     container_name: mall-auth
     restart: always
-    depends_on:
-      - nacos
-      - mysql
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -40,7 +32,7 @@ services:
       MYSQL_HOST: mall-mysql
       MYSQL_DB: mall_auth
     ports:
-      - "9001:9001"
+      - "9101:9101"
     networks:
       - mall-net
 
@@ -49,10 +41,6 @@ services:
     image: mallcloud/mall-user:1.0.0
     container_name: mall-user
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - redis
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -61,7 +49,7 @@ services:
       MYSQL_DB: mall_user
       REDIS_HOST: mall-redis
     ports:
-      - "9002:9002"
+      - "9102:9102"
     networks:
       - mall-net
 
@@ -70,11 +58,6 @@ services:
     image: mallcloud/mall-product:1.0.0
     container_name: mall-product
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-      - rocketmq-namesrv
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -84,7 +67,7 @@ services:
       REDIS_HOST: mall-redis
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
     ports:
-      - "9003:9003"
+      - "9103:9103"
     networks:
       - mall-net
 
@@ -93,10 +76,6 @@ services:
     image: mallcloud/mall-inventory:1.0.0
     container_name: mall-inventory
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - redis
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -105,7 +84,7 @@ services:
       MYSQL_DB: mall_inventory
       REDIS_HOST: mall-redis
     ports:
-      - "9004:9004"
+      - "9104:9104"
     networks:
       - mall-net
 
@@ -114,16 +93,13 @@ services:
     image: mallcloud/mall-cart:1.0.0
     container_name: mall-cart
     restart: always
-    depends_on:
-      - nacos
-      - redis
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
       NACOS_SERVER: mall-nacos:8848
       REDIS_HOST: mall-redis
     ports:
-      - "9005:9005"
+      - "9105:9105"
     networks:
       - mall-net
 
@@ -132,12 +108,6 @@ services:
     image: mallcloud/mall-order:1.0.0
     container_name: mall-order
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-      - rocketmq-namesrv
-      - seata
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -148,7 +118,7 @@ services:
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
       SEATA_TC_URL: mall-seata:8091
     ports:
-      - "9006:9006"
+      - "9106:9106"
     networks:
       - mall-net
 
@@ -157,10 +127,6 @@ services:
     image: mallcloud/mall-pay:1.0.0
     container_name: mall-pay
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - rocketmq-namesrv
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -169,7 +135,7 @@ services:
       MYSQL_DB: mall_pay
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
     ports:
-      - "9007:9007"
+      - "9107:9107"
     networks:
       - mall-net
 
@@ -178,10 +144,6 @@ services:
     image: mallcloud/mall-search:1.0.0
     container_name: mall-search
     restart: always
-    depends_on:
-      - nacos
-      - elasticsearch
-      - rocketmq-namesrv
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -190,7 +152,7 @@ services:
       ES_PORT: 9200
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
     ports:
-      - "9008:9008"
+      - "9108:9108"
     networks:
       - mall-net
 
@@ -199,11 +161,6 @@ services:
     image: mallcloud/mall-seckill:1.0.0
     container_name: mall-seckill
     restart: always
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-      - rocketmq-namesrv
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
@@ -213,7 +170,7 @@ services:
       REDIS_HOST: mall-redis
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
     ports:
-      - "9009:9009"
+      - "9109:9109"
     networks:
       - mall-net
 
@@ -222,16 +179,13 @@ services:
     image: mallcloud/mall-message:1.0.0
     container_name: mall-message
     restart: always
-    depends_on:
-      - nacos
-      - rocketmq-namesrv
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
       NACOS_SERVER: mall-nacos:8848
       ROCKETMQ_NAMESRV: mall-rocketmq-namesrv:9876
     ports:
-      - "9010:9010"
+      - "9110:9110"
     networks:
       - mall-net
 
@@ -240,15 +194,12 @@ services:
     image: mallcloud/mall-admin-biz:1.0.0
     container_name: mall-admin-biz
     restart: always
-    depends_on:
-      - nacos
-      - redis
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
       NACOS_SERVER: mall-nacos:8848
     ports:
-      - "9011:9011"
+      - "9111:9111"
     networks:
       - mall-net
 
@@ -257,16 +208,13 @@ services:
     image: mallcloud/mall-job:1.0.0
     container_name: mall-job
     restart: always
-    depends_on:
-      - nacos
-      - mysql
     environment:
       TZ: Asia/Shanghai
       SPRING_PROFILES_ACTIVE: test
       NACOS_SERVER: mall-nacos:8848
       MYSQL_HOST: mall-mysql
     ports:
-      - "9012:9012"
+      - "9112:9112"
     networks:
       - mall-net
 

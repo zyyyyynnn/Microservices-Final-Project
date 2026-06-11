@@ -26,6 +26,6 @@ public class MallAuthApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MallAuthApplication.class, args);
-        log.info("MallAuth started on port 9001");
+        log.info("MallAuth started on port 9101");
     }
 }

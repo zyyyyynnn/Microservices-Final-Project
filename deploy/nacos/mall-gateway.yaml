@@ -1,6 +1,6 @@
 # mall-gateway Nacos 配置
 server:
-  port: 9000
+  port: 9100
 
 spring:
   application:

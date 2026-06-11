@@ -30,19 +30,19 @@ $FrontendDir = Join-Path $ProjectRoot "mall-frontend"
 
 # ── 后端服务定义 ──────────────────────────────────────
 $BackendServices = @(
-    @{ Name = "mall-user";       Port = 9002 }
-    @{ Name = "mall-auth";       Port = 9001 }
-    @{ Name = "mall-product";    Port = 9003 }
-    @{ Name = "mall-inventory";  Port = 9004 }
-    @{ Name = "mall-cart";       Port = 9005 }
-    @{ Name = "mall-order";      Port = 9006 }
-    @{ Name = "mall-pay";        Port = 9007 }
-    @{ Name = "mall-message";    Port = 9010 }
-    @{ Name = "mall-search";     Port = 9008 }
-    @{ Name = "mall-seckill";    Port = 9009 }
-    @{ Name = "mall-admin-biz";  Port = 9011 }
-    @{ Name = "mall-job";        Port = 9012 }
-    @{ Name = "mall-gateway";    Port = 9000 }
+    @{ Name = "mall-user";       Port = 9102 }
+    @{ Name = "mall-auth";       Port = 9101 }
+    @{ Name = "mall-product";    Port = 9103 }
+    @{ Name = "mall-inventory";  Port = 9104 }
+    @{ Name = "mall-cart";       Port = 9105 }
+    @{ Name = "mall-order";      Port = 9106 }
+    @{ Name = "mall-pay";        Port = 9107 }
+    @{ Name = "mall-message";    Port = 9110 }
+    @{ Name = "mall-search";     Port = 9108 }
+    @{ Name = "mall-seckill";    Port = 9109 }
+    @{ Name = "mall-admin-biz";  Port = 9111 }
+    @{ Name = "mall-job";        Port = 9112 }
+    @{ Name = "mall-gateway";    Port = 9100 }
 )
 
 $FrontendPort = 5173
@@ -103,22 +103,22 @@ function Get-ExistingPid($port) {
     return $null
 }
 
-function Get-ProcessCommandLine([int]$Pid) {
+function Get-ProcessCommandLine([int]$ProcessId) {
     try {
-        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $Pid" -ErrorAction Stop
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId" -ErrorAction Stop
         return $proc.CommandLine
     } catch {
         return $null
     }
 }
 
-function Test-ManagedBackendProcess([int]$Pid, [string]$ServiceName) {
-    $proc = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+function Test-ManagedBackendProcess([int]$ProcessId, [string]$ServiceName) {
+    $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
     if (-not $proc -or $proc.ProcessName -ne "java") {
         return $false
     }
 
-    $commandLine = Get-ProcessCommandLine $Pid
+    $commandLine = Get-ProcessCommandLine $ProcessId
     if ([string]::IsNullOrWhiteSpace($commandLine)) {
         return $false
     }
@@ -128,6 +128,37 @@ function Test-ManagedBackendProcess([int]$Pid, [string]$ServiceName) {
     $jarPattern = "\\$([regex]::Escape($ServiceName))(?:-[^\\\s`"']+)?\.jar"
 
     return ($normalized -like "*$targetDir*" -and $normalized -match $jarPattern)
+}
+
+function Stop-ManagedBackendProcess([string]$ServiceName, [int]$ProcessId, [int]$Port) {
+    $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    if (-not $proc) {
+        Write-Warn "$ServiceName 旧 PID $ProcessId 已不存在"
+        return $true
+    }
+
+    if (-not (Test-ManagedBackendProcess $ProcessId $ServiceName)) {
+        Write-Warn "跳过终止 $ServiceName 的旧 PID $ProcessId：命令行未匹配本项目 $ServiceName jar"
+        return $false
+    }
+
+    Write-Info "终止不在 Profile 内的旧服务 $ServiceName (PID: $ProcessId)"
+    try {
+        Stop-Process -Id $ProcessId -Force -ErrorAction Stop
+        for ($i = 1; $i -le 20; $i++) {
+            $stillRunning = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+            $portBusy = Test-Port $Port 1
+            if (-not $stillRunning -and -not $portBusy) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 500
+        }
+        Write-Err "$ServiceName PID=$ProcessId 停止后端口 $Port 未释放"
+        return $false
+    } catch {
+        Write-Err "$ServiceName PID=$ProcessId 停止失败: $_"
+        return $false
+    }
 }
 
 # ── 初始化目录 ────────────────────────────────────────
@@ -243,7 +274,7 @@ if (-not $SkipInfrastructure) {
     if ($Profile -eq "core") {
         $composeServices = @("mysql", "redis", "nacos", "seata")
     } elseif ($Profile -eq "search") {
-        $composeServices = @("mysql", "redis", "nacos", "seata", "elasticsearch")
+        $composeServices = @("mysql", "redis", "nacos", "seata", "elasticsearch", "rocketmq-namesrv", "rocketmq-broker")
     } elseif ($Profile -eq "seckill") {
         $composeServices = @("mysql", "redis", "nacos", "seata", "rocketmq-namesrv", "rocketmq-broker", "sentinel")
     }
@@ -256,14 +287,22 @@ if (-not $SkipInfrastructure) {
             if ($toStop.Count -gt 0) {
                 Write-Info "停止不在 Profile 内的基础设施: $($toStop -join ' ')"
                 & docker compose -f docker-compose.middleware.yml stop @toStop 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Err "Docker Compose stop 失败"
+                    exit 1
+                }
             }
             & docker compose -f docker-compose.middleware.yml up -d @composeServices 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Err "Docker Compose up 失败"
+                exit 1
+            }
         } else {
             & docker compose -f docker-compose.middleware.yml up -d 2>&1
-        }
-        if ($LASTEXITCODE -ne 0) {
-            Write-Err "Docker Compose 启动失败"
-            exit 1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Err "Docker Compose up 失败"
+                exit 1
+            }
         }
         Write-Ok "Docker Compose 已执行"
 
@@ -365,16 +404,19 @@ if (-not $SkipBackend) {
             Write-Info "跳过服务 $name (基于 Profile: $Profile)"
             if ($script:Processes.ContainsKey($name)) {
                 $oldPid = $script:Processes[$name].PID
+                $stopOk = $true
                 if ($oldPid) {
-                    if (Test-ManagedBackendProcess $oldPid $name) {
-                        Write-Info "终止不在 Profile 内的旧服务 $name (PID: $oldPid)"
-                        Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
-                    } else {
-                        Write-Warn "跳过终止 $name 的旧 PID $oldPid：命令行未匹配本项目 $name jar"
+                    $stopOk = Stop-ManagedBackendProcess $name $oldPid $svc.Port
+                }
+                if ($stopOk) {
+                    $script:Processes.Remove($name)
+                    Save-ResultsState
+                } else {
+                    Add-Result @{
+                        Name = $name; PID = $oldPid; Port = $svc.Port
+                        Status = "StopFailed"; Type = "backend"; Log = $null
                     }
                 }
-                $script:Processes.Remove($name)
-                Save-ResultsState
             }
             continue
         }
@@ -463,7 +505,8 @@ if (-not $SkipBackend) {
             Add-Result @{
                 Name = $name; PID = $proc.Id; Port = $port
                 Status = "Running"; Type = "backend"
-                Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                Log = $logFile; Jar = $jar.FullName
+                StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
         } else {
             $status = if ($proc.HasExited) { "Exited" } else { "Timeout" }
@@ -471,7 +514,8 @@ if (-not $SkipBackend) {
             Add-Result @{
                 Name = $name; PID = $proc.Id; Port = $port
                 Status = $status; Type = "backend"
-                Log = $logFile; StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                Log = $logFile; Jar = $jar.FullName
+                StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
         }
     }
@@ -604,7 +648,7 @@ $frontendResult = $Results | Where-Object { $_.Name -eq "frontend" }
 
 Write-Host ""
 if ($gatewayResult -and $gatewayResult.Status -in @("Running", "AlreadyRunning")) {
-    Write-Host "  网关地址: http://localhost:9000" -ForegroundColor Cyan
+    Write-Host "  网关地址: http://localhost:9100" -ForegroundColor Cyan
 }
 if ($frontendResult -and $frontendResult.Status -in @("Running", "AlreadyRunning")) {
     Write-Host "  前端地址: http://localhost:5173" -ForegroundColor Cyan

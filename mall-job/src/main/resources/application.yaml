@@ -1,9 +1,11 @@
 server:
-  port: 9012
+  port: 9112
 
 spring:
   application:
     name: mall-job
+  config:
+    import: optional:nacos:mall-job.yaml
   profiles:
     active: dev
   cloud:

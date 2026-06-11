@@ -104,9 +104,14 @@ start-all.bat --skip-infrastructure
 start-all.bat --skip-frontend
 start-all.bat --no-build
 start-all.bat --no-pause
+start-all.bat --profile core
+start-all.bat --profile search
+start-all.bat --profile seckill
+start-all.bat --profile core --low-memory
 ```
 
-启动失败不得写成成功。若 `mall-job` 端口 9012 被外部进程占用，应如实记录为端口冲突或未启动。
+启动失败不得写成成功。若 `mall-job` 旧端口 9012 被外部进程占用，当前 mall-job 已迁移到 9112，应如实记录为端口冲突或未启动。
+Profile 资源采样和 LowMemory 验证结果以 `docs/FINAL_REPORT.md` 为准；`full` Profile 若因 Docker 镜像源拉取失败中断，不得写成已启动。
 
 停止：
 
@@ -175,7 +180,7 @@ $loginBody = @{
 
 $login = Invoke-RestMethod `
   -Method Post `
-  -Uri "http://localhost:9000/api/v1/auth/login" `
+  -Uri "http://localhost:9100/api/v1/auth/login" `
   -ContentType "application/json; charset=utf-8" `
   -Body $loginBody
 
@@ -185,7 +190,7 @@ $token = $login.data.accessToken
 ### 7.3 商品详情
 
 ```powershell
-Invoke-RestMethod "http://localhost:9000/api/v1/products/1001"
+Invoke-RestMethod "http://localhost:9100/api/v1/products/1001"
 ```
 
 ### 7.4 创建订单
@@ -204,7 +209,7 @@ $orderBody = @{
 
 $order = Invoke-RestMethod `
   -Method Post `
-  -Uri "http://localhost:9000/api/v1/orders" `
+  -Uri "http://localhost:9100/api/v1/orders" `
   -Headers @{ Authorization = "Bearer $token" } `
   -ContentType "application/json; charset=utf-8" `
   -Body $orderBody
@@ -216,7 +221,7 @@ $orderNo = $order.data.orderNo
 
 ```powershell
 Invoke-RestMethod `
-  -Uri "http://localhost:9000/api/v1/orders/$orderNo" `
+  -Uri "http://localhost:9100/api/v1/orders/$orderNo" `
   -Headers @{ Authorization = "Bearer $token" }
 ```
 
@@ -238,7 +243,7 @@ npm run dev
 http://localhost:5173
 ```
 
-前端通过 Vite 代理把 `/api/v1/**` 转发到 Gateway `http://localhost:9000`。后端核心服务未启动时，页面应展示明确错误，不使用 mock 数据伪造成功。
+前端通过 Vite 代理把 `/api/v1/**` 转发到 Gateway `http://localhost:9100`。后端核心服务未启动时，页面应展示明确错误，不使用 mock 数据伪造成功。
 
 ---
 

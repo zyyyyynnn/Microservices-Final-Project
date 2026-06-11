@@ -75,12 +75,12 @@ if exist "%STATE_FILE%" (
     pwsh.exe -NoProfile -Command ^
         "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable;" ^
         "$cleaned = @{}; foreach ($k in $s.Keys) {" ^
-        "  $e = $s[$k]; if (-not $e.pid) { continue };" ^
-        "  $p = Get-Process -Id $e.pid -ErrorAction SilentlyContinue; if (-not $p) { continue };" ^
-        "  $cmd = (Get-CimInstance Win32_Process -Filter ('ProcessId=' + $e.pid) -ErrorAction SilentlyContinue).CommandLine;" ^
+        "  $e = $s[$k]; $pidValue = $e['PID']; if (-not $pidValue) { continue };" ^
+        "  $p = Get-Process -Id $pidValue -ErrorAction SilentlyContinue; if (-not $p) { continue };" ^
+        "  $cmd = (Get-CimInstance Win32_Process -Filter ('ProcessId=' + $pidValue) -ErrorAction SilentlyContinue).CommandLine;" ^
         "  if (-not $cmd) { continue };" ^
-        "  if ($e.type -eq 'backend' -and $p.ProcessName -eq 'java' -and $e.jar -and ($cmd -match [regex]::Escape($e.jar))) { $cleaned[$k] = $e; continue };" ^
-        "  if ($e.type -eq 'frontend' -and $p.ProcessName -eq 'node' -and ($cmd -match 'mall-frontend|vite')) { $cleaned[$k] = $e; continue };" ^
+        "  if ($e['Type'] -eq 'backend' -and $p.ProcessName -eq 'java' -and $e['Jar'] -and ($cmd -match [regex]::Escape($e['Jar']))) { $cleaned[$k] = $e; continue };" ^
+        "  if ($e['Type'] -eq 'frontend' -and $p.ProcessName -eq 'node' -and ($cmd -match 'mall-frontend|vite')) { $cleaned[$k] = $e; continue };" ^
         "};" ^
         "if ($cleaned.Count -gt 0) { $cleaned | ConvertTo-Json -Depth 5 | Set-Content '%STATE_FILE%' -Encoding UTF8 }" ^
         "else { Remove-Item '%STATE_FILE%' -Force -ErrorAction SilentlyContinue }" >nul 2>&1
@@ -114,7 +114,7 @@ set "_name=%~1"
 
 rem 获取 PID
 for /f "tokens=*" %%p in ('pwsh.exe -NoProfile -Command ^
-    "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; if ($e -and $e.pid) { $e.pid } else { '' }"') do set "_pid=%%p"
+    "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; if ($e -and $e['PID']) { $e['PID'] } else { '' }"') do set "_pid=%%p"
 
 if not defined _pid (
     echo [WARN] !_name! has no PID, skip
@@ -139,7 +139,7 @@ rem 校验命令行（防止 PID 复用误杀）
 set "_cmd_valid=0"
 if "!_pname!"=="java" (
     for /f "tokens=*" %%c in ('pwsh.exe -NoProfile -Command ^
-        "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_pid!' -ErrorAction SilentlyContinue).CommandLine; if ($e.jar -and $cmd -match [regex]::Escape($e.jar)) { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
+        "$s = Get-Content '%STATE_FILE%' -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable; $e = $s['!_name!']; $cmd = (Get-CimInstance Win32_Process -Filter 'ProcessId=!_pid!' -ErrorAction SilentlyContinue).CommandLine; if ($e['Jar'] -and $cmd -match [regex]::Escape($e['Jar'])) { 'VALID' } else { 'INVALID' }"') do set "_cmd_valid_str=%%c"
     if "!_cmd_valid_str!"=="VALID" set "_cmd_valid=1"
 )
 if "!_pname!"=="node" (

@@ -25,7 +25,7 @@ MallCloud 采用 Spring Cloud Alibaba 微服务架构，面向课程期末项目
 ```mermaid
 graph TB
   Client[Vue 前台 / 后台 / Postman / JMeter]
-  Gateway[mall-gateway :9000]
+  Gateway[mall-gateway :9100]
   Nacos[Nacos]
   Sentinel[Sentinel Dashboard]
   Seata[Seata Server]
@@ -117,7 +117,7 @@ graph TB
 
 ### 4.1 路由
 
-Gateway 统一监听 `9000` 端口，通过 `lb://服务名` 路由到 Nacos 中的实例。
+Gateway 统一监听 `9100` 端口，通过 `lb://服务名` 路由到 Nacos 中的实例。
 
 核心路由：
 

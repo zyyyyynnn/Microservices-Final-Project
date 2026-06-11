@@ -20,7 +20,7 @@ spec:
           image: mallcloud/mall-gateway:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 9000
+            - containerPort: 9100
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
@@ -43,13 +43,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 9000
+              port: 9100
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 9000
+              port: 9100
             initialDelaySeconds: 20
             periodSeconds: 5
 ---
@@ -63,6 +63,6 @@ spec:
     app: mall-gateway
   ports:
     - name: http
-      port: 9000
-      targetPort: 9000
+      port: 9100
+      targetPort: 9100
   type: ClusterIP

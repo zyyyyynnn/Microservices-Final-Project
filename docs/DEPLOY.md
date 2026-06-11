@@ -257,7 +257,7 @@ npm run dev
 npm run build
 ```
 
-开发环境默认使用 `http://localhost:5173`，Vite 代理将 `/api/v1/**` 转发到 Gateway `http://localhost:9000`。
+开发环境默认使用 `http://localhost:5173`，Vite 代理将 `/api/v1/**` 转发到 Gateway `http://localhost:9100`。
 
 ---
 
@@ -266,19 +266,19 @@ npm run build
 | 服务 | 端口 |
 |---|---:|
 | mall-frontend | 5173 |
-| mall-gateway | 9000 |
-| mall-auth | 9001 |
-| mall-user | 9002 |
-| mall-product | 9003 |
-| mall-inventory | 9004 |
-| mall-cart | 9005 |
-| mall-order | 9006 |
-| mall-pay | 9007 |
-| mall-search | 9008 |
-| mall-seckill | 9009 |
-| mall-message | 9010 |
-| mall-admin-biz | 9011 |
-| mall-job | 9012 |
+| mall-gateway | 9100 |
+| mall-auth | 9101 |
+| mall-user | 9102 |
+| mall-product | 9103 |
+| mall-inventory | 9104 |
+| mall-cart | 9105 |
+| mall-order | 9106 |
+| mall-pay | 9107 |
+| mall-search | 9108 |
+| mall-seckill | 9109 |
+| mall-message | 9110 |
+| mall-admin-biz | 9111 |
+| mall-job | 9112 |
 
 ---
 
@@ -305,7 +305,7 @@ http://localhost:8848/nacos
 Gateway 健康：
 
 ```powershell
-Invoke-RestMethod http://localhost:9000/actuator/health
+Invoke-RestMethod http://localhost:9100/actuator/health
 ```
 
 最终演示需保存：

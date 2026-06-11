@@ -5,7 +5,7 @@ mallcloud:
       app-id: ${ALIPAY_APP_ID:}
       private-key: ${ALIPAY_PRIVATE_KEY:}
       alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
-      notify-url: ${ALIPAY_NOTIFY_URL:http://localhost:9000/api/v1/pay/notify}
+      notify-url: ${ALIPAY_NOTIFY_URL:http://localhost:9100/api/v1/pay/notify}
       return-url: ${ALIPAY_RETURN_URL:http://localhost:5173/orders}
       sign-type: RSA2
       charset: UTF-8

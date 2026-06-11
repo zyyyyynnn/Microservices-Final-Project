@@ -1,0 +1,6 @@
+users,jtl,total_samples,failed_samples,login_success,accepted,stock_empty,limit_reached,sentinel_429,final_success,final_business_failed,poll_timeout,http_5xx,unexpected_failed,order_no_non_empty,order_no_distinct,order_info_count,order_item_count,stock_total,stock_locked,stock_available,redis_stock,total_p95_ms,total_tps,first_final_sec,last_final_sec,conclusion
+50,seckill-50-20260610-234029.jtl,439,0,50,50,0,0,0,50,0,0,0,0,50,50,50,50,100,50,50,50,83,52.08,1.38,8.43,passed
+100,seckill-100-20260610-234054.jtl,1830,0,100,100,0,0,0,100,0,0,0,0,100,100,100,100,100,100,0,0,158,106.09,1.77,17.25,passed
+200,seckill-200-20260610-234137.jtl,2084,0,200,100,100,0,0,100,0,0,0,0,100,100,100,100,100,100,0,0,261,124.27,1.89,16.77,passed
+300,seckill-300-20260610-234219.jtl,2379,0,300,100,200,0,0,100,0,0,0,0,100,100,100,100,100,100,0,0,777,132.02,3.34,18.02,passed
+500,seckill-500-20260610-234303.jtl,2677,0,500,100,400,0,0,100,0,0,0,0,100,100,100,100,100,100,0,0,2586,138.63,5.53,19.31,passed

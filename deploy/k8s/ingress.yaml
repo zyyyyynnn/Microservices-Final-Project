@@ -20,7 +20,7 @@ spec:
               service:
                 name: mall-gateway
                 port:
-                  number: 9000
+                  number: 9100
           - path: /nacos
             pathType: Prefix
             backend:

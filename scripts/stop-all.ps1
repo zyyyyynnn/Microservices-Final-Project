@@ -15,6 +15,38 @@ function Write-Warn($msg) { Write-Host "  [WARN] $msg" -ForegroundColor Yellow }
 function Write-Err($msg)  { Write-Host "  [FAIL] $msg" -ForegroundColor Red }
 function Write-Info($msg) { Write-Host "  [....] $msg" -ForegroundColor Gray }
 
+function Get-ProcessCommandLine([int]$ProcessId) {
+    try {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId" -ErrorAction Stop
+        return $proc.CommandLine
+    } catch {
+        return $null
+    }
+}
+
+function Test-ManagedBackendProcess([int]$ProcessId, [string]$ServiceName, [string]$ExpectedJar = $null) {
+    $proc = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    if (-not $proc -or $proc.ProcessName -ne "java") {
+        return $false
+    }
+
+    $commandLine = Get-ProcessCommandLine $ProcessId
+    if ([string]::IsNullOrWhiteSpace($commandLine)) {
+        return $false
+    }
+
+    $normalized = $commandLine.Replace("/", "\")
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedJar)) {
+        $normalizedJar = $ExpectedJar.Replace("/", "\")
+        if ($normalized -like "*$normalizedJar*") {
+            return $true
+        }
+    }
+
+    $targetDir = (Join-Path (Join-Path $ProjectRoot $ServiceName) "target").Replace("/", "\")
+    return ($normalized -like "*$targetDir\*" -and $normalized -like "*.jar*")
+}
+
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "  MallCloud 停止服务" -ForegroundColor Cyan
@@ -70,6 +102,11 @@ foreach ($name in $Processes.Keys) {
         $skipped++
         continue
     }
+    if ($procName -eq "java" -and -not (Test-ManagedBackendProcess $processId $name $entry.Jar)) {
+        Write-Warn "$name PID=$processId 命令行未匹配本项目 $name jar，跳过"
+        $skipped++
+        continue
+    }
 
     Write-Info "停止 $name PID=$processId ..."
 
@@ -109,7 +146,7 @@ foreach ($name in $Processes.Keys) {
     $entry = $Processes[$name]
     if ($entry.PID) {
         $proc = Get-Process -Id $entry.PID -ErrorAction SilentlyContinue
-        if ($proc -and $proc.ProcessName -in @("java", "node")) {
+        if ($proc -and ($proc.ProcessName -eq "node" -or (Test-ManagedBackendProcess $entry.PID $name $entry.Jar))) {
             $cleaned[$name] = $entry
         }
     }
