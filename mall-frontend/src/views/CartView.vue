@@ -93,7 +93,7 @@ onMounted(load);
 </script>
 
 <template>
-  <section class="page-grid two">
+  <section class="cart-layout">
     <el-card class="panel wide-panel">
       <template #header>
         <div class="panel-title">购物车</div>
@@ -109,58 +109,62 @@ onMounted(load);
         </el-empty>
       </div>
       <div v-if="cart.items.length" class="table-scroll">
-      <el-table :data="cart.items" class="stable-table">
-        <el-table-column label="选中" width="90">
-          <template #default="{ row }">
-            <el-switch
-              v-model="row.selected"
-              :disabled="submittingSku === row.skuId"
-              @change="updateSelected(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="商品" min-width="220">
-          <template #default="{ row }">
-            <div class="line-item">
-              <div class="thumb">
-                <ProductImage :src="cartItemImage(row)" :alt="cartItemName(row)" />
+        <el-table :data="cart.items" class="stable-table">
+          <el-table-column label="选择" width="70" align="center">
+            <template #default="{ row }">
+              <el-checkbox
+                v-model="row.selected"
+                :disabled="submittingSku === row.skuId"
+                @change="updateSelected(row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="商品" min-width="260">
+            <template #default="{ row }">
+              <div class="line-item">
+                <div class="thumb">
+                  <ProductImage :src="cartItemImage(row)" :alt="cartItemName(row)" />
+                </div>
+                <div class="item-info">
+                  <strong>{{ cartItemName(row) }}</strong>
+                  <span>{{ cartItemSpec(row) }}</span>
+                </div>
               </div>
-              <div>
-                <strong>{{ cartItemName(row) }}</strong>
-                <span>{{ cartItemSpec(row) }}</span>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="单价" width="120">
-          <template #default="{ row }">{{ money(row.price) }}</template>
-        </el-table-column>
-        <el-table-column label="数量" width="170">
-          <template #default="{ row }">
-            <el-input-number
-              v-model="row.quantity"
-              :min="1"
-              size="small"
-              :disabled="submittingSku === row.skuId"
-              @change="updateQuantity(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="小计" width="120">
-          <template #default="{ row }">{{ money(row.subtotal ?? Number(row.price || 0) * Number(row.quantity || 0)) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="110">
-          <template #default="{ row }">
-            <el-button text type="danger" :disabled="submittingSku === row.skuId" @click="removeItem(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
+          <el-table-column label="单价" width="120">
+            <template #default="{ row }">
+              <span class="price-cell">{{ money(row.price) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="数量" width="150" align="center">
+            <template #default="{ row }">
+              <el-input-number
+                v-model="row.quantity"
+                :min="1"
+                size="small"
+                :disabled="submittingSku === row.skuId"
+                @change="updateQuantity(row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="小计" width="120">
+            <template #default="{ row }">
+              <span class="subtotal-cell">{{ money(row.subtotal ?? Number(row.price || 0) * Number(row.quantity || 0)) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="90" align="center">
+            <template #default="{ row }">
+              <el-button text type="danger" :disabled="submittingSku === row.skuId" @click="removeItem(row)">
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </el-card>
 
-    <el-card class="panel">
+    <el-card class="panel summary-panel">
       <template #header>
         <div class="panel-title">结算摘要</div>
       </template>

@@ -16,21 +16,21 @@ const totalAmount = computed(() => props.items.reduce((sum, item) => {
 
 <template>
   <div class="summary-box">
-    <div>
-      <span>商品数量</span>
-      <strong>{{ totalQuantity }}</strong>
+    <div class="summary-row">
+      <span class="summary-label">商品数量</span>
+      <strong class="summary-value">{{ totalQuantity }}</strong>
     </div>
-    <div>
-      <span>商品金额</span>
-      <strong>{{ money(totalAmount) }}</strong>
+    <div class="summary-row">
+      <span class="summary-label">商品金额</span>
+      <strong class="summary-value">{{ money(totalAmount) }}</strong>
     </div>
-    <div>
-      <span>运费</span>
-      <strong>{{ money(0) }}</strong>
+    <div class="summary-row">
+      <span class="summary-label">运费</span>
+      <strong class="summary-value">{{ money(0) }}</strong>
     </div>
-    <div class="summary-total">
-      <span>应付合计</span>
-      <strong>{{ money(totalAmount) }}</strong>
+    <div class="summary-row summary-total">
+      <span class="summary-label">应付合计</span>
+      <strong class="summary-value total-price">{{ money(totalAmount) }}</strong>
     </div>
   </div>
 </template>
