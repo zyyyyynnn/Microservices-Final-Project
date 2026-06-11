@@ -112,7 +112,7 @@ function isActive(path: string) {
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-if="!auth.isAuthenticated" @click="router.push('/login')">登录</el-dropdown-item>
-                <el-dropdown-item @click="router.push('/account')">我的订单</el-dropdown-item>
+                <el-dropdown-item v-if="auth.isAuthenticated" @click="router.push('/account')">账户资料</el-dropdown-item>
                 <el-dropdown-item v-if="auth.canAccessAdmin" @click="router.push('/admin')">后台管理</el-dropdown-item>
                 <el-dropdown-item v-if="auth.isAuthenticated" divided @click="logout">退出</el-dropdown-item>
               </el-dropdown-menu>
