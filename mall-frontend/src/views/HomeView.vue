@@ -7,6 +7,7 @@ import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
 import { heroImage, resolveProductImage } from '../catalog/productAssets';
+import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
 import ProductImage from '../components/ProductImage.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
 
@@ -100,8 +101,6 @@ function selectCategory(tab: { label: string; keyword: string }) {
     router.push('/search');
   }
 }
-
-import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
 
 function getPrice(product: UnknownRecord) {
   const skus = product.skus as UnknownRecord[] | undefined;

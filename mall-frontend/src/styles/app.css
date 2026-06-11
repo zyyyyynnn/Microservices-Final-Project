@@ -771,7 +771,7 @@ h6 {
 
 .sku-chip.active {
   border-color: var(--color-brand);
-  background: var(--color-brand-soft);
+  background: var(--color-brand-light);
   color: var(--color-brand);
   font-weight: 700;
 }
