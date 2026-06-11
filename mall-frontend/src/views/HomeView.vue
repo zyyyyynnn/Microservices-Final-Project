@@ -1,11 +1,11 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
-import { heroImage, seedCatalogProducts, seckillProducts, onlineProductImage } from '../catalog/productAssets';
+import { heroImage, seedCatalogProducts, onlineProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
 
@@ -34,11 +34,11 @@ const flowSteps = [
 ];
 
 const dashboardItems = [
-  { name: 'API Gateway', sub: '健康检查', status: '运行中', metricLabel: '状态', metricValue: '正常', icon: '☁️', color: '#1b61c9' },
-  { name: 'Nacos 注册中心', sub: '服务实例', status: '运行中', metricLabel: '实例数', metricValue: '32 个', icon: '∞', color: '#1b61c9' },
-  { name: 'Seata 分布式事务', sub: '事务成功率', status: '运行中', metricLabel: '成功率', metricValue: '99.96%', icon: '🔄', color: '#1b61c9' },
-  { name: 'RocketMQ 消息队列', sub: '消息堆积', status: '运行中', metricLabel: '堆积', metricValue: '0', icon: '🚀', color: '#e65100' },
-  { name: 'Sentinel 流量防护', sub: 'QPS 限流', status: '运行中', metricLabel: '状态', metricValue: '正常', icon: '🛡️', color: '#1b61c9' },
+  { name: 'API Gateway', sub: '统一微服务入口与鉴权', icon: '☁️', color: '#1b61c9' },
+  { name: 'Nacos', sub: '服务注册发现与配置中心', icon: '∞', color: '#1b61c9' },
+  { name: 'Seata', sub: '分布式事务管理', icon: '🔄', color: '#1b61c9' },
+  { name: 'RocketMQ', sub: '异步消息与事件驱动', icon: '🚀', color: '#e65100' },
+  { name: 'Sentinel', sub: '高可用流量防护体系', icon: '🛡️', color: '#1b61c9' },
 ];
 
 const bottomPromises = [
@@ -51,7 +51,7 @@ const bottomPromises = [
 const currentCategory = ref('精选推荐');
 const categoryTabs = ['精选推荐', '数码家电', '美妆护肤', '家居生活', '运动户外', '食品生鲜', '母婴玩具'];
 
-const timeRemaining = ref('02 : 18 : 36');
+const seckillProducts = ref<any[]>([]);
 
 async function loadHome() {
   loading.value = true;
@@ -213,21 +213,16 @@ onMounted(loadHome);
         <div class="seckill-header">
           <div class="sk-title">
             <h2>限时秒杀</h2>
-            <span class="sk-badge">正在疯抢</span>
-          </div>
-          <div class="sk-timer">
-            <span>距结束</span>
-            <div class="time-blocks">
-              <span class="t-block">{{ timeRemaining.split(':')[0].trim() }}</span> :
-              <span class="t-block">{{ timeRemaining.split(':')[1].trim() }}</span> :
-              <span class="t-block">{{ timeRemaining.split(':')[2].trim() }}</span>
-            </div>
+            <span>每日优选好货</span>
           </div>
           <RouterLink to="/seckill" class="more-link" style="margin-left: auto;">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
         </div>
 
         <div class="sk-grid">
-          <div v-for="product in seckillProducts" :key="product.spuId" class="sk-card">
+          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty" style="grid-column: 1 / -1; padding: 40px; text-align: center; background: #f9f9f9; border-radius: 8px;">
+            <p style="color: #666;">秒杀服务未连接，<RouterLink to="/seckill" style="color: var(--color-brand);">进入秒杀页查看</RouterLink></p>
+          </div>
+          <div v-else v-for="product in seckillProducts" :key="product.spuId" class="sk-card">
             <div class="sk-image">
               <ProductImage :src="product.mainImage" :alt="product.name" />
             </div>
@@ -251,25 +246,17 @@ onMounted(loadHome);
         </div>
 
         <div class="tech-grid">
-          <div v-for="item in dashboardItems" :key="item.name" class="tech-card">
-            <div class="tc-top">
-              <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
-              <div class="tc-info">
-                <strong>{{ item.name }}</strong>
-                <span>{{ item.sub }}</span>
+          <RouterLink to="/tech" custom v-slot="{ navigate, href }">
+            <a v-for="item in dashboardItems" :key="item.name" :href="href" @click="navigate" class="tech-card" style="text-decoration:none;cursor:pointer;">
+              <div class="tc-top">
+                <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
+                <div class="tc-info">
+                  <strong>{{ item.name }}</strong>
+                  <span>{{ item.sub }}</span>
+                </div>
               </div>
-              <div class="tc-status">
-                <span class="dot"></span> {{ item.status }}
-              </div>
-            </div>
-            <div class="tc-bottom">
-              <span class="tc-label">{{ item.metricLabel }}</span>
-              <strong class="tc-value" :class="{ normal: item.metricValue === '正常' }">
-                <el-icon v-if="item.metricValue === '正常'"><CircleCheckFilled /></el-icon>
-                {{ item.metricValue }}
-              </strong>
-            </div>
-          </div>
+            </a>
+          </RouterLink>
         </div>
       </div>
 
@@ -289,11 +276,9 @@ onMounted(loadHome);
 
 <style scoped>
 .home-wrapper {
-  max-width: 1440px;
+  width: min(1720px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 0 var(--spacing-xl);
-  padding-bottom: 60px;
-  background-color: #f7f8fa;
+  padding: 24px 0 56px;
 }
 
 .home-grid {
@@ -306,7 +291,7 @@ onMounted(loadHome);
 /* Hero Section */
 .hero-section {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: minmax(420px, 0.92fr) minmax(520px, 1.08fr);
   gap: var(--spacing-lg);
 }
 
@@ -534,7 +519,6 @@ onMounted(loadHome);
   padding: 6px 16px;
   border-radius: 20px;
   cursor: pointer;
-  transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform 0.2s;
 }
 
 .tab-btn:hover {
@@ -549,7 +533,7 @@ onMounted(loadHome);
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 20px;
 }
 
@@ -560,12 +544,10 @@ onMounted(loadHome);
   text-decoration: none;
   display: flex;
   flex-direction: column;
-  transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform 0.2s;
   border: 1px solid transparent;
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.05);
   border-color: var(--color-brand-light);
 }
@@ -642,7 +624,6 @@ onMounted(loadHome);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform 0.2s;
 }
 
 .cart-btn:hover {
@@ -720,7 +701,6 @@ onMounted(loadHome);
   display: flex;
   padding: 16px;
   gap: 16px;
-  transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform 0.2s;
 }
 
 .sk-card:hover {
@@ -784,7 +764,6 @@ onMounted(loadHome);
   font-weight: bold;
   cursor: pointer;
   align-self: flex-start;
-  transition: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform 0.2s;
 }
 
 .sk-btn:hover {

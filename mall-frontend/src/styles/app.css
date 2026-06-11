@@ -106,9 +106,8 @@ h6 {
 }
 
 .app-main {
-  width: min(1240px, 100%);
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-lg);
+  width: 100%;
+  padding: 0;
 }
 
 .commerce-layout {
