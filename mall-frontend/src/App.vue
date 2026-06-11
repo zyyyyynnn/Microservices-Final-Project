@@ -238,18 +238,34 @@ function isActive(path: string) {
   font-size: 14px;
   color: var(--color-text-primary);
 }
-</style>
-
 @media (max-width: 1024px) {
-  .header-main {
-    grid-template-columns: 1fr;
+  .app-header {
+    height: auto;
+    padding: 14px 0;
   }
-  .header-search {
+
+  .header-main {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-md);
+  }
+
+  .brand {
+    flex: 0 0 auto;
+  }
+
+  .app-nav {
+    order: 3;
     width: 100%;
+    overflow-x: auto;
+  }
+
+  .header-search {
+    flex: 1 1 360px;
     max-width: none;
   }
-  .app-nav {
-    overflow-x: auto;
-    width: 100%;
+
+  .header-actions {
+    flex: 0 0 auto;
   }
 }
+</style>

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
@@ -131,12 +131,12 @@ onMounted(loadHome);
 
         <el-card class="panel flow-panel" shadow="never">
           <template #header>
-            <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">交易链路</span>
-                <span style="font-size: 12px; color: var(--color-brand); background: var(--color-brand-light); padding: 2px 8px; border-radius: 12px;">(演示流程)</span>
+            <div class="panel-title-row">
+              <div class="panel-title-group">
+                <span class="panel-title-main">交易链路</span>
+                <span class="panel-title-tag">(演示流程)</span>
               </div>
-              <span style="font-size: 13px; color: #666; font-weight: normal;">完整电商交易闭环体验</span>
+              <span class="panel-title-sub">完整电商交易闭环体验</span>
             </div>
           </template>
 
@@ -166,7 +166,7 @@ onMounted(loadHome);
       <!-- Recommendation Section -->
       <el-card class="panel recommend-section" shadow="never">
         <template #header>
-          <div class="panel-title" style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">为你推荐</div>
+          <div class="panel-title-main">为你推荐</div>
         </template>
         <div class="category-tabs">
           <button
@@ -177,7 +177,7 @@ onMounted(loadHome);
           >
             {{ cat }}
           </button>
-          <RouterLink to="/search" class="more-link" style="margin-left: auto;">更多 <el-icon><ArrowRight /></el-icon></RouterLink>
+          <RouterLink to="/search" class="more-link ml-auto">更多 <el-icon><ArrowRight /></el-icon></RouterLink>
         </div>
 
         <div class="product-grid">
@@ -210,18 +210,18 @@ onMounted(loadHome);
       <!-- Flash Sale Section -->
       <el-card class="panel seckill-section" shadow="never">
         <template #header>
-          <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: baseline; gap: 8px;">
-              <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">限时秒杀</span>
-              <span style="font-size: 13px; color: #999; font-weight: normal;">每日优选好货</span>
+          <div class="panel-title-row">
+            <div class="panel-title-group">
+              <span class="panel-title-main">限时秒杀</span>
+              <span class="panel-title-sub">每日优选好货</span>
             </div>
-            <RouterLink to="/seckill" class="more-link" style="font-size: 14px; font-weight: normal;">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
+            <RouterLink to="/seckill" class="more-link panel-title-link">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
           </div>
         </template>
 
         <div class="sk-grid">
-          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty" style="grid-column: 1 / -1; padding: 40px; text-align: center; background: #f9f9f9; border-radius: 8px;">
-            <p style="color: #666;">秒杀服务未连接，<RouterLink to="/seckill" style="color: var(--color-brand);">进入秒杀页查看</RouterLink></p>
+          <div v-if="!seckillProducts || seckillProducts.length === 0" class="sk-empty" >
+            <p class="sk-empty-text">秒杀服务未连接，<RouterLink to="/seckill" class="sk-empty-link">进入秒杀页查看</RouterLink></p>
           </div>
           <div v-else v-for="product in seckillProducts" :key="product.spuId" class="sk-card">
             <div class="sk-image">
@@ -242,18 +242,18 @@ onMounted(loadHome);
       <!-- Tech Dashboard Section -->
       <el-card class="panel tech-section" shadow="never">
         <template #header>
-          <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: baseline; gap: 8px;">
-              <span style="font-size: 16px; font-weight: bold; color: var(--color-text-primary);">演示工具</span>
-              <span style="font-size: 13px; color: #999; font-weight: normal;">(微服务治理与中间件)</span>
+          <div class="panel-title-row">
+            <div class="panel-title-group">
+              <span class="panel-title-main">演示工具</span>
+              <span class="panel-title-sub">(微服务治理与中间件)</span>
             </div>
-            <RouterLink to="/tech" class="more-link" style="font-size: 14px; font-weight: normal;">进入控制台 <el-icon><ArrowRight /></el-icon></RouterLink>
+            <RouterLink to="/tech" class="more-link panel-title-link">进入控制台 <el-icon><ArrowRight /></el-icon></RouterLink>
           </div>
         </template>
 
         <div class="tech-grid">
           <RouterLink to="/tech" custom v-slot="{ navigate, href }">
-            <a v-for="item in dashboardItems" :key="item.name" :href="href" @click="navigate" class="tech-card" style="text-decoration:none;cursor:pointer;">
+            <a v-for="item in dashboardItems" :key="item.name" :href="href" @click="navigate" class="tech-card">
               <div class="tc-top">
                 <div class="tc-icon" :style="{ color: item.color }">{{ item.icon }}</div>
                 <div class="tc-info">
@@ -932,4 +932,60 @@ onMounted(loadHome);
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-title-main {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-primary);
+}
+.panel-title-tag {
+  font-size: 12px;
+  color: var(--color-brand);
+  background: var(--color-brand-light);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.panel-title-sub {
+  font-size: 13px;
+  color: #999;
+  font-weight: normal;
+}
+.panel-title-link {
+  font-size: 14px;
+  font-weight: normal;
+  margin-left: auto;
+}
+
+
+.ml-auto {
+  margin-left: auto;
+}
+.sk-empty {
+  grid-column: 1 / -1;
+  padding: 40px;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+.sk-empty-text {
+  color: #666;
+}
+.sk-empty-link {
+  color: var(--color-brand);
+}
+.tech-card {
+  text-decoration: none;
+  cursor: pointer;
+}
+
 </style>
