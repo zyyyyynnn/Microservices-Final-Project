@@ -2,6 +2,8 @@
   /* ── Color: Text ── */
   --color-text-primary: #181d26;
   --color-text-secondary: #333333;
+  --color-text-muted: #666666;
+  --color-text-light: #999999;
   --color-text-tertiary: rgba(4, 14, 32, 0.69);
   --color-text-inverse: #ffffff;
 
@@ -15,18 +17,26 @@
   --color-surface-hover: #f8fafc;
   --color-surface-muted: #f1f5f9;
 
+  /* ── Background Gradients ── */
+  --bg-gradient-hero: linear-gradient(135deg, #eaf4ff 0%, #f7f8fa 100%);
+  --bg-gradient-error: linear-gradient(90deg, #ff4141, #ff6b6b);
+
   /* ── Color: Border ── */
   --color-border: #e2e8f0;
   --color-border-strong: #1b61c9;
 
   /* ── Color: Semantic ── */
-  --color-error: #dc2626;
+  --color-error: #e62828;
+  --color-error-light: #ff6b6b;
+  --color-error-border: #ffd6d6;
+  --color-error-bg: #fff0f0;
+  --color-error-shadow: rgba(255, 65, 65, 0.1);
   --color-success: #16a34a;
-  --color-warning: #d97706;
+  --color-warning: #e65100;
   --color-info: #3b82f6;
 
-  /* ── Color: Commerce Semantic ── */
-  --color-price: var(--color-text-primary);
+  /* ── Commerce Semantic ── */
+  --color-price: var(--color-error);
   --color-price-action: var(--color-brand);
   --color-cart-badge: var(--color-brand);
   --color-sku-border: var(--color-border);
@@ -43,6 +53,7 @@
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 8px;
+  --radius-xl: 16px;
 
   /* ── Font Size ── */
   --font-xs: 12px;

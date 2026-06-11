@@ -1,11 +1,11 @@
-# Product Design
+﻿# Product Design
 
 > 项目：MallCloud 微商城
 > 设计基线：`docs/PROJECT_STANDARD.md`、`docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/API.md`、实际 Controller
 > 前端技术栈：Vue 3 + Vite + TypeScript + Element Plus + Axios + Pinia（`mall-frontend`）
-> 设计语言：白蓝线条极简风（White-Blue Lineart Minimalist）
+> 设计语言：真实电商平台感 + 白蓝极简基线
 > 核心原则：零动效（no transition / no animation / no easing）
-> 最后更新：2026-06-08
+> 最后更新：2026-06-11
 > 当前前端状态：`mall-frontend` 已完成一轮产品化页面整改；后端真实成功态联调、逐页成功截图和专项技术验证仍需补充，不得直接标记为最终完成。
 
 ---
@@ -367,10 +367,10 @@ MallCloud
 
 ### 10.1 设计原则
 
-- **Airtable 风格与优雅复古**：以白色为基底，深海蓝（Deep Navy）作为主要文字色，Airtable Blue 作为单一点缀色和交互焦点，配合多层微蓝阴影表现深度。字体采用优雅复古的衬线体（如 Lora / Noto Serif SC），呈现企业级工具的严谨与杂志般的排版质感。
+- **真实电商平台感与白蓝极简**：以白色和冷灰蓝为基底，深海蓝作为主要文字色，Airtable Blue 作为核心操作和链路提示色；首页允许使用真实商品素材、清晰商品陈列和交易链路面板，避免接口测试页质感。
 - **克制的品牌色**：蓝色仅用于核心操作和交互提示。
 - **零动效 / 静态切换**：继承原基线，状态变化瞬时生效，不使用缓动。
-- **Token 驱动**：全面应用 Airtable 色彩和多层蓝调阴影。
+- **Token 驱动**：全面应用项目色彩、间距、圆角和 Element Plus 映射。
 - **直觉式电商交互**：链路保持最高视觉优先级，弱化非核心装饰。
 
 ### 10.2 色彩与 Token
@@ -441,7 +441,7 @@ MallCloud
 | `--weight-medium` | `500` | 表头、标签 |
 | `--weight-bold` | `700` | 标题、价格 |
 
-- 文本字体：`"Lora", "Noto Serif SC", "Haas Groot Disp", Haas, -apple-system, system-ui, serif`（优雅复古的衬线体）；
+- 文本字体：`Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`；
 - 数据、订单号、SKU、价格数字：`"JetBrains Mono", Consolas, monospace`；
 - Z 轴层级由 Element Plus 默认管理，不自定义 z-index 变量。
 
@@ -648,4 +648,7 @@ import './styles/element-theme.css';
 | 2026-06-08 | 复查后确认当前前端不能作为完整产品化页面交付，需按 Frontend Page Completion Matrix 整改 | 前端页面质量审查 |
 | 2026-06-08 | 完成一轮产品化页面整改，拆分 `/products/:id`、`/search`、`/register`、`/checkout`、`/orders/:orderNo`、`/pay/:orderNo` 等路由 | 前端页面整改 |
 | 2026-06-08 | UI 全局审查与重构：统一 token 体系、补充缺失 token、修复全局样式、添加 404 路由、改善响应式、对齐 DESIGN.md 与代码实现 | 本轮 UI 审查 |
+| 2026-06-11 | 前端视觉方向调整为真实电商平台感，保留白蓝极简和零动效基线；商品图使用公开线上素材链接补齐，不使用生成图替代商品图 | 本轮 Product Design 视觉升级 |
 
+
+**2026-06-11 状态更新**：前端 UI 已完成质量清理，真实成功态截图仍待采集。

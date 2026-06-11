@@ -1,4 +1,4 @@
-import type { UnknownRecord } from '../api/types';
+﻿import type { UnknownRecord } from '../api/types';
 
 type CatalogProduct = UnknownRecord & {
   spuId: number;
@@ -11,6 +11,7 @@ type CatalogProduct = UnknownRecord & {
   skus: UnknownRecord[];
 };
 
+// [FALLBACK_ASSET]: Use unsplash as fallback
 export const onlineImageSources = [
   'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9', // iPhone
   'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', // MacBook

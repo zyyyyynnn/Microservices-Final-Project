@@ -7,6 +7,7 @@ import PageState from '../components/PageState.vue';
 import OrderSummary from '../components/OrderSummary.vue';
 import type { Cart, CartItem } from '../api/types';
 import { money } from '../utils/format';
+import ProductImage from '../components/ProductImage.vue';
 
 const router = useRouter();
 const loading = ref(false);
@@ -104,7 +105,7 @@ onMounted(load);
           <template #default="{ row }">
             <div class="line-item">
               <div class="thumb">
-                <img v-if="row.skuImage" :src="row.skuImage" :alt="row.skuName || '商品图片'" />
+                <ProductImage v-if="row.skuImage" :src="row.skuImage" :alt="row.skuName || '商品图片'" />
                 <span v-else>SKU</span>
               </div>
               <div>

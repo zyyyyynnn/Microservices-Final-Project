@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router';
 import type { UnknownRecord } from '../api/types';
 import { field, firstSku, money, productImage, productName, statusText, productStatusMap } from '../utils/format';
 import { onlineProductImage } from '../catalog/productAssets';
+import ProductImage from './ProductImage.vue';
 
 const props = defineProps<{
   product: UnknownRecord;
@@ -20,8 +21,7 @@ const image = computed(() => onlineProductImage(props.product) || productImage(p
 <template>
   <article class="product-card">
     <div class="product-image">
-      <img v-if="image" :src="image" :alt="productName(product)" />
-      <span v-else>商品图片待联调</span>
+      <ProductImage :src="image" :alt="productName(product)" />
     </div>
     <div class="product-body">
       <div class="product-meta">

@@ -7,6 +7,7 @@ import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
 import { field, money, productImage, productName, productStatusMap, skuList, statusText } from '../utils/format';
 import { onlineProductImage } from '../catalog/productAssets';
+import ProductImage from '../components/ProductImage.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -70,8 +71,7 @@ onMounted(loadProduct);
 
     <div v-if="product && !loading" class="detail-layout">
       <div class="detail-media">
-        <img v-if="image" :src="image" :alt="productName(product)" />
-        <span v-else>商品图片待联调</span>
+        <ProductImage :src="image" :alt="productName(product)" />
       </div>
       <el-card class="panel detail-main">
         <el-tag effect="plain">
