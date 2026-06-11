@@ -1,38 +1,38 @@
-﻿# MallCloud 鏈熸湯澶т綔涓氭渶缁堟姤鍛?
+﻿# MallCloud 期末大作业最终报告
 
-> 鏂囨。鐘舵€侊細閮ㄥ垎濉啓
-> 鍥㈤槦瑙勬ā锛? 浜?
-> 鎶€鏈熀绾匡細Java 21 LTS銆丼pring Boot 3.2.4銆丼pring Cloud Alibaba 2023.0.1.0銆丼eata 2.0.0
-> 濉啓鍘熷垯锛氬彧璁板綍瀹為檯鎵ц缁撴灉锛涙湭鎵ц椤规爣璁颁负"鏈獙璇?銆?
+> 文档状态：部分填写
+> 团队规模：5 人
+> 技术基线：Java 21 LTS、Spring Boot 3.2.4、Spring Cloud Alibaba 2023.0.1.0、Seata 2.0.0
+> 填写原则：只记录实际执行结果；未执行项标记为"未验证"。
 
 ---
 
-## 1. 椤圭洰淇℃伅
+## 1. 项目信息
 
-| 椤圭洰 | 鍐呭 |
+| 项目 | 内容 |
 |---|---|
-| 椤圭洰鍚嶇О | MallCloud 寰晢鍩?|
-| 鍥㈤槦鎴愬憳涓庡垎宸?| 寰呭～鍐?5 鍚嶇湡瀹炴垚鍛?|
-| 浠ｇ爜鍒嗘敮/Commit | main锛堟彁浜や俊鎭互鏈€缁?Git 杈撳嚭涓哄噯锛?|
-| 娴嬭瘯鏃ユ湡 | 2026-06-08锛?026-06-09 琛ュ厖鎼滅储涓撻」銆丯ewman 鍥炲綊銆丣Meter 鎼滅储鍐掔儫涓庢悳绱㈣礋杞斤紱2026-06-10 琛ュ厖 JMeter 璁㈠崟鐭啋鐑熴€佺鏉€璇锋眰鍙楃悊鐭啋鐑熴€? 鐢ㄦ埛瀹屾暣閾捐矾鐭啋鐑熴€?0 鐢ㄦ埛瀹屾暣閾捐矾杩炵画楠岃瘉銆佺鏉€闃舵澶嶆祴鍜屽惎鍔?Profile 璧勬簮閲囨牱锛?026-06-11 琛ュ厖鍚庣绔彛杩佺Щ涓?9100 Gateway 鍥炲綊 |
-| 娴嬭瘯鐜 | Windows 11 / PowerShell 7+ / JDK 21 |
-| 閮ㄧ讲鏂瑰紡 | Docker 涓棿浠?+ 鏍圭洰褰?BAT / 鏈湴鏈嶅姟 |
+| 项目名称 | MallCloud 微商城 |
+| 团队成员与分工 | 待填写 5 名真实成员 |
+| 代码分支/Commit | main（提交信息以最终 Git 输出为准） |
+| 测试日期 | 2026-06-08；2026-06-09 补充搜索专项、Newman 回归、JMeter 搜索冒烟与搜索负载；2026-06-10 补充 JMeter 订单短冒烟、秒杀请求受理短冒烟、1 用户完整链路短冒烟、10 用户完整链路连续验证、秒杀阶梯复测和启动 Profile 资源采样；2026-06-11 补充后端端口迁移与 9100 Gateway 回归 |
+| 测试环境 | Windows 11 / PowerShell 7+ / JDK 21 |
+| 部署方式 | Docker 中间件 + 根目录 BAT / 本地服务 |
 
-### 1.1 鍥㈤槦鍒嗗伐
+### 1.1 团队分工
 
-| 鎴愬憳 | 涓昏鑱岃矗 | 瀹為檯璐＄尞 |
+| 成员 | 主要职责 | 实际贡献 |
 |---|---|---|
-| 鎴愬憳 1 | 鏋舵瀯銆丟ateway銆丯acos銆佸叕鍏辨ā鍧?| 寰呭～鍐?|
-| 鎴愬憳 2 | Auth銆乁ser銆丳roduct銆丼earch | 寰呭～鍐?|
-| 鎴愬憳 3 | Cart銆丱rder銆両nventory銆丼eata | 寰呭～鍐?|
-| 鎴愬憳 4 | Pay銆丮essage銆丷ocketMQ銆丼eckill | 寰呭～鍐?|
-| 鎴愬憳 5 | Postman銆丣Meter銆侀儴缃层€佹姤鍛娿€佺瓟杈?| 寰呭～鍐?|
+| 成员 1 | 架构、Gateway、Nacos、公共模块 | 待填写 |
+| 成员 2 | Auth、User、Product、Search | 待填写 |
+| 成员 3 | Cart、Order、Inventory、Seata | 待填写 |
+| 成员 4 | Pay、Message、RocketMQ、Seckill | 待填写 |
+| 成员 5 | Postman、JMeter、部署、报告、答辩 | 待填写 |
 
 ---
 
-## 2. 鐗堟湰涓庢瀯寤洪獙璇?
+## 2. 版本与构建验证
 
-鎵ц锛?
+执行：
 
 ```powershell
 java -version
@@ -43,330 +43,331 @@ mvn clean package -DskipTests
 mvn clean test -DskipTests=false
 ```
 
-| 妫€鏌ラ」 | 棰勬湡 | 瀹為檯 | 缁撴灉 |
+| 检查项 | 预期 | 实际 | 结果 |
 |---|---|---|---|
 | Java | 21 | | |
-| Maven 浣跨敤鐨?Java | 21 | | |
+| Maven 使用的 Java | 21 | | |
 | Spring Boot | 3.2.4 | | |
 | Spring Cloud Alibaba | 2023.0.1.0 | | |
 | Seata Server | 2.0.0 | | |
-| Maven 鏋勫缓 | BUILD SUCCESS | | |
-| 鍗曞厓娴嬭瘯 | 鍏ㄩ儴閫氳繃鎴栬褰曞け璐ュ師鍥?| | |
+| Maven 构建 | BUILD SUCCESS | | |
+| 单元测试 | 有效运行或记录失败原因 | | |
 
 ---
 
-## 3. 鏍稿績涓氬姟瀹屾垚鎯呭喌
+## 3. 核心业务完成情况
 
-| 鍔熻兘 | 鐘舵€?| 楠岃瘉鏂瑰紡 | 璇佹嵁璺緞 |
+| 功能 | 状态 | 验证方式 | 证据路径 |
 |---|---|---|---|
-| 鐢ㄦ埛鐧诲綍 | 宸查獙璇?| HTTP 鎺ュ彛 | 楠屾敹鎶ュ憡 |
-| 鍟嗗搧鏌ヨ | 宸查獙璇?| HTTP 鎺ュ彛 | 楠屾敹鎶ュ憡 |
-| 璐墿杞?| 宸查獙璇?| HTTP 鎺ュ彛 + Redis | 楠屾敹鎶ュ憡 |
-| 鍒涘缓璁㈠崟 | 宸查獙璇?| HTTP 鎺ュ彛 + DB | 楠屾敹鎶ュ憡 |
-| 搴撳瓨閿佸畾 | 宸查獙璇?| Feign 璋冪敤 + DB | 楠屾敹鎶ュ憡 |
-| 鏀粯缁撴灉 | 宸查獙璇?| MQ 娑堣垂 + DB | 楠屾敹鎶ュ憡 |
-| 搴撳瓨鎵ｅ噺 | 宸查獙璇?| DB | 楠屾敹鎶ュ憡 |
-| 璁㈠崟鏌ヨ | 宸查獙璇?| HTTP 鎺ュ彛 | 楠屾敹鎶ュ憡 |
+| 用户登录 | 已验证 | HTTP 接口 | 验收报告 |
+| 商品查询 | 已验证 | HTTP 接口 | 验收报告 |
+| 购物车 | 已验证 | HTTP 接口 + Redis | 验收报告 |
+| 创建订单 | 已验证 | HTTP 接口 + DB | 验收报告 |
+| 库存锁定 | 已验证 | Feign 调用 + DB | 验收报告 |
+| 支付结果 | 已验证 | MQ 消费 + DB | 验收报告 |
+| 库存扣减 | 已验证 | DB | 验收报告 |
+| 订单查询 | 已验证 | HTTP 接口 | 验收报告 |
 
 ---
 
-## 4. 鎶€鏈兘鍔涢獙璇?
+## 4. 技术能力验证
 
-| 鑳藉姏 | 鐘舵€?| 璇佹嵁 |
+| 能力 | 状态 | 证据 |
 |---|---|---|
-| Java 21 鍏ㄦā鍧楁瀯寤?| 宸查獙璇?| mvn clean test BUILD SUCCESS |
-| Nacos 娉ㄥ唽 | 宸查獙璇?| 鍘嗗彶鏍稿績閾捐矾 9 涓湇鍔?healthy=true锛涘綋鍓嶅悗绔鍙ｅ凡杩佺Щ鍒拌繛缁尯闂?`9100-9112`锛屽叏閲忓惎鍔ㄩ渶浠ユ湰杞鍙ｈ縼绉诲悗鐨勫娴嬬粨鏋滀负鍑?|
-| Nacos 閰嶇疆鐑洿鏂?| 宸查獙璇?| 2026-06-10 宸查獙璇?`mall-seckill-flow-rules.json` 閫氳繃 Nacos 鐑洿鏂板奖鍝?Sentinel 杩愯鏃舵祦鎺ц鍒欏苟瀹屾垚瑙勫垯鍥炴粴锛涘凡楠岃瘉 `mall-inventory.yaml` 鏅€氫笟鍔￠厤缃?`mallcloud.inventory.ping-message` 鏃犻渶閲嶅惎鐑洿鏂帮紝鎽樿瑙?`docs/test/nacos/summary/inventory-config-refresh-20260610.md` |
-| Gateway 璺敱涓?JWT | 宸查獙璇?| 鏃?Token鈫?01銆佹湁鏁?Token鈫?00 |
-| OpenFeign | 宸查獙璇?| order鈫抪roduct銆乷rder鈫抜nventory |
-| Seata 2.0.0 鍥炴粴 | 宸查獙璇?| 鏁呴殰娉ㄥ叆鈫掕鍗曟湭钀藉簱鈫掑簱瀛樻仮澶?|
-| RocketMQ 娑堣垂 | 宸查獙璇?| PAY_RESULT鈫掕鍗曞凡鏀粯鈫掑簱瀛樻墸鍑?|
-| Sentinel 闄愭祦/鐔旀柇 | 宸查獙璇?| 2026-06-10 淇 Docker Sentinel Dashboard 绔彛鏄犲皠鍚庯紝Dashboard HTTP 200锛沗mall-seckill` 涓存椂娴佹帶瑙勫垯楠岃瘉閫氳繃锛汵acos 鎸佷箙鍖栨祦鎺ц鍒欏姞杞姐€佺儹鏇存柊鍜屽洖婊氶獙璇侀€氳繃锛?0 涓苟鍙戣姹備腑 1 涓?HTTP 200銆?9 涓?HTTP 429锛沗mall-inventory` 鎱㈣皟鐢ㄦ瘮渚嬬啍鏂獙璇侀€氳繃锛?0 涓?Gateway 璇锋眰涓?2 涓?HTTP 200銆?8 涓?HTTP 429銆傛憳瑕佽 `docs/test/sentinel/summary/seckill-flow-20260610.md`銆乣docs/test/sentinel/summary/nacos-flow-rules-20260610.md` 鍜?`docs/test/sentinel/summary/inventory-degrade-20260610.md`锛涚啍鏂槇鍊间负涓存椂浣庨槇鍊奸獙璇侊紝涓嶄唬琛ㄧ敓浜у閲?|
-| Elasticsearch 鎼滅储 | 宸查獙璇?| 2026-06-09 鎵ц `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`锛欵lasticsearch health 閫氳繃锛宍mall-search` 鍐呴儴鍚屾 `1001`锝瀈1005` 鍧囪繑鍥?HTTP 200 / 涓氬姟鐮?200锛孏ateway 鎼滅储 `iPhone` 杩斿洖 HTTP 200 / 涓氬姟鐮?200锛岀粨鏋滃寘鍚?`1001`銆乣1002` |
-| Postman 闆嗗悎 | 宸查獙璇?| 2026-06-09 JWT Secret 杞崲鍚庢墽琛?`pwsh .\scripts\run-newman.ps1 -SkipHtml`锛?8 涓姹傘€?0 涓柇瑷€銆?0 涓€氳繃銆? 涓け璐ワ紱2026-06-11 鍚庣绔彛杩佺Щ鍒?`9100-9112` 鍚庡璺?`pwsh .\scripts\run-newman.ps1 -SkipHtml`锛?8 涓姹傘€?0 涓柇瑷€銆? 涓け璐ャ€傚璺戝墠鎸夋祴璇曡鑼冩竻鐞?`zhangsan` 瀵瑰綋鍓嶇鏉€绉嶅瓙娲诲姩鐨勫巻鍙查檺璐姸鎬侊紱鑴辨晱鎽樿瑙?`docs/test/postman/summary/newman-20260609.md`銆乣docs/test/postman/summary/newman-20260611-port-migration.md` |
-| JMeter 鑴氭湰 | 鎼滅储璐熻浇鍦烘櫙宸叉墽琛屼笖闆跺け璐ワ紱璁㈠崟鐭啋鐑熷拰绉掓潃鍥哄畾搴撳瓨闃舵鍘嬪姏宸叉墽琛屼笖闆跺け璐ワ紱璁㈠崟姝ｅ紡璐熻浇寰呮墽琛?| 2026-06-09 宸插畬鎴愭悳绱?1 鐢ㄦ埛鐭啋鐑熴€?0 鐢ㄦ埛璐熻浇銆?50 鐢ㄦ埛璐熻浇锛?026-06-10 宸插畬鎴愯鍗?1 鐢ㄦ埛鐭啋鐑熴€佺鏉€ 10 鐢ㄦ埛璇锋眰鍙楃悊鐭啋鐑熴€佺鏉€ 1 鐢ㄦ埛瀹屾暣閾捐矾鐭啋鐑熴€佺鏉€ 10 鐢ㄦ埛瀹屾暣閾捐矾杩炵画 3 娆￠獙璇佸拰 50/100/200/300/500 鍥哄畾搴撳瓨闃舵澶嶆祴锛涙渶鏂扮鏉€闃舵 5 妗ｅけ璐ユ牱鏈潎涓?0锛屾憳瑕佷笌鑴辨晱鑱氬悎鎸囨爣瑙?`docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
-| Newman/JMeter 鎵ц鍏ュ彛 | 宸插缓绔?| `scripts/run-newman.ps1` 浼樺厛浣跨敤鏈満 Newman锛岀己澶辨椂鍥為€€ npx锛沗scripts/run-jmeter.ps1` 浼樺厛浣跨敤鏈満 JMeter锛岀己澶辨椂涓嬭浇鏈湴 JMeter 鍒?`.tools/` |
-| 鎶€鏈笓椤瑰啋鐑熷叆鍙?| 宸查€氳繃 | 2026-06-10 鎵ц `scripts/run-special-checks.ps1`锛歂acos銆丼entinel Dashboard銆丒lasticsearch health銆丟ateway health銆佹悳绱㈢儹璇嶃€佹悳绱㈠晢鍝?HTTP銆佺鏉€娲诲姩鏃?Token 401 妫€鏌ラ€氳繃锛涜鑴氭湰浠嶅彧浠ｈ〃鍙鍙揪鎬ф鏌ワ紝涓嶆浛浠ｄ笟鍔′笓椤?|
-| 鍓嶇婕旂ず绯荤粺 | 閮ㄥ垎瀹炵幇锛屽彈鍚庣闄愬埗 | 宸插畬鎴愪骇鍝佸寲娣卞害閲嶆瀯锛圓irtable 閰嶈壊浣撶郴銆丩ora/鎬濇簮瀹嬩綋澶嶅彜鎺掔増銆佷笓灞炰簯褰㈣喘鐗╄溅 SVG Logo锛夛紝鏋佸ぇ鎻愬崌浜哢I璐ㄦ劅锛涘悗绔湭瀹屾暣鑱旇皟鏃跺彲瑙?502/閿欒鐘舵€侊紱鎴愬姛鎬佷笟鍔￠棴鐜€侀€愰〉鎴愬姛鎴浘鍜岀湡瀹炴帴鍙ｆ暟鎹粛寰呰ˉ鍏?|
+| Java 21 全模块构建 | 已验证 | mvn clean test BUILD SUCCESS |
+| Nacos 注册 | 已验证 | 历史核心链路 9 个服务 healthy=true；当前后端端口已迁移到连续区间 `9100-9112`，全量启动需以本轮端口迁移后的复测结果为准 |
+| Nacos 配置热更新 | 已验证 | 2026-06-10 已验证 `mall-seckill-flow-rules.json` 通过 Nacos 热更新影响 Sentinel 运行时流控规则并完成规则回滚；已验证 `mall-inventory.yaml` 普通业务配置 `mallcloud.inventory.ping-message` 无需重启热更新，摘要见 `docs/test/nacos/summary/inventory-config-refresh-20260610.md` |
+| Gateway 路由与 JWT | 已验证 | 无 Token→401、有效 Token→200 |
+| OpenFeign | 已验证 | order→product、order→inventory |
+| Seata 2.0.0 回滚 | 已验证 | 故障注入→订单未落库→库存恢复 |
+| RocketMQ 消费 | 已验证 | PAY_RESULT→订单已支付→库存扣减 |
+| Sentinel 限流/熔断 | 已验证 | 2026-06-10 修正 Docker Sentinel Dashboard 端口映射后，Dashboard HTTP 200；`mall-seckill` 临时流控规则验证通过；Nacos 持久化流控规则加载、热更新和回滚验证通过：80 个并发请求中 1 个 HTTP 200、79 个 HTTP 429；`mall-inventory` 慢调用比例熔断验证通过：30 个 Gateway 请求中 2 个 HTTP 200、28 个 HTTP 429。摘要见 `docs/test/sentinel/summary/seckill-flow-20260610.md`、`docs/test/sentinel/summary/nacos-flow-rules-20260610.md` 和 `docs/test/sentinel/summary/inventory-degrade-20260610.md`；熔断阈值为临时低阈值验证，不代表生产容量 |
+| Elasticsearch 搜索 | 已验证 | 2026-06-09 执行 `pwsh .\scripts\init-search-index.ps1 -TimeoutSec 10 -VerifyAttempts 10 -VerifyDelayMs 500`：Elasticsearch health 通过，`mall-search` 内部同步 `1001`～`1005` 均返回 HTTP 200 / 业务码 200，Gateway 搜索 `iPhone` 返回 HTTP 200 / 业务码 200，结果包含 `1001`、`1002` |
+| Postman 集合 | 已验证 | 2026-06-09 JWT Secret 轮换后执行 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、60 个通过、0 个失败；2026-06-11 后端端口迁移到 `9100-9112` 后复跑 `pwsh .\scripts\run-newman.ps1 -SkipHtml`：28 个请求、60 个断言、0 个失败。复跑前按测试规范清理 `zhangsan` 对当前秒杀种子活动的历史限购状态；脱敏摘要见 `docs/test/postman/summary/newman-20260609.md`、`docs/test/postman/summary/newman-20260611-port-migration.md` |
+| JMeter 脚本 | 搜索负载场景已执行且零失败；订单短冒烟和秒杀固定库存阶梯压力已执行且零失败；订单正式负载待执行 | 2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟、秒杀 10 用户完整链路连续 3 次验证和 50/100/200/300/500 固定库存阶梯复测；最新秒杀阶梯 5 档失败样本均为 0，摘要与脱敏聚合指标见 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
+| Newman/JMeter 执行入口 | 已建立 | `scripts/run-newman.ps1` 优先使用本机 Newman，缺失时回退 npx；`scripts/run-jmeter.ps1` 优先使用本机 JMeter，缺失时下载本地 JMeter 到 `.tools/` |
+| 技术专项冒烟入口 | 已通过 | 2026-06-10 执行 `scripts/run-special-checks.ps1`：Nacos、Sentinel Dashboard、Elasticsearch health、Gateway health、搜索热词、搜索商品 HTTP、秒杀活动无 Token 401 检查通过；该脚本仍只代表只读可达性检查，不替代业务专项 |
+| 前端演示系统 | 部分实现，受后端限制 | 已完成产品化深度重构（Airtable 配色体系、Lora/思源宋体复古排版、专属云形购物车 SVG Logo），极大提升了UI质感；后端未完整联调时可见 502/错误状态；成功态业务闭环、逐页成功截图和真实接口数据仍待补充 |
 
 ---
 
-## 5. Postman 鎺ュ彛娴嬭瘯
+## 5. Postman 接口测试
 
-HTML 鎶ュ憡鐘舵€侊細
+HTML 报告状态：
 
 ```text
-鍘熷 HTML 鎶ュ憡鍖呭惈鍔ㄦ€?Token锛屼笉绾冲叆浠撳簱銆?
-鑴辨晱鎽樿锛?
+原始 HTML 报告包含动态 Token，不纳入仓库。
+脱敏摘要：
 - docs/test/postman/summary/newman-20260609.md
 - docs/test/postman/summary/newman-20260611-port-migration.md
 ```
 
-| 鎸囨爣 | 缁撴灉 |
+| 指标 | 结果 |
 |---|---|
-| 鏍稿績鎺ュ彛鏁伴噺 | 寰呭～鍐欙紝瑕佹眰 鈮?6 |
-| 璇锋眰鎬绘暟 | 28 |
-| 鏂█鎬绘暟 | 60 |
-| 閫氳繃 | 60 |
-| 澶辫触 | 0 |
-| 鏈€杩戜竴娆＄鍙ｈ縼绉诲悗澶嶈窇 | 2026-06-11锛孊aseURL=`http://localhost:9100`锛?8 璇锋眰銆?0 鏂█銆? 澶辫触 |
+| 核心接口数量 | 待填写，要求 ≥ 6 |
+| 请求总数 | 28 |
+| 断言总数 | 60 |
+| 通过 | 60 |
+| 失败 | 0 |
+| 最近一次端口迁移后复跑 | 2026-06-11，BaseURL=`http://localhost:9100`，28 请求、60 断言、0 失败 |
 
-鏍稿績鐢ㄤ緥锛氱櫥褰曘€佸晢鍝佽鎯呫€佹棤 Token 璁块棶銆佽喘鐗╄溅銆佸垱寤鸿鍗曘€佸簱瀛樹笉瓒炽€佹敮浠樼粨鏋溿€佺鏉€闄愯喘銆?
+核心用例：登录、商品详情、无 Token 访问、购物车、创建订单、库存不足、支付结果、秒杀限购。
 
 ---
 
-## 6. Nacos 涓?Gateway 娴嬭瘯
+## 6. Nacos 与 Gateway 测试
 
-### 6.1 娉ㄥ唽涓庡績璺?
+### 6.1 注册与心跳
 
-| 鎸囨爣 | 缁撴灉 |
+| 指标 | 结果 |
 |---|---|
-| 鍋滄鏈嶅姟 | |
-| 涓嬬嚎鎰熺煡鏃堕棿 | |
-| 閲嶆柊娉ㄥ唽鏃堕棿 | |
+| 停止服务 | |
+| 下线感知时间 | |
+| 重新注册时间 | |
 
-### 6.2 Gateway 閴存潈
+### 6.2 Gateway 鉴权
 
-| 鍦烘櫙 | 棰勬湡 | 瀹為檯 | 缁撴灉 |
+| 场景 | 预期 | 实际 | 结果 |
 |---|---|---|---|
-| 鏃?Token | 401 | | |
-| 鏃犳晥 Token | 401 | | |
-| 杩囨湡 Token | 401 | | |
-| 鏈夋晥 Token | 200 | | |
-| 鐧藉悕鍗曟帴鍙?| 鏃?Token 鍙闂?| | |
+| 无 Token | 401 | | |
+| 无效 Token | 401 | | |
+| 过期 Token | 401 | | |
+| 有效 Token | 200 | | |
+| 白名单接口 | 无 Token 可访问 | | |
 
-### 6.3 閰嶇疆鐑洿鏂?
+### 6.3 配置热更新
 
-| 椤圭洰 | 鍐呭 |
+| 项目 | 内容 |
 |---|---|
 | DataId | |
-| 淇敼閰嶇疆 | |
-| 淇敼鍓嶇粨鏋?| |
-| 淇敼鍚庣粨鏋?| |
-| 鏄惁閲嶅惎 | 鍚?|
-| 缁撴灉 | |
+| 修改配置 | |
+| 修改前结果 | |
+| 修改后结果 | |
+| 是否重启 | 否 |
+| 结果 | |
 
-宸查獙璇?`mall-inventory.yaml` 鏅€氫笟鍔￠厤缃儹鏇存柊锛氫慨鏀瑰墠 `GET /api/v1/inventory/ping` 杩斿洖 `mall-inventory pong`锛汵acos 涓存椂鍙戝竷 `mallcloud.inventory.ping-message=mall-inventory nacos hot update` 鍚庯紝鍦ㄤ笉閲嶅惎鏈嶅姟鐨勬儏鍐典笅杩斿洖 `mall-inventory nacos hot update`锛涘洖婊氫粨搴撳熀绾垮悗鎭㈠涓?`mall-inventory pong`銆傛憳瑕佽 `docs/test/nacos/summary/inventory-config-refresh-20260610.md`銆?
+已验证 `mall-inventory.yaml` 普通业务配置热更新：修改前 `GET /api/v1/inventory/ping` 返回 `mall-inventory pong`；Nacos 临时发布 `mallcloud.inventory.ping-message=mall-inventory nacos hot update` 后，在不重启服务的情况下返回 `mall-inventory nacos hot update`；回滚仓库基线后恢复为 `mall-inventory pong`。摘要见 `docs/test/nacos/summary/inventory-config-refresh-20260610.md`。
 
 ---
 
-## 7. JMeter 璐熻浇涓庡帇鍔涙祴璇?
+## 7. JMeter 负载与压力测试
 
-### 7.1 娴嬭瘯鐜
+### 7.1 测试环境
 
-璁板綍鐘舵€侊細JMeter 5.6.3 鍛戒护宸查獙璇佸彲鎵ц锛?026-06-09 宸插畬鎴愭悳绱?1 鐢ㄦ埛鐭啋鐑熴€?0 鐢ㄦ埛璐熻浇銆?50 鐢ㄦ埛璐熻浇锛?026-06-10 宸插畬鎴愯鍗?1 鐢ㄦ埛鐭啋鐑熴€佺鏉€ 10 鐢ㄦ埛璇锋眰鍙楃悊鐭啋鐑熴€佺鏉€ 1 鐢ㄦ埛瀹屾暣閾捐矾鐭啋鐑熴€佺鏉€ 10 鐢ㄦ埛瀹屾暣閾捐矾杩炵画 3 娆￠獙璇佸拰绉掓潃 50/100/200/300/500 鍥哄畾搴撳瓨闃舵澶嶆祴銆傝鍗曟寮忚礋杞藉皻鏈墽琛岋紝鏈繍琛屽満鏅笉寰楀～鍐欎及绠楀€笺€?
+记录状态：JMeter 5.6.3 命令已验证可执行；2026-06-09 已完成搜索 1 用户短冒烟、50 用户负载、150 用户负载；2026-06-10 已完成订单 1 用户短冒烟、秒杀 10 用户请求受理短冒烟、秒杀 1 用户完整链路短冒烟、秒杀 10 用户完整链路连续 3 次验证和秒杀 50/100/200/300/500 固定库存阶梯复测。订单正式负载尚未执行，未运行场景不得填写估算值。
 
-| 椤圭洰 | 鍐呭 |
+| 项目 | 内容 |
 |---|---|
-| CPU | AMD Ryzen 9 7940H w/ Radeon 780M Graphics锛? 鏍?/ 16 閫昏緫澶勭悊鍣?|
-| 鍐呭瓨 | 鐗╃悊鍐呭瓨 15.22GB |
-| 鎿嶄綔绯荤粺 | Windows 11 |
+| CPU | AMD Ryzen 9 7940H w/ Radeon 780M Graphics，8 核 / 16 逻辑处理器 |
+| 内存 | 物理内存 15.22GB |
+| 操作系统 | Windows 11 |
 | JDK | 21 |
-| Docker 璧勬簮闄愬埗 | Docker Engine 鍙敤 16 CPU銆佺害 7.37GB 鍐呭瓨 |
+| Docker 资源限制 | Docker Engine 可用 16 CPU、约 7.37GB 内存 |
 | Elasticsearch JVM heap | `ES_JAVA_OPTS=-Xms512m -Xmx512m` |
-| 娴嬭瘯鏈轰笌鏈嶅姟閮ㄧ讲 | JMeter銆佹湰鍦板悗绔湇鍔″拰 Docker 涓棿浠惰繍琛屽湪鍚屼竴鍙?Windows 涓绘満 |
-| 浠ｇ爜 Commit | JMeter 杈撳嚭鏈嚜鍔ㄥ浐鍖栨墽琛屾椂 Commit锛岀簿纭墽琛?Commit 鏈褰曪紱鎼滅储/璁㈠崟缁撴灉褰掓。鎻愪氦涓?`c67132d`銆乣8a31712`锛涚鏉€闃舵鏈€鏂板娴嬫潵鑷湰鍦?JTL 澶嶇畻锛屽綊妗ｅ埌 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
+| 测试机与服务部署 | JMeter、本地后端服务和 Docker 中间件运行在同一台 Windows 主机 |
+| 代码 Commit | JMeter 输出未自动固化执行时 Commit，精确执行 Commit 未记录；搜索/订单结果归档提交为 `c67132d`、`8a31712`；秒杀阶梯最新复测来自本地 JTL 复算，归档到 `docs/test/jmeter/summary/seckill-ladder-20260610-234029.md` |
 
-### 7.2 鎼滅储鐭啋鐑?
+### 7.2 搜索短冒烟
 
-| 鍦烘櫙 | 鐢ㄦ埛 | 鎸佺画鏃堕棿 | 鏍锋湰 | 骞冲潎 RT | P95 | 鍚炲悙閲?| 閿欒鐜?| 璇佹嵁 |
+| 场景 | 用户 | 持续时间 | 样本 | 平均 RT | P95 | 吞吐量 | 错误率 | 证据 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| 鍟嗗搧鎼滅储 | 1 | 10s | 380 | 17.18ms | 30ms | 44.44/s | 0% | `docs/test/jmeter/summary/search-smoke-20260609-225028.md`锛涘師濮?JTL 涓烘湰鍦颁骇鐗?|
+| 商品搜索 | 1 | 10s | 380 | 17.18ms | 30ms | 44.44/s | 0% | `docs/test/jmeter/summary/search-smoke-20260609-225028.md`；原始 JTL 为本地产物 |
 
-璇ョ粨鏋滀粎浣滀负鎼滅储閾捐矾鍐掔儫璇佹嵁锛屼笉鏇夸唬 50/150 鐢ㄦ埛姝ｅ紡璐熻浇娴嬭瘯銆?
+该结果仅作为搜索链路冒烟证据，不替代 50/150 用户正式负载测试。
 
-### 7.3 璁㈠崟鐭啋鐑?
+### 7.3 订单短冒烟
 
-| 鍦烘櫙 | 鐢ㄦ埛 | 鎸佺画鏃堕棿 | 鏍锋湰 | 骞冲潎 RT | P95 | 鍚炲悙閲?| 閿欒鐜?| 璇佹嵁 |
+| 场景 | 用户 | 持续时间 | 样本 | 平均 RT | P95 | 吞吐量 | 错误率 | 证据 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| 鐧诲綍 + 鍒涘缓璁㈠崟 | 1 | 15s | 32 | 421.56ms | 278ms | 2.32/s | 0% | `docs/test/jmeter/summary/order-smoke-20260610-075501.md`锛涘師濮?JTL 涓烘湰鍦颁骇鐗?|
+| 登录 + 创建订单 | 1 | 15s | 32 | 421.56ms | 278ms | 2.32/s | 0% | `docs/test/jmeter/summary/order-smoke-20260610-075501.md`；原始 JTL 为本地产物 |
 
-璇ョ粨鏋滀粎浣滀负璁㈠崟閾捐矾鐭啋鐑熻瘉鎹紝涓嶆浛浠?50/75锝?50 鐢ㄦ埛姝ｅ紡璐熻浇娴嬭瘯銆傝鍦烘櫙姣忚疆寰幆鍖呭惈鐧诲綍鍜屽垱寤鸿鍗曪紝琛ㄤ腑 RT銆丳95 鍜屽悶鍚愰噺鏄贩鍚堢粺璁★紱鍗曠嫭 `POST /api/v1/orders` 鐨勮劚鏁忚仛鍚堟寚鏍囪 `docs/test/jmeter/summary/aggregate-20260610.csv`銆傛寮忚鍗曡礋杞芥祴璇曚細鎸佺画鍒涘缓璁㈠崟骞舵秷鑰楀簱瀛橈紝鎵ц鍓嶉渶瑕佸噯澶囧彲閲嶅鐨勬暟鎹噸缃垨闅旂鏂规銆?
+该结果仅作为订单链路短冒烟证据，不替代 50/75～150 用户正式负载测试。该场景每轮循环包含登录和创建订单，表中 RT、P95 和吞吐量是混合统计；单独 `POST /api/v1/orders` 的脱敏聚合指标见 `docs/test/jmeter/summary/aggregate-20260610.csv`。正式订单负载测试会持续创建订单并消耗库存，执行前需要准备可重复的数据重置或隔离方案。
 
-### 7.4 鍟嗗搧鏌ヨ涓庤鍗?
+### 7.4 商品查询与订单
 
-| 鍦烘櫙 | 骞跺彂鐢ㄦ埛 | 骞冲潎 RT | P95 | 鍚炲悙閲?| 閿欒鐜?|
+| 场景 | 并发用户 | 平均 RT | P95 | 吞吐量 | 错误率 |
 |---|---:|---:|---:|---:|---:|
-| 鍟嗗搧鏌ヨ | 50 | 9.06ms | 19ms | 328.86/s | 0% |
-| 鍟嗗搧鏌ヨ | 150 | 5.76ms | 8ms | 363.39/s | 0% |
-| 鍒涘缓璁㈠崟 | 50 | | | | |
-| 鍒涘缓璁㈠崟 | 75锝?50 | | | | |
+| 商品查询 | 50 | 9.06ms | 19ms | 328.86/s | 0% |
+| 商品查询 | 150 | 5.76ms | 8ms | 363.39/s | 0% |
+| 创建订单 | 50 | | | | |
+| 创建订单 | 75～150 | | | | |
 
-50 鐢ㄦ埛鍜?150 鐢ㄦ埛鎼滅储娴嬭瘯涓鸿繛缁墽琛岋紝Elasticsearch銆丣VM銆佹搷浣滅郴缁熺紦瀛樺拰杩愯鏃堕鐑姸鎬佹湭瀹屽叏闅旂锛涚粨鏋滀粎鐢ㄤ簬璇佹槑瀵瑰簲璐熻浇涓嬩笟鍔℃柇瑷€闆跺け璐ワ紝涓嶇敤浜庣洿鎺ユ瘮杈冨苟鍙戞墿灞曡秼鍔裤€佺嚎鎬ф墿灞曡兘鍔涙垨绯荤粺鏈€澶у悶鍚愩€?
+50 用户和 150 用户搜索测试为连续执行，Elasticsearch、JVM、操作系统缓存和运行时预热状态未完全隔离；结果仅用于证明对应负载下业务断言零失败，不用于直接比较并发扩展趋势、线性扩展能力或系统最大吞吐。
 
-鑴辨晱鑱氬悎鎸囨爣宸插綊妗ｅ埌 `docs/test/jmeter/summary/aggregate-20260610.csv`銆傚師濮?JTL 浠嶄负鏈湴浜х墿锛屾湭绾冲叆浠撳簱銆?
+脱敏聚合指标已归档到 `docs/test/jmeter/summary/aggregate-20260610.csv`。原始 JTL 仍为本地产物，未纳入仓库。
 
-### 7.5 绉掓潃闃舵鍘嬪姏
+### 7.5 秒杀阶梯压力
 
-绉掓潃 1 鐢ㄦ埛瀹屾暣閾捐矾鐭啋鐑燂細
+秒杀 1 用户完整链路短冒烟：
 
-| 鍦烘櫙 | 鐢ㄦ埛 | RampUp | 鏍锋湰 | 骞冲潎 RT | P95 | 鍚炲悙閲?| 閿欒鐜?| 璇佹嵁 |
+| 场景 | 用户 | RampUp | 样本 | 平均 RT | P95 | 吞吐量 | 错误率 | 证据 |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| 鐧诲綍 + 鍙戣捣绉掓潃 + 杞缁撴灉 + 鏈€缁堢姸鎬佹牎楠?| 1 | 1s | 10 | 377ms | 2200ms | 1.31/s | 0% | `docs/test/jmeter/summary/seckill-full-smoke-20260610-133740.md`锛涘師濮?JTL 涓烘湰鍦颁骇鐗?|
+| 登录 + 发起秒杀 + 轮询结果 + 最终状态校验 | 1 | 1s | 10 | 377ms | 2200ms | 1.31/s | 0% | `docs/test/jmeter/summary/seckill-full-smoke-20260610-133740.md`；原始 JTL 为本地产物 |
 
-鏈€缁堢姸鎬佹牳楠岋細涓撶敤娲诲姩 `9001`銆乣skuId=9003`銆佹€诲簱瀛?100锛沗mall_seckill.seckill_order` 涓娲诲姩鏈€缁堟垚鍔?1銆佹渶缁堝け璐?0銆侀潪绌?`orderNo` 1銆佸幓閲嶇敤鎴锋暟 1锛孯edis `seckill:stock:9001` 鍓╀綑 99銆傝缁撴灉浠呰瘉鏄庡崟鐢ㄦ埛绉掓潃瀹屾暣閾捐矾鍙垚鍔燂紝涓嶆浛浠ｅ鐢ㄦ埛闃舵鍘嬪姏娴嬭瘯銆?
+最终状态核验：专用活动 `9001`、`skuId=9003`、总库存 100；`mall_seckill.seckill_order` 中该活动最终成功 1、最终失败 0、非空 `orderNo` 1、去重用户数 1，Redis `seckill:stock:9001` 剩余 99。该结果仅证明单用户秒杀完整链路可成功，不替代多用户阶梯压力测试。
 
-绉掓潃 10 鐢ㄦ埛璇锋眰鍙楃悊鐭啋鐑燂細`docs/test/jmeter/summary/seckill-smoke-20260610-113722.md` 浠呰瘉鏄?10 鐢ㄦ埛鐧诲綍銆佽姹傚彈鐞嗗拰缁撴灉鏌ヨ鎺ュ彛鍙揪锛涗笉鑳藉崟鐙瘉鏄庡紓姝ョ鏉€鏈€缁堟垚鍔熸垨娲诲姩鍏ㄥ眬涓嶈秴鍗栥€?
+秒杀 10 用户请求受理短冒烟：`docs/test/jmeter/summary/seckill-smoke-20260610-113722.md` 仅证明 10 用户登录、请求受理和结果查询接口可达；不能单独证明异步秒杀最终成功或活动全局不超卖。
 
-绉掓潃 10 鐢ㄦ埛瀹屾暣閾捐矾鍘嗗彶闃绘柇璁板綍锛歚docs/test/jmeter/summary/seckill-full-blocked-20260610-134442.md` 璁板綍 10 鐢ㄦ埛鍧囨垚鍔熷彈鐞嗭紝浣?9 涓姹傛渶缁堝け璐ワ紱璇ヨ褰曚綔涓哄巻鍙查棶棰樿瘉鎹繚鐣欙紝涓嶄綔涓哄綋鍓嶉€氳繃璇佹嵁銆?
+秒杀 10 用户完整链路历史阻断记录：`docs/test/jmeter/summary/seckill-full-blocked-20260610-134442.md` 记录 10 用户均成功受理，但 9 个请求最终失败；该记录作为历史问题证据保留，不作为当前通过证据。
 
-绉掓潃 10 鐢ㄦ埛瀹屾暣閾捐矾杩炵画楠岃瘉锛?
+秒杀 10 用户完整链路连续验证：
 
-| 鍦烘櫙 | 鐢ㄦ埛 | RampUp | 杞 | 鏍锋湰 | 澶辫触 | 鏈€缁堟垚鍔熸牎楠?| 璇佹嵁 |
+| 场景 | 用户 | RampUp | 轮次 | 样本 | 失败 | 最终成功校验 | 证据 |
 |---|---:|---:|---:|---:|---:|---:|---|
-| 鐧诲綍 + 鍙戣捣绉掓潃 + 杞缁撴灉 + 鏈€缁堢姸鎬佹牎楠?| 10 | 2s | 3 | 124 / 63 / 58 | 0 / 0 / 0 | 10 / 10 / 10 | `docs/test/jmeter/summary/seckill-full-10-3runs-20260610-195555.md`锛涘師濮?JTL 涓烘湰鍦颁骇鐗?|
+| 登录 + 发起秒杀 + 轮询结果 + 最终状态校验 | 10 | 2s | 3 | 124 / 63 / 58 | 0 / 0 / 0 | 10 / 10 / 10 | `docs/test/jmeter/summary/seckill-full-10-3runs-20260610-195555.md`；原始 JTL 为本地产物 |
 
-鏈€缁堢姸鎬佹牳楠岋細涓撶敤娲诲姩 `9001`銆乣skuId=9003`銆佹€诲簱瀛?100锛涚 3 杞粨鏉熷悗 `mall_seckill.seckill_order` 涓渶缁堟垚鍔?10銆佹渶缁堝け璐?0銆侀潪绌?`orderNo` 10銆乣orderNo` 鍘婚噸鏁?10銆佸幓閲嶇敤鎴锋暟 10锛沗mall_order.order_info` 绉掓潃璁㈠崟 10銆乣mall_order.order_item` 绉掓潃鏄庣粏 10锛沗mall_inventory.stock` 涓?`skuId=9003,total=100,locked=10,available=90`锛涘簱瀛橀攣瀹氭祦姘?10锛汻edis `seckill:stock:9001` 鍓╀綑 90銆傛棩蹇楁湭鍛戒腑 `Duplicate entry`銆乣绉掓潃璁㈠崟鍒涘缓澶辫触`銆乣绉掓潃缁撴灉鍥炲啓澶辫触`銆乣Global lock wait timeout`銆乣ERROR`銆?
+最终状态核验：专用活动 `9001`、`skuId=9003`、总库存 100；第 3 轮结束后 `mall_seckill.seckill_order` 中最终成功 10、最终失败 0、非空 `orderNo` 10、`orderNo` 去重数 10、去重用户数 10；`mall_order.order_info` 秒杀订单 10、`mall_order.order_item` 秒杀明细 10；`mall_inventory.stock` 中 `skuId=9003,total=100,locked=10,available=90`；库存锁定流水 10；Redis `seckill:stock:9001` 剩余 90。日志未命中 `Duplicate entry`、`秒杀订单创建失败`、`秒杀结果回写失败`、`Global lock wait timeout`、`ERROR`。
 
-绉掓潃 50/100/200/300/500 鍥哄畾搴撳瓨闃舵澶嶆祴缁撴灉锛?
+秒杀 50/100/200/300/500 固定库存阶梯复测结果：
 
-| 骞跺彂闃舵 | 鍥哄畾搴撳瓨 | JMeter 鎬绘牱鏈?| 澶辫触鏍锋湰 | 绉掓潃鍙楃悊 | 搴撳瓨涓嶈冻 | 鏈€缁堣鍗曟垚鍔?| 缁撴灉杞瓒呮椂 | Total P95 | Total TPS | 缁撹 |
+| 并发阶梯 | 固定库存 | JMeter 总样本 | 失败样本 | 秒杀受理 | 库存不足 | 最终订单成功 | 结果轮询超时 | Total P95 | Total TPS | 结论 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 50 鐢ㄦ埛 | 100 | 439 | 0 | 50 | 0 | 50 | 0 | 83ms | 52.08/s | 閫氳繃 |
-| 100 鐢ㄦ埛 | 100 | 1830 | 0 | 100 | 0 | 100 | 0 | 158ms | 106.09/s | 閫氳繃 |
-| 200 鐢ㄦ埛 | 100 | 2084 | 0 | 100 | 100 | 100 | 0 | 261ms | 124.27/s | 閫氳繃 |
-| 300 鐢ㄦ埛 | 100 | 2379 | 0 | 100 | 200 | 100 | 0 | 777ms | 132.02/s | 閫氳繃 |
-| 500 鐢ㄦ埛 | 100 | 2677 | 0 | 100 | 400 | 100 | 0 | 2586ms | 138.63/s | 閫氳繃 |
+| 50 用户 | 100 | 439 | 0 | 50 | 0 | 50 | 0 | 83ms | 52.08/s | 通过 |
+| 100 用户 | 100 | 1830 | 0 | 100 | 0 | 100 | 0 | 158ms | 106.09/s | 通过 |
+| 200 用户 | 100 | 2084 | 0 | 100 | 100 | 100 | 0 | 261ms | 124.27/s | 通过 |
+| 300 用户 | 100 | 2379 | 0 | 100 | 200 | 100 | 0 | 777ms | 132.02/s | 通过 |
+| 500 用户 | 100 | 2677 | 0 | 100 | 400 | 100 | 0 | 2586ms | 138.63/s | 通过 |
 
-璇佹嵁锛歚docs/test/jmeter/summary/seckill-ladder-20260610-234029.md`銆乣docs/test/jmeter/summary/seckill-ladder-20260610-234029.csv`銆傚師濮?JTL 涓?HTML Dashboard 涓烘湰鍦颁骇鐗╋紝鏈撼鍏ヤ粨搴撱€?
+证据：`docs/test/jmeter/summary/seckill-ladder-20260610-234029.md`、`docs/test/jmeter/summary/seckill-ladder-20260610-234029.csv`。原始 JTL 与 HTML Dashboard 为本地产物，未纳入仓库。
 
-鍙ｅ緞璇存槑锛?
+口径说明：
 
-- 琛ㄤ腑鐨?`Total P95` 鍜?`Total TPS` 鏉ヨ嚜 JMeter 鍏ㄩ儴鏍锋湰鑱氬悎锛屽寘鍚櫥褰曘€佺鏉€鍙楃悊銆佺粨鏋滆疆璇㈠拰鏈€缁堟牎楠岋紝涓嶇瓑鍚屼簬鍗曚釜涓氬姟鎺ュ彛 P95 鎴栨渶缁堟垚鍔熻鍗?TPS銆?
-- 鏈疆鏈敓鎴愮嫭绔?Transaction Controller 鐖舵牱鏈紝鍥犳涓嶈褰曗€滅鏉€瀹屾暣閾捐矾 P95鈥濇垨鈥滄渶缁堣鍗?TPS鈥濄€?
-- 50/100/200/300/500 浜旀。鍧囧凡鎸夊浐瀹氬簱瀛?100 瀹屾垚 DB/Redis 涓€鑷存€ф牳楠岋細鎴愬姛璁㈠崟涓嶈秴杩?100锛宍order_info` 涓?`order_item` 鏁伴噺涓€鑷达紝`locked` 涓庢垚鍔熻鍗曟暟涓€鑷达紝Redis 搴撳瓨鏈皬浜?0銆?
+- 表中的 `Total P95` 和 `Total TPS` 来自 JMeter 全部样本聚合，包含登录、秒杀受理、结果轮询和最终校验，不等同于单个业务接口 P95 或最终成功订单 TPS。
+- 本轮未生成独立 Transaction Controller 父样本，因此不记录“秒杀完整链路 P95”或“最终订单 TPS”。
+- 50/100/200/300/500 五档均已按固定库存 100 完成 DB/Redis 一致性核验：成功订单不超过 100，`order_info` 与 `order_item` 数量一致，`locked` 与成功订单数一致，Redis 库存未小于 0。
 
-### 7.6 鍚姩 Profile 涓庤祫婧愰噰鏍?
+### 7.6 启动 Profile 与资源采样
 
-璇佹嵁锛歚docs/test/jmeter/summary/profile-resource-20260610.md`銆?
+证据：`docs/test/jmeter/summary/profile-resource-20260610.md`。
 
-| 妯″紡 | 鍚姩缁撴灉 | Java 杩涚▼ | Java Working Set 鎬婚噺 | 璇存槑 |
+| 模式 | 启动结果 | Java 进程 | Java Working Set 总量 | 说明 |
 |---|---|---:|---:|---|
-| core | 閫氳繃 | 7 | 2525.9 MB | 瀹瑰櫒涓?mysql銆乺edis銆乶acos銆乻eata |
-| search | 閫氳繃 | 8 | 鏈崟鐙噰鏍?| 瀹瑰櫒涓?core + elasticsearch + rocketmq-namesrv + rocketmq-broker |
-| seckill | 閫氳繃 | 8 | 3154.4 MB | 瀹瑰櫒涓?mysql銆乺edis銆乶acos銆乻eata銆丷ocketMQ銆丼entinel |
-| core + LowMemory | 閫氳繃 | 7 | 2121.0 MB | Java 鍛戒护琛屽潎鍖呭惈 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
-| full-backend | 閫氳繃 | 13 | 2586.4 MB | 鍚庣绔彛杩佺Щ鍒?`9100-9112` 鍚庯紝鎵嬪姩琛ラ綈褰撳墠鍙敤涓棿浠跺苟浠?`--skip-infrastructure` 鍚姩 |
-| full-docker-profile | 閫氳繃 | 鏈噰鏍?| 鏈噰鏍?| 鍓嶅悗绔墍鏈夊井鏈嶅姟宸插彲椤哄埄涓€閿惎鍔紝鍓嶇 IPv6 鍥炵幆涓?npm 鍚姩鍏煎闂宸蹭慨澶嶏紝full 鍚姩閾捐矾閫氳繃锛涗笟鍔＄骇椤甸潰鎴浘楠屾敹鍥犵櫥褰曠姸鎬佸拰娴嬭瘯鏁版嵁鏈噯澶囪€屾殏鏈畬鎴愩€?|
+| core | 通过 | 7 | 2525.9 MB | 容器为 mysql、redis、nacos、seata |
+| search | 通过 | 8 | 未单独采样 | 容器为 core + elasticsearch + rocketmq-namesrv + rocketmq-broker |
+| seckill | 通过 | 8 | 3154.4 MB | 容器为 mysql、redis、nacos、seata、RocketMQ、Sentinel |
+| core + LowMemory | 通过 | 7 | 2121.0 MB | Java 命令行均包含 `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m` |
+| full-backend | 通过 | 13 | 2586.4 MB | 后端端口迁移到 `9100-9112` 后，手动补齐当前可用中间件并以 `--skip-infrastructure` 启动 |
+| full-docker-profile | 通过 | 未采样 | 未采样 | 前后端所有微服务已可顺利一键启动，前端 IPv6 回环与 npm 启动兼容问题已修复，full 启动链路通过；业务级页面截图验收因登录状态和测试数据未准备而暂未完成。 |
 
-Profile 鍒囨崲鍜?`stop-all.bat` 鍧囬€氳繃椤圭洰 JAR 鍛戒护琛屾牎楠屾墭绠¤繘绋嬶紱澶栭儴 9012 Java 杩涚▼鏈缁堟锛宮all-job 浣跨敤 9112銆?
+Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程；外部 9012 Java 进程未被终止，mall-job 使用 9112。
 
-璧勬簮鍙ｅ緞锛歅rofile 鐨勪富瑕佹敹鐩婃槸鎸夊満鏅噺灏戞棤鍏冲鍣ㄥ拰鏈嶅姟锛涙湰杞?Java Working Set 閲囨牱涓?`core` 涓?`full-backend` 宸窛涓嶅ぇ锛屼笉鍐欐垚鈥淧rofile 澶у箙闄嶄綆 Java 鍐呭瓨鈥濄€俙core + LowMemory` 瀵瑰悗绔?JVM Working Set 鐨勪笅闄嶅凡鏈夋湰鏈哄疄娴嬶紝浣嗕笉鐢ㄤ簬姝ｅ紡 JMeter 鍘嬫祴銆?
+资源口径：Profile 的主要收益是按场景减少无关容器和服务；本轮 Java Working Set 采样中 `core` 与 `full-backend` 差距不大，不写成“Profile 大幅降低 Java 内存”。`core + LowMemory` 对后端 JVM Working Set 的下降已有本机实测，但不用于正式 JMeter 压测。
 
 ---
 
-## 8. 寮傚父涓庡閿欐祴璇?
+## 8. 异常与容错测试
 
-### 8.1 涓嬫父鏈嶅姟鍋滄
+### 8.1 下游服务停止
 
-| 椤圭洰 | 鍐呭 |
+| 项目 | 内容 |
 |---|---|
-| 鍋滄鏈嶅姟 | |
-| 鍙楀奖鍝嶆帴鍙?| |
-| 杩斿洖鏃堕棿 | |
-| 杩斿洖鐮?| |
-| 鏄惁瑙﹀彂闄嶇骇/鐔旀柇 | |
-| 鎭㈠鍚庣粨鏋?| |
+| 停止服务 | |
+| 受影响接口 | |
+| 返回时间 | |
+| 返回码 | |
+| 是否触发降级/熔断 | |
+| 恢复后结果 | |
 
-### 8.2 Seata 2.0.0 鍥炴粴
+### 8.2 Seata 2.0.0 回滚
 
-娴嬭瘯鍦烘櫙锛氬簱瀛橀攣瀹氬悗妯℃嫙璁㈠崟鍐欏叆澶辫触锛坮emark=SEATA_ROLLBACK_TEST 瑙﹀彂寮傚父锛夈€?
+测试场景：库存锁定后模拟订单写入失败（remark=SEATA_ROLLBACK_TEST 触发异常）。
 
-| 妫€鏌ラ」 | 缁撴灉 |
+| 检查项 | 结果 |
 |---|---|
-| Seata Server 闀滃儚 | seataio/seata-server:2.0.0 |
-| XID 鏄惁閫忎紶 | 鏄紙@GlobalTransactional 鐢熸晥锛?|
-| 璁㈠崟鏄惁鍒涘缓 | 鍚︼紙鏈惤搴擄級 |
-| locked 鏄惁鎭㈠ | 鏄紙涓庡熀绾夸竴鑷达級 |
-| available 鏄惁鎭㈠ | 鏄紙涓庡熀绾夸竴鑷达級 |
-| undo_log/浜嬪姟鏃ュ織 | 鍥炴粴鍚庤嚜鍔ㄦ竻鐞?|
+| Seata Server 镜像 | seataio/seata-server:2.0.0 |
+| XID 是否透传 | 是（@GlobalTransactional 生效） |
+| 订单是否创建 | 否（未落库） |
+| locked 是否恢复 | 是（与基线一致） |
+| available 是否恢复 | 是（与基线一致） |
+| undo_log/事务日志 | 回滚后自动清理 |
 
-鏁呴殰娉ㄥ叆宸茬Щ闄わ紝宸ヤ綔鍖?clean銆?
+故障注入已移除，工作区 clean。
 
-### 8.3 閲嶅娑堟伅
+### 8.3 重复消息
 
-| 鍦烘櫙 | 棰勬湡 | 缁撴灉 |
+| 场景 | 预期 | 结果 |
 |---|---|---|
-| 閲嶅 PAY_RESULT | 璁㈠崟鍜屽簱瀛樹笉閲嶅鏇存柊 | |
-| 閲嶅 STOCK_ROLLBACK | 搴撳瓨涓嶉噸澶嶉噴鏀?| |
-| 閲嶅 SECKILL_REQUEST | 涓嶇敓鎴愰噸澶嶈鍗?| |
+| 重复 PAY_RESULT | 订单和库存不重复更新 | |
+| 重复 STOCK_ROLLBACK | 库存不重复释放 | |
+| 重复 SECKILL_REQUEST | 不生成重复订单 | |
 
 ---
 
-## 9. 浠ｇ爜璐ㄩ噺涓庡凡鐭ラ檺鍒?
+## 9. 代码质量与已知限制
 
-### 9.1 鏈鏁存敼
+### 9.1 本次整改
 
-- Java 21 鍗囩骇锛?
-- Seata 2.0.0 鍗囩骇锛?
-- 娴嬭瘯璐﹀彿瀵嗙爜缁熶竴锛?
-- 閰嶇疆淇锛?
-- 浜嬪姟杈圭晫淇锛?
-- Feign 閿欒澶勭悊锛?
-- 骞傜瓑澶勭悊锛?
-- 娴嬭瘯琛ュ厖锛?
-- 鏃犲叧鍔熻兘鍒犻櫎鎴栭檷绾с€?
+- Java 21 升级；
+- Seata 2.0.0 升级；
+- 测试账号密码统一；
+- 配置修复；
+- 事务边界修复；
+- Feign 错误处理；
+- 幂等处理；
+- 测试补充；
+- 无关功能删除或降级。
 
-### 9.2 宸茬煡闄愬埗
+### 9.2 已知限制
 
-濡傚疄璁板綍锛?
+如实记录：
 
-- Docker 鍏ㄦ爤灏氭湭瀹屾垚锛?
-- `docker-compose.all.yml` 浠呬綔涓洪暅鍍忓寲閮ㄧ讲绀轰緥锛屽綋鍓嶆湰鍦伴獙鏀朵互 BAT + 鏈湴 JAR 涓哄噯锛?
-- 鏍圭洰褰?BAT 鏄綋鍓嶄富瑕佷汉宸ュ惎鍔ㄤ笌楠屾敹鍏ュ彛锛汸owerShell 鑴氭湰浣滀负鍙傛暟鍖栥€佽嚜鍔ㄥ寲鍜屾晠闅滄帓鏌ュ叆鍙ｄ繚鐣欙紱
-- 鏈湴鍚庣绔彛宸茶縼绉诲埌杩炵画鍖洪棿 `9100-9112`锛岀敤浜庨伩寮€鏈満鏃х鍙?`9012/9013/9014` 澶栭儴鍗犵敤锛?
-- Elasticsearch 鎼滅储绱㈠紩鍒濆鍖栥€丟ateway 鎼滅储涓氬姟鏍￠獙鍜屾悳绱㈣礋杞芥祴璇曞凡閫氳繃锛?
-- Kubernetes 鍙湁绀轰緥锛?
-- 閮ㄥ垎杈呭姪鎺ュ彛鏈鐩栵紱
-- 鏈儴缃插畬鏁寸洃鎺у钩鍙帮紱
-- 鍓嶇宸插畬鎴愪竴杞骇鍝佸寲椤甸潰鏁存敼锛屼絾鍚庣鐪熷疄鎴愬姛鎬佽仈璋冦€侀€愰〉鎴愬姛鎴浘鍜屼富娴佺▼鎿嶄綔璇佹嵁浠嶅緟琛ュ厖锛?
-- 璁㈠崟姝ｅ紡璐熻浇浠嶆湭鎵ц锛?
-- `full` 鍚姩 Profile 鏈疆鍥?Docker 闀滃儚婧?403 鏈畬鎴愯祫婧愰噰鏍凤紱
-- Profile 鍙寜鍦烘櫙鍑忓皯鏃犲叧瀹瑰櫒鍜屾湇鍔★紝LowMemory 瀵?core 鍚庣 JVM 鏈夋湰鏈哄疄娴嬩笅闄嶏紱涓嶅皢 Profile 琛ㄨ堪涓哄凡璇佹槑 Java 鍐呭瓨澶у箙涓嬮檷锛?
-- Java 21 鎴?Seata 2.0.0 灏氭湭瀹屾垚鐨勫吋瀹归獙璇併€?
+- Docker 全栈尚未完成；
+- `docker-compose.all.yml` 仅作为镜像化部署示例，当前本地验收以 BAT + 本地 JAR 为准；
+- 根目录 BAT 是当前主要人工启动与验收入口；PowerShell 脚本作为参数化、自动化和故障排查入口保留；
+- 本地后端端口已迁移到连续区间 `9100-9112`，用于避开本机旧端口 `9012/9013/9014` 外部占用；
+- Elasticsearch 搜索索引初始化、Gateway 搜索业务校验和搜索负载测试已通过；
+- Kubernetes 只有示例；
+- 部分辅助接口未覆盖；
+- 未部署完整监控平台；
+- 前端已完成一轮产品化页面整改，但后端真实成功态联调、逐页成功截图和主流程操作证据仍待补充；
+- 订单正式负载仍未执行；
+- `full` 启动 Profile 本轮因 Docker 镜像源 403 未完成资源采样；
+- Profile 可按场景减少无关容器和服务，LowMemory 对 core 后端 JVM 有本机实测下降；不将 Profile 表述为已证明 Java 内存大幅下降；
+- Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
 ---
 
-## 10. 璇勫垎鏍囧噯瀵圭収
+## 10. 评分标准对照
 
-| 璇勫垎椤?| 鍒嗗€?| 浜や粯璇佹嵁 | 鑷瘎 |
+| 评分项 | 分值 | 交付证据 | 自评 |
 |---|---:|---|---:|
-| 鍔熻兘涓庡畬鏁存€?| 20 | 鏍稿績閾捐矾婕旂ず銆丳ostman | |
-| 鏋舵瀯涓庢妧鏈鑼?| 20 | 鏋舵瀯鍥俱€佺粍浠舵祴璇?| |
-| 浠ｇ爜娴嬭瘯 | 25 | Postman/JMeter/寮傚父鎶ュ憡 | |
-| 浠ｇ爜璐ㄩ噺 | 15 | 鏋勫缓銆佹祴璇曘€佽瘎瀹¤褰?| |
-| 鏂囨。鎶ュ憡 | 10 | docs 鍏ㄥ鏂囨。 | |
-| 婕旂ず绛旇京 | 10 | 婕旂ず鑴氭湰涓庢埅鍥?| |
+| 功能与完整性 | 20 | 核心链路演示、Postman | |
+| 架构与技术规范 | 20 | 架构图、组件测试 | |
+| 代码测试 | 25 | Postman/JMeter/异常报告 | |
+| 代码质量 | 15 | 构建、测试、评审记录 | |
+| 文档报告 | 10 | docs 全套文档 | |
+| 演示答辩 | 10 | 演示脚本与截图 | |
 
 ---
 
-## 11. 绛旇京婕旂ず鑴氭湰
+## 11. 答辩演示脚本
 
-寤鸿 8锝?0 鍒嗛挓锛?
+建议 8～10 分钟：
 
-1. 5 浜哄洟闃熷垎宸ワ紱
-2. Java 21 涓庣粍浠剁増鏈紱
-3. 椤圭洰鑼冨洿鍜屾灦鏋勶紱
-4. Nacos 鏈嶅姟鍒楄〃锛?
-5. 鐧诲綍涓?Gateway 閴存潈锛?
-6. 鍟嗗搧銆佽喘鐗╄溅銆佷笅鍗曪紱
-7. Feign銆丼eata 2.0.0銆丮Q锛?
-8. JMeter 涓?Sentinel锛?
-9. 鏈嶅姟鍋滄鎴栭厤缃儹鏇存柊锛?
-10. 娴嬭瘯缁撴灉鍜屽凡鐭ラ檺鍒躲€?
+1. 5 人团队分工；
+2. Java 21 与组件版本；
+3. 项目范围和架构；
+4. Nacos 服务列表；
+5. 登录与 Gateway 鉴权；
+6. 商品、购物车、下单；
+7. Feign、Seata 2.0.0、MQ；
+8. JMeter 与 Sentinel；
+9. 服务停止或配置热更新；
+10. 测试结果和已知限制。
 
 ---
 
-## 12. 鏈€缁堢粨璁?
+## 12. 最终结论
 
-濉啓锛?
+填写：
 
-- 鏍稿績閾捐矾鏄惁瀹屾暣锛?
-- Java 21 鍏ㄦā鍧楁瀯寤烘槸鍚﹂€氳繃锛?
-- Seata 2.0.0 鍥炴粴鏄惁閫氳繃锛?
-- 璇勫垎瑕佹眰鏄惁瑕嗙洊锛?
-- 鎬ц兘鐩爣鏄惁杈惧埌锛?
-- 灏氭湭瀹屾垚鐨勫唴瀹癸紱
-- 椤圭洰瑙勬ā鎺у埗鏄惁鍚堢悊銆?
+- 核心链路是否完整；
+- Java 21 全模块构建是否通过；
+- Seata 2.0.0 回滚是否通过；
+- 评分要求是否覆盖；
+- 性能目标是否达到；
+- 尚未完成的内容；
+- 项目规模控制是否合理。
 
-**2026-06-11 鐘舵€佹洿鏂?*锛氬墠绔?UI 姝ｅ湪杩涜瑙嗚璐ㄩ噺鏀跺彛锛汬ero 鑳屾櫙鍥句笌棣栭〉鐢诲竷鏂瑰悜宸茬‘璁わ紝缁嗚妭鏍峰紡鍜岀湡瀹炴垚鍔熸€佹埅鍥惧緟瀹屾垚銆?
+**2026-06-11 状态更新**：前端 UI 正在进行视觉质量收口；Hero 背景图与首页画布方向已确认，细节样式和真实成功态截图待完成。
+
