@@ -189,7 +189,7 @@ onMounted(load);
       >
         提交订单
       </el-button>
-      <p class="hint">价格和库存最终以 mall-order 调用商品、库存服务后的结果为准。</p>
+      <p class="hint">实际金额以提交订单后的结果为准。</p>
     </el-card>
   </section>
 </template>
