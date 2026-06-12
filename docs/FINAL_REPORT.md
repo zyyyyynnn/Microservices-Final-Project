@@ -306,6 +306,16 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 - 幂等处理；
 - 测试补充；
 - 无关功能删除或降级。
+- Sprint 1.1 前端补丁回归（commit 748ee87 后）：
+  - `format.ts::money` 与 `PriceText` 组件双层处理 `null/undefined/''/NaN → '—'`，合法 0 仍渲染 `¥0.00`；
+  - `ProductDetailView` 接入 `PageState` 错误态，`catch` 块中 `error.value = msg` 触发重新加载按钮；
+  - 错误文案脱敏：移除"商品服务"/"Gateway"/"mall-search"/"Elasticsearch"等用户可见技术名词；
+  - `HomeView.vue:508` `.product-card:hover` 硬编码 `box-shadow: 0 8px 24px rgba(0,0,0,0.05)` 切换为 `var(--shadow-md)`；
+  - `HomeView.vue:610` `.sk-card:hover` 残留硬编码 `box-shadow: 0 4px 12px var(--color-error-shadow)` 已删除，秒杀的视觉锚点由 `.sk-btn` 红色胶囊承担，`.sk-card:hover` 仅保留 `border-color` 变化。
+  - 构建与类型门禁：`vue-tsc -b` 无类型错误，`vite build` 998ms，产物哈希：
+    - `dist/assets/index-6ZwDI4xd.css` (397,154 B ≈ 397.15 kB)
+    - `dist/assets/index-BsjUWrq1.js` (1,104,894 B ≈ 1,104.89 kB)
+  - 审计残留问题：sprint 1.1 报告引用行号与实际有 1~3 行漂移（`ProductDetailView.vue` 的 `L59-L62` 实际 `L60-64`、`L112-L114` 实际 `L117`），属引用层笔误，功能本身无影响。
 
 ### 9.2 已知限制
 
