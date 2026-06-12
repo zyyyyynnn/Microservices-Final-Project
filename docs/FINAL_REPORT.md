@@ -335,6 +335,119 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 - Profile 可按场景减少无关容器和服务，LowMemory 对 core 后端 JVM 有本机实测下降；不将 Profile 表述为已证明 Java 内存大幅下降；
 - Java 21 或 Seata 2.0.0 尚未完成的兼容验证。
 
+### 9.3 Sprint 2 真实链路联调与前端验收
+
+提交：`ed7e05d94f4696fd567b7ceee4c5ef8971a0e709`（工作区仅新增 `docs/test/screenshots/`，未触碰 `mall-frontend/src/**` 与后端代码）。
+
+#### 9.3.1 MySQL 端口归属
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `Get-Service MySQL84` | Stopped, StartType=Manual | PowerShell 输出 |
+| `127.0.0.1:3306` 监听 | 已消失（仅 `::1` 与 `::` 由 wslrelay PID 34508 + com.docker.backend PID 31604 转发） | `Get-NetTCPConnection` |
+| `docker ps --filter name=mall-mysql` | Up 2 hours (healthy), `0.0.0.0:3306->3306/tcp` | docker ps |
+| `docker exec mall-mysql mysqladmin ping` | mysqld is alive | 命令输出 |
+| `SHOW DATABASES` | mall_auth / mall_inventory / mall_order / mall_pay / mall_product / mall_seata / mall_seckill / mall_user 全部存在 | docker exec |
+
+#### 9.3.2 core 后端启动矩阵
+
+启动命令：`pwsh .\scripts\start-all.ps1 -Profile core -SkipInfrastructure -SkipFrontend -SkipBuild -CleanLogs`（本轮实际后台运行）。
+
+| 服务 | 端口 | 启动状态 | Health | 日志证据 | 问题 |
+|---|---:|---|---|---|---|
+| mall-gateway | 9100 | 运行中（PID 5248） | 200, 7 服务已注册 discoveryComposite UP | `Started MallGatewayApplication` | — |
+| mall-auth | 9101 | 运行中（PID 29492） | 200 | `Started` | — |
+| mall-user | 9102 | 运行中（PID 4532） | 200 | `Started` | — |
+| mall-product | 9103 | 运行中（PID 24124） | 200 | `Started` | — |
+| mall-inventory | 9104 | 运行中（PID 10620） | 200 | `Started`, Seata DataSourceProxy.init 成功 | — |
+| mall-cart | 9105 | 运行中（PID 23888） | 200 | `Started` | — |
+| mall-order | 9106 | 运行中（PID 7960） | /actuator/health 返回 500（`GlobalExceptionHandler` 把 `NoResourceFoundException` 视为 SystemError） | `Started MallOrderApplication in 12.394 seconds` 成功 | 业务接口 200；actuator 异常归类为后端 actuator 缺失，列入 Sprint 3 候选 |
+| mall-pay | 9107 | 未启动 | — | — | **未验证：core profile 不含 mall-pay** |
+| mall-search | 9108 | 未启动 | — | — | **未验证：core profile 不含 mall-search** |
+| mall-seckill | 9109 | 未启动 | — | — | **未验证：core profile 不含 mall-seckill** |
+| mall-message | 9110 | 未启动 | — | — | **未验证：core profile 不含 mall-message** |
+| mall-admin-biz | 9111 | 未启动 | — | — | **未验证：core profile 不含 mall-admin-biz** |
+| 前端 (Vite) | 5173 | 运行中（PID 35796） | http://localhost:5173/ 返回 200 | `.runtime/logs/frontend.log` Vite 8.0.16 ready in 5180ms |
+
+#### 9.3.3 Gateway 接口冒烟
+
+| 接口 | 方法 | HTTP | 业务码 | 关键字段 | 结果 |
+|---|---|---:|---:|---|---|
+| `/actuator/health` | GET | 200 | — | discoveryComposite UP, 7 服务已注册 | 通过 |
+| `/api/v1/auth/login` (zhangsan) | POST | 200 | 200 | accessToken (280 chars), userInfo.id=1001, roles=["USER"] | 通过 |
+| `/api/v1/products/1001` | GET | 200 | 200 | spuId=1001, name="iPhone 15 Pro 256G 钛原色", skus[0].skuId=9001 price=8999.00 | 通过 |
+| `/api/v1/inventory/stock/9001` | GET (Bearer) | 200 | 200 | total=100, locked=3, available=97 | 通过 |
+| `/api/v1/inventory/stock/9002` | GET (Bearer) | 200 | 200 | total=50, locked=0, available=50 | 通过 |
+| `/api/v1/inventory/stock/9003` | GET (Bearer) | 200 | 200 | total=200, locked=0, available=200 | 通过 |
+| `/api/v1/users/me` | GET (Bearer) | 200 | 200 | id=1001, username=zhangsan | 通过 |
+| `/api/v1/users/me/addresses` | GET (Bearer) | 200 | 200 | 2 条地址（id=1 默认, id=2） | 通过 |
+| `/api/v1/carts` POST (sku 9001, qty 1) | POST (Bearer) | 200 | 200 | ok | 通过 |
+| `/api/v1/carts` GET | GET (Bearer) | 200 | 200 | items[0].skuId=9001, quantity=5, subtotal=44995.00 | 通过 |
+| `/api/v1/orders` POST (addressId=1, sku=9001, qty=1) | POST (Bearer) | 200 | 200 | orderNo=`SO1781241179114`, totalAmount=8999.00 | 通过 |
+| `/api/v1/orders/SO1781241179114` | GET (Bearer) | 200 | 200 | status=0, totalAmount=8999.00, payAmount=8999.00, items[0].skuId=9001, quantity=1 | 通过 |
+| `/api/v1/pay/create` | POST | — | — | — | **未验证：core profile 不含 mall-pay** |
+| `/api/v1/admin/dashboard` | GET | — | — | — | **未验证：core profile 不含 mall-admin-biz** |
+
+#### 9.3.4 前端真实链路验收
+
+| 页面 | 路由 | 主操作 | 结果 | 截图 | 问题 |
+|---|---|---|---|---|---|
+| 首页（已登录） | `/` | 登录跳转 | 通过 | `01-home-after-login-1440x900.png` | — |
+| 商品详情 | `/products/1001` | 加载 + 实时库存 96 + 加入购物车 | 通过 | `02-product-detail-1001-1440x900.png`、`06-product-detail-390x844.png` | 移动端文档高 1617px，图片在 y=539，导致 390x844 视口可见区为 header + 图片起始；价格/SKU/按钮在折叠线下方（Playwright 抓取 H1="iPhone 15 Pro 256G 钛原色" 已确认页面正确） |
+| 购物车 | `/cart` | 加载 1 行 × 5 + 去结算 | 通过 | `03-cart-1440x900.png`、`07-cart-390x844.png` | — |
+| 结算页 | `/checkout` | 加载地址 + 提交订单 → orderNo=SO1781241179114 | 通过 | `04-checkout-1440x900.png`、`08-checkout-390x844.png` | — |
+| 订单详情 | `/orders/SO1781241179114` | 加载详情 | 通过 | `05-order-detail-1440x900.png`、`09-order-detail-390x844.png` | 收货信息"—"：后端 order.addressJson 仅含 {"addressId":1}，前端 formatAddress 兜底为"—" |
+| 支付收银台 | `/pay/SO1781241179114` | 模拟支付 | **未验证：core profile 不含 mall-pay** | — | — |
+| 后台管理 | `/admin` | 看板 | **未验证：core profile 不含 mall-admin-biz** | — | — |
+
+#### 9.3.5 截图索引
+
+`docs/test/screenshots/sprint2/` 共 9 张（5 张 1440x900 + 4 张 390x844）。详见 `docs/test/screenshots/sprint2/README.md`。
+
+#### 9.3.6 构建与静态检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `npm run build` | 通过 | `vue-tsc -b` 无类型错误；`vite build` 1.39s；产物 `dist/assets/index-DlsTWCAw.css` (397.14 kB)、`dist/assets/index-BQqaWE3G.js` (1,104.85 kB)；2 个 `INVALID_ANNOTATION` 警告来自 `node_modules/@vueuse/core`（与本仓库代码无关）；chunks>500kB 警告为 Vite 默认值 |
+| `git diff --check` | 通过 | exit=0；HEAD=ed7e05d；唯一新增为 `docs/test/screenshots/sprint2/`（未 git add） |
+| 硬编码颜色扫描 | 通过（已列出） | 见下表 |
+
+**硬编码颜色扫描结果**（`grep -rn --include="*.vue" --include="*.css" -E '#[0-9a-fA-F]{6}\b\|#[0-9a-fA-F]{3}\b\|#[0-9a-fA-F]{8}\b\|rgba?\([0-9]' src/`）：
+
+| 文件 | 行 | 内容 | 分类 | 说明 |
+|---|---:|---|---|---|
+| `src/styles/tokens.css` | 3-89 | `--color-brand: #4b7099` 等 23 个 token + 3 个 rgba shadow | **允许**：token 定义文件 | 与 DESIGN.md 10.2 token 表一致 |
+| `src/styles/app.css` | 42 | `background: rgba(255, 255, 255, 0.96);` | **预存在**：全局 header 毛玻璃 | 等价于 `--color-bg-surface` + 透明度，本轮未改源码 |
+| `src/styles/app.css` | 242 | `background: rgba(255, 255, 255, 0.94);` | **预存在**：hero stat 卡片背景 | 同上 |
+| `src/styles/app.css` | 692 | `background: #fdfdfd;` | **预存在**：auth-card header | 近白色，等价于 `--color-bg-surface` |
+| `src/styles/app.css` | 775 | `background: #fff;` | **预存在**：sku-chip 背景 | 等价于 `--color-bg-surface` |
+
+结论：业务组件 (.vue) **未发现**硬编码颜色；app.css 4 处预存在硬编码与既有 token 功能等价，归类为 Sprint 3 候选（替换为 `var(--color-bg-surface)` + `--shadow-...`）。
+
+#### 9.3.7 未验证项
+
+| 项目 | 原因 | 下一步 |
+|---|---|---|
+| `/pay/:orderNo` 真实支付 + 通知 | core profile 不含 mall-pay / mall-message | full profile 启动 |
+| `/admin` 看板真实加载 + admin 登录 | core profile 不含 mall-admin-biz | full profile 启动 |
+| `mall-search` 搜索联调 | core profile 不含 | full profile 启动 |
+| `mall-seckill` 秒杀联调 | core profile 不含 | full profile 启动 |
+| 1366x768 / 1024x768 / 768x1024 视口截图 | 本轮仅补 1440x900 + 390x844 两档；视口补全列为 Sprint 3 候选 | full profile 启动批次同步补 |
+| 订单详情页"收货信息"显示"—" | 后端 `mall-order` 写入 `addressJson={"addressId":1}` 不含完整地址对象 | 归类为后端 API 例外申请（动 Service 层），本轮不动业务代码 |
+| `mall-order` `/actuator/health` 返 500 | `GlobalExceptionHandler` 把 `NoResourceFoundException` 当 SystemError；Spring 未找到 `/actuator` 静态资源 | 后端补 actuator 依赖或调整 `management.endpoints.web.base-path=/`；列为 Sprint 3 后端修复 |
+| 首页商品卡 SPU 级"库存 0" | `mall-product` 接口返回的 SPU `skus[0].stock` 静态 0；实时库存靠 `inventoryStock` 在详情页刷新 | UI 调优，列入 Sprint 3 候选 |
+| 商品详情移动端文档 1617px / 图片在 y=539 | mobile UX 留白过大 | 列入 Sprint 3 UI 调优 |
+| 订单正式负载（JMeter） | 历史已有 1/10/50/100/200/300/500 阶梯证据；本轮 Sprint 2 关注核心链路，不重跑 | 沿用 `docs/FINAL_REPORT.md` §7.5 历史结果 |
+
+#### 9.3.8 Sprint 3 候选建议（不得直接执行）
+
+1. `start-all.ps1` 加端口冲突保护：探测 127.0.0.1:3306 占用进程，非 Docker 转发则报警。
+2. `mall-order` 加 `spring-boot-starter-actuator` 或调整 `management.endpoints.web.base-path=/`，并把 `NoResourceFoundException` 从 SystemError 排除。
+3. `app.css` 4 处预存在硬编码颜色替换为 `var(--color-bg-surface)` / `var(--shadow-...)`。
+4. 补全 full profile 启动 + `/pay` 真实支付链路 + `/admin` 后台联调 + 6 视口截图。
+5. 后端 `mall-order` 写入完整 address 快照而非仅 addressId。
+6. UI 调优：商品详情 mobile 留白；首页商品卡实时库存回填。
+
 ---
 
 ## 10. 评分标准对照
