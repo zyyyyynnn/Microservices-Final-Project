@@ -4,9 +4,10 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
+import ProductCard from '../components/ProductCard.vue';
 import type { UnknownRecord } from '../api/types';
 import { field } from '../utils/format';
-import { heroImage, resolveProductImage } from '../catalog/productAssets';
+import { resolveProductImage } from '../catalog/productAssets';
 import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
 import ProductImage from '../components/ProductImage.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
@@ -102,13 +103,7 @@ function selectCategory(tab: { label: string; keyword: string }) {
   }
 }
 
-function getPrice(product: UnknownRecord) {
-  const skus = product.skus as UnknownRecord[] | undefined;
-  return Number(field(skus?.[0], ['price'], 0)).toFixed(2);
-}
-function getImage(product: UnknownRecord) {
-  return resolveProductImage(product);
-}
+
 function getSeckillImage(activity: UnknownRecord) {
   const directImage = field<string>(activity, ['mainImage', 'image'], '');
   if (directImage) return directImage;
@@ -136,28 +131,28 @@ onMounted(loadHome);
     <div v-if="!loading" class="home-grid">
       <!-- Top Section: Hero & Flow -->
       <div class="hero-section">
-        <div class="hero-banner" :style="{ backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center right', backgroundRepeat: 'no-repeat' }">
+        <div class="hero-banner">
           <div class="hero-content">
             <h1 class="hero-title">MallCloud<br/>让购物更简单</h1>
             <p class="hero-subtitle">精选好物 · 品质保障 · 极速送达</p>
 
             <div class="hero-guarantees">
               <div class="guarantee-item">
-                <el-icon color="#1b61c9" :size="24"><Lock /></el-icon>
+                <el-icon color="var(--color-brand)" :size="20"><Lock /></el-icon>
                 <div class="g-text">
                   <strong>正品保障</strong>
                   <span>品牌直供</span>
                 </div>
               </div>
               <div class="guarantee-item">
-                <el-icon color="#1b61c9" :size="24"><Van /></el-icon>
+                <el-icon color="var(--color-brand)" :size="20"><Van /></el-icon>
                 <div class="g-text">
                   <strong>极速配送</strong>
                   <span>211限时达</span>
                 </div>
               </div>
               <div class="guarantee-item">
-                <el-icon color="#1b61c9" :size="24"><CircleCheckFilled /></el-icon>
+                <el-icon color="var(--color-brand)" :size="20"><CircleCheckFilled /></el-icon>
                 <div class="g-text">
                   <strong>无忧售后</strong>
                   <span>7天无理由</span>
@@ -169,7 +164,6 @@ onMounted(loadHome);
               <el-button type="primary" size="large" class="hero-btn">立即选购 <el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
             </RouterLink>
           </div>
-          
         </div>
 
         <el-card class="panel flow-panel" shadow="never">
@@ -197,7 +191,6 @@ onMounted(loadHome);
               </div>
             </template>
           </div>
-
         </el-card>
       </div>
 
@@ -224,29 +217,11 @@ onMounted(loadHome);
         </div>
 
         <div class="product-grid">
-          <RouterLink
+          <ProductCard
             v-for="product in displayProducts"
             :key="String(field(product, ['spuId', 'id']))"
-            :to="`/products/${field(product, ['spuId', 'id'])}`"
-            class="product-card"
-          >
-            <div class="p-image">
-              <ProductImage :src="getImage(product)" :alt="String(product.name)" />
-            </div>
-            <div class="p-info">
-              <h3 class="p-name">{{ product.name }}</h3>
-              <p class="p-desc">{{ product.description }}</p>
-              <div class="p-bottom">
-                <div class="p-price">
-                  <span class="currency">¥</span>
-                  <span class="amount">{{ getPrice(product) }}</span>
-                </div>
-                <button class="cart-btn" @click.prevent="router.push(`/products/${field(product, ['spuId', 'id'])}`)">
-                  <el-icon><ShoppingCart /></el-icon>
-                </button>
-              </div>
-            </div>
-          </RouterLink>
+            :product="product"
+          />
         </div>
       </el-card>
 
@@ -271,7 +246,7 @@ onMounted(loadHome);
           </div>
           <div v-else v-for="product in seckillProducts" :key="String(field(product, ['id', 'activityId', 'spuId']))" class="sk-card">
             <div class="sk-image">
-              <ProductImage :src="getSeckillImage(product)" :alt="field(product, ['title', 'name'])" />
+              <ProductImage :src="getSeckillImage(product)" :alt="String(field(product, ['title', 'name']))" />
             </div>
             <div class="sk-info">
               <h3 class="sk-name">{{ field(product, ['title', 'name']) }}</h3>
@@ -285,11 +260,10 @@ onMounted(loadHome);
         </div>
       </el-card>
 
-
       <!-- Bottom Promises -->
       <div class="bottom-promises">
         <div v-for="promise in bottomPromises" :key="promise.title" class="bp-item">
-          <el-icon class="bp-icon" color="#1b61c9" :size="32"><component :is="promise.icon" /></el-icon>
+          <el-icon class="bp-icon" color="var(--color-brand)" :size="32"><component :is="promise.icon" /></el-icon>
           <div class="bp-text">
             <strong>{{ promise.title }}</strong>
             <span>{{ promise.sub }}</span>
@@ -324,29 +298,30 @@ onMounted(loadHome);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  background: var(--bg-gradient-hero);
   overflow: hidden;
   min-height: 310px;
   padding: 48px 44px;
+  width: 100%;
 }
 .hero-content {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: 38%;
-  max-width: 400px;
+  width: 100%;
+  max-width: 600px;
   min-width: 0;
 }
 @media (max-width: 768px) {
   .hero-banner {
-    min-height: 420px;
-    background-position: center bottom !important;
-    padding: 32px 24px;
+    min-height: auto;
+    padding: var(--spacing-lg);
   }
 }
 
 .hero-title {
-  max-width: 400px;
-  font-size: 36px;
+  max-width: 100%;
+  font-size: clamp(24px, 4vw, 36px);
   font-weight: 800;
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
@@ -356,9 +331,9 @@ onMounted(loadHome);
 }
 
 .hero-subtitle {
-  max-width: 380px;
-  font-size: 18px;
-  color: var(--color-text-muted);
+  max-width: 100%;
+  font-size: clamp(14px, 2.5vw, 18px);
+  color: var(--color-text-secondary);
   margin-bottom: 22px;
 }
 

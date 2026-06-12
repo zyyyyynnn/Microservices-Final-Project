@@ -1,6 +1,6 @@
 :root {
-  --page-max-width: 1360px;
-  --page-gutter: 32px;
+  --page-max-width: var(--layout-max-width);
+  --page-gutter: var(--layout-gutter-desktop);
 }
 
 html {
@@ -8,7 +8,7 @@ html {
 }
 
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-bg-page);
   color: var(--color-text-primary);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
@@ -36,12 +36,11 @@ h6 {
   z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: auto;
-  min-height: 76px;
-  padding: 0 var(--spacing-xl);
-  
+  justify-content: center;
+  height: 80px;
+  border-bottom: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.96);
+  padding: 0;
 }
 
 .header-left,
@@ -357,14 +356,14 @@ h6 {
 .product-grid,
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   justify-content: start;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
 }
 
 .product-grid {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   justify-content: start;
 }
 
@@ -409,6 +408,15 @@ h6 {
   flex-direction: column;
   min-height: 100%;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.product-card:hover {
+  border-color: var(--color-brand) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-2px);
 }
 
 .product-image {
@@ -474,7 +482,7 @@ h6 {
 }
 
 .product-bottom strong {
-  color: var(--color-brand);
+  color: var(--color-price);
   font-size: var(--font-xl);
 }
 
@@ -710,12 +718,12 @@ h6 {
 
 @media (max-width: 1024px) {
   :root {
-    --page-gutter: 24px;
+    --page-gutter: var(--layout-gutter-tablet);
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   :root {
-    --page-gutter: 16px;
+    --page-gutter: var(--layout-gutter-mobile);
   }
 }
 

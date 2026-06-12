@@ -91,7 +91,14 @@ onMounted(loadProduct);
 
 <template>
   <section>
-    <PageState :loading="loading" :error="''" @retry="loadProduct" />
+    <PageState
+      :loading="loading"
+      :error="error"
+      :empty="!loading && !error && !product"
+      empty-title="商品不存在"
+      empty-description="请检查商品链接或稍后重试。"
+      @retry="loadProduct"
+    />
 
     <div v-if="product && !loading" class="detail-layout">
       <div class="detail-media">
@@ -155,3 +162,76 @@ onMounted(loadProduct);
     </div>
   </section>
 </template>
+
+<style scoped>
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 480px) minmax(0, 1fr);
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+}
+.detail-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+.price-line {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-price);
+  margin: var(--spacing-md) 0;
+}
+.sku-section {
+  margin-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-md);
+}
+.sku-label {
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-sm);
+}
+.sku-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.sku-chip {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--font-sm);
+  transition: all var(--transition-fast);
+}
+.sku-chip:hover {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+.sku-chip.active {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-weight: var(--weight-bold);
+}
+.stock-line {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+}
+.purchase-row {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+</style>

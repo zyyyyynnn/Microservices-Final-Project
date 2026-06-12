@@ -41,16 +41,19 @@ function handleError() {
 .product-image-container {
   width: 100%;
   height: 100%;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-surface-hover, #f8fafc);
+  background-color: var(--color-bg-subtle);
   overflow: hidden;
+  border-radius: inherit;
 }
 
 .product-image-el {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform var(--transition-base);
 }
 </style>

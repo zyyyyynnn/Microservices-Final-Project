@@ -131,7 +131,7 @@ function isActive(path: string) {
 <style scoped>
 .app-header {
   height: 80px;
-  background: var(--color-surface);
+  background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@ function isActive(path: string) {
   padding: 0;
 }
 .header-main {
-  width: min(var(--page-max-width), calc(100vw - var(--page-gutter) * 2));
+  width: min(var(--layout-max-width), calc(100vw - var(--page-gutter) * 2));
   margin-inline: auto;
   display: flex;
   justify-content: space-between;
@@ -151,6 +151,7 @@ function isActive(path: string) {
   align-items: center;
   gap: var(--spacing-sm);
   text-decoration: none;
+  flex-shrink: 0;
 }
 .brand-copy {
   display: flex;
@@ -168,7 +169,8 @@ function isActive(path: string) {
 }
 .app-nav {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
 }
 .nav-link {
   font-size: 15px;
@@ -177,34 +179,43 @@ function isActive(path: string) {
   font-weight: 500;
   padding: 6px 12px;
   border-radius: 20px;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 .nav-link:hover {
   color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 .nav-link.router-link-active {
   color: var(--color-brand);
-  background: var(--color-brand-light);
+  background: var(--color-brand-soft);
+  font-weight: 700;
 }
 .header-search {
   flex: 1;
   max-width: 400px;
+  min-width: 150px;
 }
 
 .search-input :deep(.el-input-group__append) {
   background-color: var(--color-brand);
   color: white;
   border: 1px solid var(--color-brand);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+.search-input :deep(.el-input-group__append:hover) {
+  background-color: var(--color-brand-hover);
+  border-color: var(--color-brand-hover);
 }
 .search-input :deep(.el-input-group__append button.el-button) {
   color: white;
   border: none;
 }
 
-
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-lg);
+  flex-shrink: 0;
 }
 .action-icon {
   display: flex;
@@ -213,6 +224,7 @@ function isActive(path: string) {
   color: var(--color-text-primary);
   text-decoration: none;
   font-size: 14px;
+  transition: color var(--transition-fast);
 }
 .action-icon:hover {
   color: var(--color-brand);
@@ -227,16 +239,22 @@ function isActive(path: string) {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-surface-hover);
+  background: var(--color-bg-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.user-profile:hover .avatar {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
 }
 .greeting {
   font-size: 14px;
   color: var(--color-text-primary);
 }
+
 @media (max-width: 1024px) {
   .app-header {
     height: auto;
@@ -256,15 +274,40 @@ function isActive(path: string) {
     order: 3;
     width: 100%;
     overflow-x: auto;
+    white-space: nowrap;
+    padding: 4px 0;
+    scrollbar-width: none;
+  }
+  .app-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .header-search {
-    flex: 1 1 360px;
+    flex: 1 1 280px;
     max-width: none;
   }
 
   .header-actions {
     flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+  .brand {
+    align-self: center;
+  }
+  .header-search {
+    width: 100%;
+    margin: 4px 0;
+  }
+  .header-actions {
+    justify-content: space-between;
+    width: 100%;
   }
 }
 </style>

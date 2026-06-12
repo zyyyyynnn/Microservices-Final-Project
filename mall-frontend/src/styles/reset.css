@@ -32,11 +32,15 @@ select {
   font: inherit;
 }
 
-*,
-*::before,
-*::after {
-  transition: none !important;
-  animation: none !important;
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 :focus-visible {
