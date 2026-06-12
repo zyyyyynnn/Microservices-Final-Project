@@ -59,9 +59,9 @@ async function loadProduct() {
     selectedSkuId.value = dataSkus.length ? Number(field(dataSkus[0], ['skuId'], null)) : null;
   } catch (err) {
     product.value = null;
-    const msg = err instanceof Error ? err.message : '商品详情加载失败';
-    error.value = msg;
-    notifyError(msg);
+    const displayMsg = '商品详情暂时无法加载，请稍后重试。';
+    error.value = displayMsg;
+    notifyError(displayMsg);
   } finally {
     loading.value = false;
   }
@@ -112,7 +112,7 @@ onMounted(loadProduct);
           {{ statusText(field(product, ['status'], 1), productStatusMap) }}
         </el-tag>
         <h1>{{ productName(product) }}</h1>
-        <p>{{ field(product, ['description'], '商品描述由商品服务返回，当前为空。') }}</p>
+        <p>{{ field(product, ['description'], '暂无商品描述。') }}</p>
         <div class="price-line">
           <PriceText :value="field(selectedSku, ['price'])" size="xl" />
         </div>
