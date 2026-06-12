@@ -169,6 +169,186 @@ function Stop-ManagedBackendProcess([string]$ServiceName, [int]$ProcessId, [int]
     }
 }
 
+# ── 基础设施端口归属检查 ────────────────────────────────────
+# 防止后端连到错误的本机 MySQL（参考 Sprint 2 首轮失败根因）。
+# 至少检查 3306 是否被 Docker / WSL 转发进程合法占用。
+$script:PortCheckAllowed = @(
+    "com.docker.backend", "com.docker.proxy", "docker-proxy", "vpnkit", "wslrelay"
+)
+$script:PortCheckBlocked = @(
+    "mysqld", "mariadbd", "mariadb"
+)
+$script:PortCheckBlockedPathHints = @(
+    "MySQL", "MariaDB"
+)
+
+function Get-PortOwnerDetail {
+    param([int]$Port)
+    $rows = @()
+    try {
+        $conns = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue
+    } catch {
+        return $rows
+    }
+    if (-not $conns) { return $rows }
+    foreach ($c in $conns) {
+        $proc = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
+        $procName = if ($proc) { $proc.ProcessName } else { "unknown" }
+        $procPath = if ($proc) { $proc.Path } else { "" }
+        $rows += [PSCustomObject]@{
+            LocalAddress = $c.LocalAddress
+            OwningProcess = $c.OwningProcess
+            ProcessName   = $procName
+            Path          = $procPath
+        }
+    }
+    return $rows
+}
+
+function Test-InfrastructurePortOwnership {
+    # 公共：检查单个端口的归属，返回 [pscustomobject]@{ Status; Allowed; Details; ... }
+    # Status: Allowed | Blocked | Skipped | Warn | NoListener
+    param(
+        [Parameter(Mandatory)] [int]$Port,
+        [Parameter(Mandatory)] [string]$DisplayName,
+        [string]$LogPath
+    )
+    if (-not $LogPath) {
+        $LogPath = Join-Path $LogsDir "startup-port-check.log"
+    }
+    $logDir = Split-Path -Path $LogPath -Parent
+    if ($logDir -and -not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    $infraHost = $env:MALL_INFRA_HOST
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.Add("=== 启动端口归属检查 $timestamp ===")
+    $lines.Add("MALL_INFRA_HOST=$infraHost")
+    $lines.Add("Port=$Port DisplayName=$DisplayName")
+    $lines.Add("")
+
+    # 1) MALL_INFRA_HOST 指向非本机：跳过
+    if ($infraHost -and $infraHost -notin @("127.0.0.1", "localhost", "::1")) {
+        $lines.Add("判定: Skipped")
+        $lines.Add("原因: MALL_INFRA_HOST=$infraHost 非本机地址；脚本不强制检查本机 $Port 归属")
+        $lines.Add("建议: 确保后端可通过 $infraHost 访问 MySQL")
+        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
+        Write-Host ""
+        Write-Host "  [WARN] 已设置 MALL_INFRA_HOST=$infraHost，跳过本机 $Port Docker 转发归属检查。" -ForegroundColor Yellow
+        Write-Host ""
+        return [pscustomobject]@{
+            Status = "Skipped"; Allowed = $true; Port = $Port; LogPath = $LogPath
+        }
+    }
+
+    # 2) 收集监听
+    $owners = Get-PortOwnerDetail -Port $Port
+    if ($null -eq $owners -or @($owners).Count -eq 0) {
+        $lines.Add("状态: No listener on port $Port")
+        $lines.Add("判定: Warn")
+        $lines.Add("建议: 端口 $Port 当前无监听。-SkipInfrastructure 时确认 Docker $DisplayName 已手动启动；否则继续启动后端将连接失败。")
+        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
+        Write-Host ""
+        Write-Host "  [WARN] 端口 $Port ($DisplayName) 当前没有监听，后续 Docker MySQL 可能尚未启动。" -ForegroundColor Yellow
+        Write-Host ""
+        return [pscustomobject]@{
+            Status = "NoListener"; Allowed = $true; Port = $Port; LogPath = $LogPath
+        }
+    }
+
+    # 3) 逐个判定
+    $allowed = New-Object System.Collections.Generic.List[object]
+    $blocked = New-Object System.Collections.Generic.List[object]
+    $lines.Add("监听者明细:")
+    foreach ($o in $owners) {
+        $lines.Add(("  LocalAddress={0} PID={1} ProcessName={2} Path={3}" -f $o.LocalAddress, $o.OwningProcess, $o.ProcessName, $o.Path))
+    }
+    $lines.Add("")
+
+    foreach ($o in $owners) {
+        $name = "$($o.ProcessName)".Trim()
+        $path = "$($o.Path)".Trim()
+
+        $isAllowed = $false
+        $isBlocked = $false
+
+        # Allow by exact ProcessName match
+        foreach ($allowName in $script:PortCheckAllowed) {
+            if ($name -ieq $allowName) { $isAllowed = $true; break }
+        }
+        # Allow by path containing docker/wsl
+        if (-not $isAllowed -and $path) {
+            if ($path -match '(?i)(docker|wsl)') { $isAllowed = $true }
+        }
+        # Block by exact ProcessName match (mysqld / mariadbd)
+        if (-not $isAllowed) {
+            foreach ($blockName in $script:PortCheckBlocked) {
+                if ($name -ieq $blockName) { $isBlocked = $true; break }
+            }
+        }
+        # Block by path containing MySQL/MariaDB
+        if (-not $isAllowed -and $path) {
+            foreach ($hint in $script:PortCheckBlockedPathHints) {
+                if ($path -match $hint) { $isBlocked = $true; break }
+            }
+        }
+
+        if ($isAllowed) {
+            $allowed.Add($o)
+        } else {
+            # 未列入白名单或命中黑名单：默认按 Blocked 处理
+            $isBlocked = $true
+            $blocked.Add($o)
+        }
+    }
+
+    if (($blocked -as [System.Collections.IEnumerable]) -and $blocked.Count -gt 0) {
+        $lines.Add("判定: Blocked")
+        $lines.Add("阻塞进程:")
+        foreach ($b in $blocked) {
+            $lines.Add(("  PID={0} ProcessName={1} Path={2}" -f $b.OwningProcess, $b.ProcessName, $b.Path))
+        }
+        $lines.Add("")
+        $lines.Add("建议: 端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。")
+        $lines.Add("请以管理员 PowerShell 执行：")
+        $lines.Add("  Stop-Service MySQL84 -Force")
+        $lines.Add("  Set-Service MySQL84 -StartupType Manual")
+        $lines.Add("然后重新运行 start-all.ps1")
+        $lines.Add("注意: 脚本只提示，不会自动停止 MySQL84（需管理员权限）。")
+        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
+
+        Write-Host ""
+        Write-Host "  [FAIL] 端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。" -ForegroundColor Red
+        foreach ($b in $blocked) {
+            Write-Host ("         阻塞进程: PID={0} ProcessName={1} Path={2}" -f $b.OwningProcess, $b.ProcessName, $b.Path) -ForegroundColor Red
+        }
+        Write-Host "         请以管理员 PowerShell 执行 Stop-Service MySQL84 -Force 后重试。" -ForegroundColor Red
+        Write-Host "         脚本只提示，不会自动停止 MySQL84（需管理员权限）。" -ForegroundColor Red
+        Write-Host ""
+        return [pscustomobject]@{
+            Status = "Blocked"; Allowed = $false; Port = $Port; LogPath = $LogPath
+            Blocked = $blocked
+        }
+    }
+
+    # All allowed
+    $lines.Add("判定: Allowed")
+    $lines.Add("允许进程 (Docker / WSL 转发):")
+    foreach ($a in $allowed) {
+        $lines.Add(("  PID={0} ProcessName={1} Path={2}" -f $a.OwningProcess, $a.ProcessName, $a.Path))
+    }
+    $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
+
+    $first = $allowed | Select-Object -First 1
+    $procLabel = if ($first) { $first.ProcessName } else { "Docker/WSL" }
+    Write-Host "  [OK] 端口 $Port ($DisplayName) 由 Docker / WSL 转发接管 (进程: $procLabel)" -ForegroundColor Green
+    return [pscustomobject]@{
+        Status = "Allowed"; Allowed = $true; Port = $Port; LogPath = $LogPath
+        AllowedEntries = $allowed
+    }
+}
+
 # ── 初始化目录 ────────────────────────────────────────
 if ($CleanLogs -and (Test-Path $LogsDir)) {
     Write-Info "清理旧日志: $LogsDir"
@@ -374,6 +554,23 @@ if (-not $SkipBackend -and -not $SkipBuild) {
     Write-Host ""
 } elseif (-not $SkipBackend) {
     Write-Info "已跳过 Maven 构建"
+}
+
+# ── 基础设施端口归属检查（启动后端前） ────────────────────────
+# 即使 -SkipInfrastructure 也要执行；防止本机 MySQL84 抢占 3306 导致后端连到错误实例。
+if (-not $SkipBackend) {
+    Write-Banner "基础设施端口归属检查"
+    $portCheckLog = Join-Path $LogsDir "startup-port-check.log"
+    # 重置日志：每次启动只保留本轮结果，避免上轮残留干扰排查
+    if (Test-Path $portCheckLog) { Remove-Item $portCheckLog -Force }
+    $portCheckResult = Test-InfrastructurePortOwnership -Port 3306 -DisplayName "MySQL" -LogPath $portCheckLog
+    if ($portCheckResult.Status -eq "Blocked") {
+        Write-Host ""
+        Write-Host "  [ABORT] 启动中止：请按上述提示停止 MySQL84 后重试。" -ForegroundColor Red
+        Write-Host ""
+        exit 1
+    }
+    Write-Host ""
 }
 
 # ── 启动后端服务 ──────────────────────────────────────

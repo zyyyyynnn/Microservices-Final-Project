@@ -448,6 +448,21 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 5. 后端 `mall-order` 写入完整 address 快照而非仅 addressId。
 6. UI 调优：商品详情 mobile 留白；首页商品卡实时库存回填。
 
+### 9.4 Sprint 3.1 启动脚本端口冲突保护
+
+- 修改 `scripts/start-all.ps1`：新增 `Test-InfrastructurePortOwnership` 函数与辅助 `Get-PortOwnerDetail`，在「构建后端」之后、「启动后端服务」之前强制检查本机 3306 端口归属；
+- Docker / WSL 转发进程（`com.docker.backend`、`com.docker.proxy`、`docker-proxy`、`vpnkit`、`wslrelay`，或 Path 包含 `docker`/`wsl`）标记为 Allowed；
+- `mysqld` / `mariadbd` / `mariadb`，或 Path 包含 `MySQL` / `MariaDB`，或不在白名单的未知进程标记为 Blocked，输出阻塞进程 PID / ProcessName / Path，提示用户以管理员 PowerShell 执行 `Stop-Service MySQL84 -Force` 后重试，脚本不自动停止本机服务；
+- `MALL_INFRA_HOST` 指向 `127.0.0.1`/`localhost`/`::1`/空值时强制检查本机 3306；指向其他值（如 `172.18.0.12`）时输出 WARN 并跳过本机检查；
+- 当前无监听时输出 WARN 但不阻塞（兼容 `-SkipInfrastructure` 场景）；
+- 检查日志写入 `.runtime/logs/startup-port-check.log`（每次启动重置）；
+- 验证结果：
+  - 场景 A（MySQL84 Stopped + 3306 由 wslrelay + com.docker.backend 转发）：`[OK] 端口 3306 (MySQL) 由 Docker / WSL 转发接管 (进程: wslrelay)`，核心 7 服务可继续启动；日志判定 `Allowed`；
+  - 场景 B（`MALL_INFRA_HOST=172.18.0.12`）：`[WARN] 已设置 MALL_INFRA_HOST=172.18.0.12，跳过本机 3306 Docker 转发归属检查。`；日志判定 `Skipped`；
+  - 场景 C（mock `mysqld` on 3306）：`[FAIL] 端口 3306 (MySQL) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。`；状态返回 `Status=Blocked, Allowed=False`；日志判定 `Blocked`；
+- 静态检查：`PSParser::Tokenize` 解析通过；`git diff --check` exit=0；`PSScriptAnalyzer` 本机未安装（`未验证：本机未安装 PSScriptAnalyzer`）；
+- 未验证项：未在真实运行中触发 MySQL84 占用 3306（需管理员停本机服务）；`PSScriptAnalyzer` 未安装；core 服务 7 个为 `AlreadyRunning`（来自 Sprint 2 Retry），未观察到 `Access denied` / `PortOccupied by mysqld` / `Exited` 现象。
+
 ---
 
 ## 10. 评分标准对照
