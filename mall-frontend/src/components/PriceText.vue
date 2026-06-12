@@ -44,7 +44,7 @@ const formattedValue = computed(() => {
 }
 .is-original {
   text-decoration: line-through;
-  color: var(--color-price-muted, #94a3b8);
+  color: var(--color-price-muted);
   font-weight: var(--weight-normal, 400);
 }
 .size-sm {
