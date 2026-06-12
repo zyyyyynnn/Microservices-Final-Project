@@ -607,7 +607,6 @@ onMounted(loadHome);
 
 .sk-card:hover {
   border-color: var(--color-error-border);
-  box-shadow: 0 4px 12px var(--color-error-shadow);
 }
 
 .sk-image {
