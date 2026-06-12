@@ -10,6 +10,7 @@ import { field } from '../utils/format';
 import { resolveProductImage } from '../catalog/productAssets';
 import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
 import ProductImage from '../components/ProductImage.vue';
+import PriceText from '../components/PriceText.vue';
 import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -85,11 +86,11 @@ async function loadHome() {
     }
 
     if (categoryResult.status === 'rejected' || products.value.length === 0) {
-      error.value = '商品服务暂不可用，无法加载首页商品';
-      notifyError('Gateway 或商品服务暂不可用，首页已进入错误状态。');
+      error.value = '数据暂时无法加载，请稍后重试。';
+      notifyError('首页数据加载失败，请稍后重试。');
     }
   } catch (err) {
-    error.value = '商品服务暂不可用，无法加载首页商品';
+    error.value = '数据暂时无法加载，请稍后重试。';
   } finally {
     loading.value = false;
   }
@@ -124,7 +125,7 @@ onMounted(loadHome);
       :error="error"
       :empty="!loading && !error && displayProducts.length === 0"
       empty-title="暂无推荐商品"
-      empty-description="请确认商品服务已启动并存在演示商品。"
+      empty-description="当前暂未找到可展示内容，请稍后重试。"
       @retry="loadHome"
     />
 
@@ -251,8 +252,8 @@ onMounted(loadHome);
             <div class="sk-info">
               <h3 class="sk-name">{{ field(product, ['title', 'name']) }}</h3>
               <div class="sk-prices">
-                <strong class="sk-price">¥{{ field(product, ['seckillPrice', 'price'], 0) }}</strong>
-                <span class="sk-old">¥{{ field(product, ['price', 'oldPrice', 'originalPrice'], 0) }}</span>
+                <PriceText :value="field(product, ['seckillPrice', 'price'])" size="lg" class="sk-price" />
+                <PriceText :value="field(product, ['price', 'oldPrice', 'originalPrice'])" size="sm" original class="sk-old" />
               </div>
               <button class="sk-btn" @click="router.push('/seckill')">立即抢购</button>
             </div>
@@ -504,7 +505,7 @@ onMounted(loadHome);
 }
 
 .product-card:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-md);
   border-color: var(--color-brand-light);
 }
 

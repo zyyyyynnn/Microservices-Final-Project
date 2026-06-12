@@ -6,9 +6,10 @@ import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
 import type { UnknownRecord } from '../api/types';
-import { field, money, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
+import { field, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
 import { resolveProductImage } from '../catalog/productAssets';
 import ProductImage from '../components/ProductImage.vue';
+import PriceText from '../components/PriceText.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -58,7 +59,9 @@ async function loadProduct() {
     selectedSkuId.value = dataSkus.length ? Number(field(dataSkus[0], ['skuId'], null)) : null;
   } catch (err) {
     product.value = null;
-    notifyError(err instanceof Error ? err.message : '商品详情加载失败');
+    const msg = err instanceof Error ? err.message : '商品详情加载失败';
+    error.value = msg;
+    notifyError(msg);
   } finally {
     loading.value = false;
   }
@@ -110,7 +113,9 @@ onMounted(loadProduct);
         </el-tag>
         <h1>{{ productName(product) }}</h1>
         <p>{{ field(product, ['description'], '商品描述由商品服务返回，当前为空。') }}</p>
-        <div class="price-line">{{ money(field(selectedSku, ['price'], 0)) }}</div>
+        <div class="price-line">
+          <PriceText :value="field(selectedSku, ['price'])" size="xl" />
+        </div>
 
         <div class="sku-section">
           <div class="sku-label">选择规格</div>

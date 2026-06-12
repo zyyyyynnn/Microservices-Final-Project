@@ -55,8 +55,8 @@ async function search() {
     response.value = await mallApi.searchProducts(query || ' ', pageNum.value, pageSize.value);
   } catch (err) {
     response.value = null;
-    error.value = err instanceof Error ? err.message : '搜索服务暂不可用';
-    notifyError(error.value);
+    error.value = '数据暂时无法加载，请稍后重试。';
+    notifyError('搜索数据加载失败，请稍后重试。');
   } finally {
     loading.value = false;
   }
@@ -111,7 +111,7 @@ onMounted(() => {
       :error="error"
       :empty="!loading && !error && results.length === 0"
       empty-title="暂无搜索结果"
-      empty-description="请调整关键字，或确认 mall-search 与 Elasticsearch 已启动。"
+      empty-description="当前暂未找到可展示内容，请稍后重试或返回首页浏览。"
       @retry="search"
     />
 

@@ -26,7 +26,13 @@ export function field<T = unknown>(value: unknown, keys: string[], fallback?: T)
 }
 
 export function money(value: unknown) {
-  const amount = Number(value || 0);
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  const amount = Number(value);
+  if (isNaN(amount)) {
+    return '—';
+  }
   return `¥${amount.toFixed(2)}`;
 }
 

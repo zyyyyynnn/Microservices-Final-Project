@@ -2,9 +2,10 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import type { UnknownRecord } from '../api/types';
-import { field, firstSku, money, productName, statusText, productStatusMap } from '../utils/format';
+import { field, firstSku, productName, statusText, productStatusMap } from '../utils/format';
 import { resolveProductImage } from '../catalog/productAssets';
 import ProductImage from './ProductImage.vue';
+import PriceText from './PriceText.vue';
 
 const props = defineProps<{
   product: UnknownRecord;
@@ -13,7 +14,7 @@ const props = defineProps<{
 const sku = computed(() => firstSku(props.product));
 const spuId = computed(() => field<number>(props.product, ['spuId', 'id'], 0));
 const hasValidSpuId = computed(() => Number(spuId.value) > 0);
-const price = computed(() => field(sku.value || props.product, ['price', 'minPrice'], 0));
+const price = computed(() => field(sku.value || props.product, ['price', 'minPrice'], null));
 const stock = computed(() => field(sku.value || props.product, ['stock', 'available'], null));
 const status = computed(() => statusText(field(props.product, ['status'], 1), productStatusMap));
 const image = computed(() => resolveProductImage(props.product));
@@ -32,7 +33,7 @@ const image = computed(() => resolveProductImage(props.product));
       <h2>{{ productName(product) }}</h2>
       <p>{{ field(product, ['description', 'brand'], '暂无商品描述') }}</p>
       <div class="product-bottom">
-        <strong>{{ money(price) }}</strong>
+        <PriceText :value="price" size="lg" />
         <span v-if="stock !== null">库存 {{ stock }}</span>
       </div>
       <RouterLink v-if="hasValidSpuId" :to="`/products/${spuId}`" class="product-card-link">
