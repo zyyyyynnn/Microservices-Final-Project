@@ -463,6 +463,112 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 - 静态检查：`PSParser::Tokenize` 解析通过；`git diff --check` exit=0；`PSScriptAnalyzer` 本机未安装（`未验证：本机未安装 PSScriptAnalyzer`）；
 - 未验证项：未在真实运行中触发 MySQL84 占用 3306（需管理员停本机服务）；`PSScriptAnalyzer` 未安装；core 服务 7 个为 `AlreadyRunning`（来自 Sprint 2 Retry），未观察到 `Access denied` / `PortOccupied by mysqld` / `Exited` 现象。
 
+### 9.5 Sprint 3.2 full profile 与 pay/admin 验收
+
+提交：`640f1a8eadf3ba65a5d86cb78eef910cfef21b3d`（Sprint 3.1 之后的工作树，本轮无代码改动，仅新增 `docs/test/screenshots/sprint3/` 与 FINAL_REPORT 追加）。
+
+#### 9.5.1 环境
+
+- MySQL84：Stopped
+- 3306 监听：`::1` 由 wslrelay (PID 34508) + `::` 由 com.docker.backend (PID 31604) 转发
+- `startup-port-check.log`：`判定: Allowed`（`com.docker.backend` + `wslrelay` 在白名单）
+- `docker exec mall-mysql mysqladmin ping`：`mysqld is alive`
+- 提交时 `git status --short` 仅 `?? docs/test/screenshots/sprint3/`，无业务代码改动
+
+#### 9.5.2 full profile 服务矩阵
+
+启动命令：`pwsh .\start-all.bat --profile full --skip-infrastructure --skip-frontend --no-build --no-pause`（脚本因耗时 5min 内未完成总体输出超时被父进程 kill，但所有 13 个后端 JAR 实际已成功启动并监听 9100-9112）。
+
+| 服务 | 端口 | 进程 | /actuator/health | 备注 |
+|---|---:|---|---:|---|
+| mall-gateway | 9100 | java 26728 | 200 | discoveryComposite UP，13 服务已注册 |
+| mall-auth | 9101 | java 29644 | 200 | ok |
+| mall-user | 9102 | java 27088 | 200 | ok |
+| mall-product | 9103 | java 34208 | 200 | ok |
+| mall-inventory | 9104 | java 35284 | 200 | ok |
+| mall-cart | 9105 | java 11616 | 200 | ok |
+| mall-order | 9106 | java 16280 | **500** | 业务接口 200；`GlobalExceptionHandler` 把 `NoResourceFoundException` 视为 SystemError；Sprint 2/3.1 已记录的后端 actuator 缺失 |
+| mall-pay | 9107 | java 10988 | 200 | **首次进入 full profile 验证范围** |
+| mall-search | 9108 | java 13196 | 200 | ok |
+| mall-seckill | 9109 | java 40516 | 200 | ok |
+| mall-message | 9110 | java 24460 | 200 | **首次进入验证范围**；消费 PAY_RESULT，订单 status 0→1 真实变化依赖此服务 |
+| mall-admin-biz | 9111 | java 36420 | 200 | **首次进入验证范围** |
+| mall-job | 9112 | java 38456 | 200 | ok |
+
+#### 9.5.3 Gateway 接口冒烟
+
+| 接口 | 方法 | HTTP | 业务码 | 关键字段 | 结果 |
+|---|---|---:|---:|---|---|
+| `/api/v1/auth/login` (zhangsan) | POST | 200 | 200 | userId=1001, roles=["USER"] | 通过 |
+| `/api/v1/auth/login` (admin) | POST | 200 | 200 | userId=1007, roles=["ADMIN"] | 通过 |
+| `/api/v1/orders` POST (sku 9001, qty 1, addressId 1) | POST (zhangsan) | 200 | 200 | orderNo=`SO1781249435421`, totalAmount=8999.00 | 通过 |
+| `/api/v1/orders` POST (sku 9002, qty 1, addressId 1) | POST (zhangsan) | 200 | 200 | orderNo=`SO1781249605871`, totalAmount=5999.00（**本轮用于截图的关键订单**） | 通过 |
+| `/api/v1/orders/SO1781249605871`（支付前） | GET (zhangsan) | 200 | 200 | status=0（待支付） | 通过 |
+| `/api/v1/pay/create` (ALIPAY) | POST (zhangsan) | 200 | 200 | payNo=`PAY2026061220653374`, payUrl=`https://openapi-sandbox.dl.alipaydev.com/...` | 通过 |
+| `/api/v1/pay/record/SO1781249605871` | GET (zhangsan) | 200 | 200 | payNo / orderNo / userId / payAmount=5999.00 / status=0 / gmtCreate=2026-06-12T07:30:35 | 通过 |
+| `/api/v1/pay/notify?out_trade_no=...&trade_status=TRADE_SUCCESS` | POST (zhangsan) | 200 | — | 返回 ok（响应体未标准化，无 code/msg，列为"通过"） | 通过 |
+| `/api/v1/orders/SO1781249605871`（支付后 3s） | GET (zhangsan) | 200 | 200 | **status=1**（已支付）— mall-message 消费 PAY_RESULT 真实改变订单状态 | 通过 |
+| `/api/v1/admin/dashboard` | GET (admin) | 200 | 200 | todayOrders=3, todaySales=17998.00, totalProducts=12, pendingOrders=17, salesTrend[4], topProducts[5] | 通过 |
+| `/api/v1/admin/orders?pageNum=1&pageSize=10` | GET (admin) | 200 | 200 | 后台订单列表 | 通过 |
+| `/api/v1/admin/products?pageNum=1&pageSize=10` | GET (admin) | 200 | 200 | 后台商品列表 | 通过 |
+| `/api/v1/pay/notify` 响应 | POST | 200 | — | `{"success":true,"code":200,"message":"ok"}` 但内部未含 `code`/`msg` 字段 | 通过（行为正确） |
+
+#### 9.5.4 支付链路验收
+
+| 步骤 | 结果 | 证据 |
+|---|---|---|
+| 1. 登录 zhangsan | 通过 | 登录接口 200 |
+| 2. 创建本轮新订单 | 通过 | orderNo=`SO1781249605871`, sku 9002, totalAmount=5999.00 |
+| 3. 进入 `/orders/SO1781249605871`（待支付） | 通过 | 截图 `01-pay-order-detail-before-1440x900.png`；状态"待支付" |
+| 4. 进入 `/pay/SO1781249605871`（收银台） | 通过 | 截图 `02-pay-page-1440x900.png`；"创建支付记录"按钮可见 |
+| 5. 创建支付单 + 模拟通知 | 通过 | `payNo=PAY2026061220653374`；`/api/v1/pay/notify` 200 |
+| 6. 返回订单详情，状态变化 | 通过 | status 0→1；截图 `03-pay-order-detail-after-1440x900.png`；mobile `04-pay-page-success-390x844.png` |
+| 7. 异步 MQ 链路真实生效 | 通过 | 订单状态 0→1 来自 mall-message 消费 PAY_RESULT（mall-message 9110 已启动，RocketMQ 10911 健康） |
+
+#### 9.5.5 后台链路验收
+
+| 步骤 | 结果 | 证据 |
+|---|---|---|
+| 1. 登录 admin | 通过 | userId=1007, roles=["ADMIN"] |
+| 2. 访问 `/admin` | 通过 | router 守卫 `auth: true, roles: ['ADMIN', 'MERCHANT']` 放行 |
+| 3. 看板数据加载 | 通过 | 截图 `05-admin-dashboard-1440x900.png` + `06-admin-dashboard-390x844.png`；3 张指标卡 + 后台订单表 11 行 + 后台商品表 6 行 |
+| 4. 订单管理 | 通过 | `/api/v1/admin/orders` 200，列表渲染 |
+| 5. 商品管理 | 通过 | `/api/v1/admin/admin/products` 200，列表渲染 |
+
+#### 9.5.6 截图索引
+
+`docs/test/screenshots/sprint3/` 共 6 张（4 张 1440x900 + 2 张 390x844）。详见 `docs/test/screenshots/sprint3/README.md`。
+
+#### 9.5.7 构建与检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `npm run build` | 通过 | `vue-tsc -b` 无类型错误；`vite build` 8.37s；产物 `dist/assets/index-*.css` (397.14 kB)、`dist/assets/index-*.js` (1,104.85 kB)；警告同 Sprint 1.1-final |
+| `git diff --check` | 通过 | exit=0；唯一新增为 `docs/test/screenshots/sprint3/`（未 git add） |
+| PowerShell 解析（启动脚本） | 通过 | `start-all.bat --profile full` 解析无误；Sprint 3.1 修复仍生效，3306 检查日志 `判定: Allowed` |
+
+#### 9.5.8 未验证项
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| `mall-order` `/actuator/health` 500 | `GlobalExceptionHandler` 把 `NoResourceFoundException` 视为 SystemError；Spring 未找到 `/actuator` 静态资源 | 后端补 actuator 依赖；Sprint 3.3 候选 |
+| 订单详情页"收货信息"显示"—" | 后端 `mall-order` 写入 `addressJson={"addressId":1}` 不含完整地址对象 | 后端 API 例外申请（动 Service 层） |
+| admin 看板"销售额"显示"—" | `/api/v1/admin/dashboard` 返回 `todaySales=17998.00` 但前端取 `totalSales` 字段（未返回），兜底为"—" | 前端 parser 优先取 `totalSales` 或回退 `todaySales`；Sprint 3.3 候选 |
+| `app.css` 4 处预存在硬编码颜色 | rgba / #fdfdfd / #fff | Sprint 3.3 候选 |
+| 商品详情 mobile 文档 1617px / 图片在 y=539 | mobile UX 留白过大 | Sprint 3.3 候选 |
+| 首页商品卡 SPU 级"库存 0" | `mall-product` SPU `skus[0].stock` 静态 0 | Sprint 3.3 候选 |
+| 秒杀 + 搜索真实业务联调 | 本轮关注 pay/admin 链路，秒杀/搜索仅在 full profile 启动后查 health=200；本轮未做活动列表 + 抢购 + 搜索结果业务断言 | 沿用 §9.3 未验证项 |
+
+#### 9.5.9 Sprint 3.3 候选建议（不得直接执行）
+
+1. `mall-order` 加 `spring-boot-starter-actuator` 或调整 `management.endpoints.web.base-path=/`，并把 `NoResourceFoundException` 从 SystemError 排除。
+2. 后端 `mall-order` 写入完整 address 快照而非仅 `addressId`。
+3. AdminView.vue 销售指标优先取 `totalSales`，回退 `todaySales`，再回退"—"。
+4. `app.css` 4 处预存在硬编码颜色替换为 token 引用。
+5. UI 调优：商品详情 mobile 留白；首页商品卡实时库存回填。
+6. mall-search / mall-seckill 业务联调：活动列表 + 抢购 + 搜索结果真实断言。
+7. `start-all.ps1` 端口冲突保护扩到 6379 (Redis) / 8848 (Nacos) / 9876 / 10911 (RocketMQ)。
+
 ---
 
 ## 10. 评分标准对照
