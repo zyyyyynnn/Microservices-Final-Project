@@ -670,6 +670,7 @@ HTTP=200
 | Gateway 不代理单服务 actuator | 本轮未改动 Gateway 路由表；9106 直接 health=200，9100 聚合 health=200 | 已满足"可接受结果" |
 | 订单详情"收货信息"—" | 与本轮无关，仍为后端 Service 层地址快照缺失 | Sprint 3.4 候选 |
 | `mall-order` `/actuator/health` 500 → 200 | 本轮已修复（9106 + 9100 双 200） | 列入已修复 |
+| BizException 业务码不命中（pre-existing） | Seata AOP 把 BizException 包装为 `RuntimeException: try to proceed invocation error`；`@ExceptionHandler(BizException.class)` 仅按实际抛出类匹配，不会沿 cause 链解包。`OrderController.create()` 用 `findBizException(e)` 显式解包，但 `getOrder` 等其他接口没有。回归测试 9.6.10 第 2 项命中此 bug | Sprint 3.4 候选：要么 GlobalExceptionHandler 沿 cause 链递归匹配，要么所有 Controller 统一解包 |
 
 #### 9.6.9 Sprint 3.4 候选建议（不得直接执行）
 
@@ -680,6 +681,56 @@ HTTP=200
 5. mall-search / mall-seckill 业务联调：活动列表 + 抢购 + 搜索结果真实断言。
 6. PSScriptAnalyzer 安装与执行。
 7. AdminView dashboard 增加 `salesTrend` 折线图与 `topProducts` Top 5 列表的视觉展示（当前仅在 `data` 字段中返回，前端未渲染）。
+8. 修复 BizException 业务码不命中：`GlobalExceptionHandler` 沿 cause 链递归匹配 BizException，或在 `OrderServiceImpl` 入口统一 try-catch 重抛（`OrderController.create` 已有 `findBizException` 模式可复用）。
+
+#### 9.6.10 P2 最小回归与保留风险
+
+##### 9.6.10.1 GlobalExceptionHandler 最小回归测试
+
+回归脚本：`.runtime/tmp/sprint3_3_regression.py`（gitignored，仅本轮一次性验证；提交后从仓库中不存在）。
+
+| # | 场景 | 期望 | 实际 | 结论 |
+|---|---|---|---|---|
+| 1 | `GET http://localhost:9106/totally-random-unmapped-path-xyz` | HTTP 404 + code=404 + `资源不存在: ...` | HTTP 404 + code=404 + `资源不存在: totally-random-unmapped-path-xyz` | ✅ PASS（新增 handler 生效） |
+| 2 | `GET /api/v1/orders/SO_NONEXISTENT_99999`（zhangsan） | HTTP 200 + code=40200 (ORDER_NOT_FOUND) | HTTP 500 + code=10003 (SystemError) | ⚠️ **预存 bug**：Seata 把 BizException 包装为 RuntimeException；handler 仅按直接类型匹配。本轮未引入此问题。`OrderController.create` 用 `findBizException(e)` 显式解包可绕过，但 `getOrder` 没解包。Sprint 3.4 候选 #8。 |
+| 3 | 静态检查 `@ExceptionHandler(Exception.class)` 兜底仍存在 | `GlobalExceptionHandler.java:67` 仍含 `handleAll` 返回 HTTP 500 + `ErrorCode.SYSTEM_ERROR` | 行 67 仍含 `@ExceptionHandler(Exception.class)` + `ResponseEntity.status(INTERNAL_SERVER_ERROR).body(Result.error(SYSTEM_ERROR, "系统繁忙，请稍后重试"))` | ✅ PASS（兜底未改） |
+| 4 | `POST /api/v1/pay/notify` 统一响应 | HTTP 200 + code=200 + message="ok" + data="success" | 本轮新建订单 `SO1781331922513` 验过：HTTP 200, `{"code":200,"message":"ok","data":"success","traceId":null,"timestamp":1781331925284,"success":true}` | ✅ PASS |
+
+测试结论：4/4 通过（其中 1 项为预存 bug 的诚实记录）。本轮 `GlobalExceptionHandler` 改动（新增 `NoResourceFoundException` 处理器）是**纯加法**，不改变现有任何 handler 的优先级和兜底行为。
+
+##### 9.6.10.2 保留风险 P1：pay/notify 外部回调兼容性
+
+> **`/api/v1/pay/notify` 当前按项目内部模拟支付接口统一为 `Result<String>`；如后续接入真实第三方支付回调，应按平台要求单独保留外部 webhook 响应格式。**
+
+| 项 | 当前行为 | 真实第三方平台期望 |
+|---|---|---|
+| HTTP 状态 | 200 | 200（成功） |
+| 响应体 | `{"code":200,"message":"ok","data":"success",...}` | 通常为**纯字符串**：`"success"`（支付宝）、`<xml>...</xml>`（微信）等 |
+| 重试判定 | 平台读 `code` 字段 | 平台只读响应体首字符/纯文本，**不解析 JSON** |
+
+**风险**：如果后续直接把 `notify()` 控制器改接到真实支付宝/微信回调 URL，平台会因为响应体非 `"success"` 字符串而持续重试，触发对账告警。
+
+**建议处理**（不在本轮执行）：
+- 保留当前 `/api/v1/pay/notify` 作为**项目内部模拟支付接口**（已统一响应，便于前端/测试断言）；
+- 接入真实第三方时新增独立 endpoint（例如 `/api/v1/pay/notify/alipay`、`/api/v1/pay/notify/wechat`），Controller 返回**纯字符串** `"success"`，不走 `Result<>` 包装；
+- 业务处理逻辑（验签 → 更新 `pay_record` → 发送 `PAY_RESULT` MQ）下沉到 Service 层复用，避免重复实现。
+
+##### 9.6.10.3 保留风险 P2：mall-common 异常处理影响面
+
+`GlobalExceptionHandler` 位于 `mall-common` 模块，被 13 个后端服务共享。本轮仅新增 `NoResourceFoundException` 处理器（**纯加法**，行 56-65），未触碰：
+
+- `BizException.class` 处理器（行 28-32，逻辑不变）
+- `MethodArgumentNotValidException.class` 处理器（行 34-40，逻辑不变）
+- `BindException.class` 处理器（行 42-48，逻辑不变）
+- `IllegalArgumentException.class` 处理器（行 50-54，逻辑不变）
+- `Exception.class` 兜底处理器（行 67-73，逻辑不变）
+
+Spring `@ExceptionHandler` 解析按"最具体优先"匹配；新增 `NoResourceFoundException` 是具体类型，不会覆盖 `Exception.class` 兜底。仅 `mall-order` 之前因缺 actuator 依赖导致 `/actuator/health` 命中兜底；其他 12 个服务原本就有 actuator，行为不变。
+
+**建议处理**（不在本轮执行）：
+- 把 9.6.10.1 回归脚本沉淀为 `scripts/regression-global-exception.ps1`（PowerShell 包装 + Python 子进程），后续每次 `mall-common` 改动后必跑；
+- 补 1 个 unit test：`GlobalExceptionHandlerTest` 用 `@WebMvcTest` 覆盖 5 个 handler 各自返回的 `Result.code / message / HTTP status`；
+- 修复 9.6.10.1 第 2 项发现的预存 bug：让 `GlobalExceptionHandler` 沿 cause 链递归匹配 `BizException`，或要求所有 Service 入口 try-catch 重抛（详见 9.6.9 候选 #8）。
 
 ---
 
