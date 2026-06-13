@@ -42,6 +42,20 @@ public class UserController {
         return Result.ok(userService.getByUserId(userId));
     }
 
+    /**
+     * 服务内部地址查询（订单服务调用）。
+     * 网关路由 /api/v1/users/**，不依赖用户登录态（路径参数 + 调用方信任）。
+     */
+    @GetMapping("/internal/{userId}/addresses/{addressId}")
+    public Result<AddressVO> getInternalAddress(@PathVariable("userId") Long userId,
+                                                 @PathVariable("addressId") Long addressId) {
+        AddressVO vo = addressService.getInternalAddress(userId, addressId);
+        if (vo == null) {
+            return Result.error(10001, "地址不存在");
+        }
+        return Result.ok(vo);
+    }
+
     @PutMapping("/me")
     public Result<Void> updateCurrentUser(@RequestBody UserUpdateDTO dto) {
         userService.updateCurrentUser(dto);

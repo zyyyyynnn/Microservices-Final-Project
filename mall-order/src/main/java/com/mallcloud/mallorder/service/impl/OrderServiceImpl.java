@@ -23,6 +23,8 @@ import com.mallcloud.mallorder.api.vo.SalesTrendItemVO;
 import com.mallcloud.mallorder.api.vo.SeckillOrderVO;
 import com.mallcloud.mallorder.client.InventoryClient;
 import com.mallcloud.mallorder.client.ProductClient;
+import com.mallcloud.mallorder.client.UserAddressClient;
+import com.mallcloud.mallorder.client.dto.AddressDTO;
 import com.mallcloud.mallorder.client.dto.LockDTO;
 import com.mallcloud.mallorder.client.dto.LockStockDTO;
 import com.mallcloud.mallorder.client.dto.SkuDTO;
@@ -43,6 +45,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,6 +61,7 @@ public class OrderServiceImpl extends OrderService {
     private final OrderItemMapper orderItemMapper;
     private final ProductClient productClient;
     private final InventoryClient inventoryClient;
+    private final UserAddressClient userAddressClient;
 
     @Override
     @GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
@@ -113,7 +117,7 @@ public class OrderServiceImpl extends OrderService {
         order.setFreightAmount(BigDecimal.ZERO);
         order.setDiscountAmount(BigDecimal.ZERO);
         order.setStatus(0); // 待支付
-        order.setAddressJson("{\"addressId\":" + dto.getAddressId() + "}");
+        order.setAddressJson(resolveAddressSnapshot(userId, dto.getAddressId()));
         order.setPayDeadline(LocalDateTime.now().plusMinutes(15));
         order.setRemark(dto.getRemark());
         
@@ -321,6 +325,63 @@ public class OrderServiceImpl extends OrderService {
             return BigDecimal.ZERO;
         }
         return new BigDecimal(String.valueOf(rows.get(0).get("amount")));
+    }
+
+    /**
+     * 解析地址快照：调 mall-user 拿完整地址字段，失败/无权限/无地址时回退 addressId-only。
+     * 返回 JSON 字符串，写入 order_info.addressJson。
+     *
+     * 字段顺序保持与 OrderDetailView.formatAddress 解析顺序一致（receiver, phone, province, city, district, detail）。
+     */
+    private String resolveAddressSnapshot(Long userId, Long addressId) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("addressId", addressId);
+        if (userId == null || addressId == null) {
+            return toJson(snapshot);
+        }
+        try {
+            Result<AddressDTO> result = userAddressClient.getInternalAddress(userId, addressId);
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                AddressDTO vo = result.getData();
+                snapshot.put("receiver", vo.getReceiver());
+                snapshot.put("phone", vo.getPhone());
+                snapshot.put("province", vo.getProvince());
+                snapshot.put("city", vo.getCity());
+                snapshot.put("district", vo.getDistrict());
+                snapshot.put("detail", vo.getDetail());
+            } else {
+                log.warn("地址快照未拿到完整数据 userId={} addressId={} result={}",
+                        userId, addressId, result == null ? "null" : result.getMessage());
+            }
+        } catch (Exception e) {
+            log.warn("地址快照解析异常，回退 addressId-only userId={} addressId={}", userId, addressId, e);
+        }
+        return toJson(snapshot);
+    }
+
+    private String toJson(Map<String, Object> map) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(map);
+        } catch (Exception e) {
+            // 退化为手写 JSON（不会真正失败，因为 map 键值都是安全类型）
+            StringBuilder sb = new StringBuilder("{");
+            boolean first = true;
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                if (!first) sb.append(',');
+                first = false;
+                sb.append('"').append(entry.getKey()).append("\":");
+                Object v = entry.getValue();
+                if (v == null) {
+                    sb.append("null");
+                } else if (v instanceof Number) {
+                    sb.append(v);
+                } else {
+                    sb.append('"').append(v.toString().replace("\"", "\\\"")).append('"');
+                }
+            }
+            sb.append('}');
+            return sb.toString();
+        }
     }
 
     private List<SalesTrendItemVO> buildSalesTrend() {

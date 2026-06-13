@@ -40,6 +40,22 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
     }
 
     @Override
+    public AddressVO getInternalAddress(Long userId, Long addressId) {
+        if (userId == null || addressId == null) {
+            return null;
+        }
+        Address address = getOne(new LambdaQueryWrapper<Address>()
+                .eq(Address::getUserId, userId)
+                .eq(Address::getId, addressId));
+        if (address == null) {
+            return null;
+        }
+        AddressVO vo = new AddressVO();
+        BeanUtils.copyProperties(address, vo);
+        return vo;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void addAddress(AddressDTO dto) {
         Long userId = UserContext.requireUserId();

@@ -14,6 +14,11 @@
 | 05-admin-dashboard-1440x900.png | 后台看板 | `/admin` | 1440x900 | admin | 通过 | 3 张指标卡（订单数 159 / 商品数 12 / 销售额"—"）+ 后台订单表 11 行（含本轮新建 SO1781249605871 ¥5999.00 已支付 + SO1781249435421 ¥8999.00 已支付 + Sprint 2 历史 SO1781241179114 待支付）+ 后台商品表 6 行（小米台灯 / iPhone 15 Pro / iPhone 15 / 小米 14 Pro / 华为 Mate 60 / 罗技 MX Master） |
 | 06-admin-dashboard-390x844.png | 后台看板（mobile） | `/admin` | 390x844 | admin | 通过（首屏） | header + 订单数 159 + 商品数 12，第三张指标卡（销售额）位于折叠线下方；总文档宽度 390px 无横向溢出 |
 | 07-admin-dashboard-sales-fixed-1440x900.png | 后台看板销售额修复 | `/admin` | 1440x900 | admin | 通过 | Sprint 3.3 修复 AdminView 销售额字段回退后：3 张指标卡（订单数 160 / 商品数 12 / 销售额 **¥8999.00** —— 取自后端 `todaySales` 字段，含本轮新建订单 SO1781330545972 ¥8999.00 已支付）+ 后台订单表首行 SO1781330545972 + 历史订单若干；admin 登录 `userId=1007, roles=["ADMIN"]` |
+| 08-order-address-snapshot-1440x900.png | 订单详情地址快照 | `/orders/SO1781333111756` | 1440x900 | zhangsan | 通过 | 新订单 addressJson 含 `receiver/phone/province/city/district/detail`；前端展示 `张三 / 13800138001 / 北京市北京市海淀区中关村大街1号院1号楼101` |
+| 09-search-iphone-1440x900.png | 搜索成功态 | `/search?keyword=iPhone` | 1440x900 | 游客（搜索在 Gateway 白名单） | 通过 | iPhone 关键词返回 2 个真实商品（1001 iPhone 15 Pro 256G 钛原色 ¥8999 / 1002 iPhone 15 128G 粉色 ¥5999），含热词 chip |
+| 10-search-empty-1440x900.png | 搜索空态 | `/search?keyword=zzzzz_nonexistent_xyz` | 1440x900 | 游客 | 通过 | `total=0`，展示空态 `暂无搜索结果 / 当前暂未找到可展示内容，请稍后重试或返回首页浏览。` + 翻页器禁用 |
+| 11-seckill-list-1440x900.png | 秒杀活动列表 | `/seckill` | 1440x900 | zhangsan | 通过 | 4 个活动真实加载（id=9001/1/2/3），均显示"已结束"状态；详情面板含价格/库存/时间 |
+| 12-seckill-action-1440x900.png | 秒杀动作结果 | `/seckill` | 1440x900 | zhangsan | 有条件通过 | 点击 iPhone 15 Pro 限时秒杀 + 发起秒杀，**真实业务码 code=40402 "秒杀已结束"**；后端 `validateActivity` 第 216 行因 endTime 已过抛 `BizException(40402)`；前端默认用 ElMessage toast 提示 3 秒后消失，本截图通过临时 banner 保留完整响应体 |
 
 ## 关键链路证据
 

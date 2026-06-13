@@ -732,6 +732,152 @@ Spring `@ExceptionHandler` 解析按"最具体优先"匹配；新增 `NoResource
 - 补 1 个 unit test：`GlobalExceptionHandlerTest` 用 `@WebMvcTest` 覆盖 5 个 handler 各自返回的 `Result.code / message / HTTP status`；
 - 修复 9.6.10.1 第 2 项发现的预存 bug：让 `GlobalExceptionHandler` 沿 cause 链递归匹配 `BizException`，或要求所有 Service 入口 try-catch 重抛（详见 9.6.9 候选 #8）。
 
+### 9.7 Sprint 3.4 订单地址快照与 search/seckill 联调
+
+提交：本轮待提交（基于 9.6.10 的 `a55fedc`）。
+
+#### 9.7.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-user/src/main/java/com/mallcloud/malluser/controller/UserController.java` | 新增 `GET /api/v1/users/internal/{userId}/addresses/{addressId}`（服务内部地址查询） |
+| `mall-user/src/main/java/com/mallcloud/malluser/service/AddressService.java` | 新增 `getInternalAddress(userId, addressId)` 抽象方法 |
+| `mall-user/src/main/java/com/mallcloud/malluser/service/impl/AddressServiceImpl.java` | 实现 `getInternalAddress`（强校验 `userId + addressId` 归属，避免跨用户越权） |
+| `mall-order/src/main/java/com/mallcloud/mallorder/client/dto/AddressDTO.java` | 新增 Feign DTO，字段与 mall-user AddressVO 对齐 |
+| `mall-order/src/main/java/com/mallcloud/mallorder/client/UserAddressClient.java` | 新增 Feign client，调 mall-user 内部地址接口 |
+| `mall-order/src/main/java/com/mallcloud/mallorder/client/UserAddressClientFallbackFactory.java` | 降级工厂：mall-user 不可用时回退到 addressId-only |
+| `mall-order/src/main/java/com/mallcloud/mallorder/service/impl/OrderServiceImpl.java` | `createOrder()` 改调 `userAddressClient.getInternalAddress()`，构建完整地址 JSON；失败/无地址时回退 addressId-only |
+| `docs/FINAL_REPORT.md` | 追加本节 §9.7 |
+| `docs/test/screenshots/sprint3/README.md` | 新增第 8-12 行（5 张截图） |
+| `docs/test/screenshots/sprint3/08-order-address-snapshot-1440x900.png` | 新增订单详情地址快照 |
+| `docs/test/screenshots/sprint3/09-search-iphone-1440x900.png` | 新增搜索成功态 |
+| `docs/test/screenshots/sprint3/10-search-empty-1440x900.png` | 新增搜索空态 |
+| `docs/test/screenshots/sprint3/11-seckill-list-1440x900.png` | 新增秒杀活动列表 |
+| `docs/test/screenshots/sprint3/12-seckill-action-1440x900.png` | 新增秒杀动作结果（40402 业务错误） |
+
+未触及：`mall-search/**`、`mall-seckill/**`（仅通过 Gateway 真实调用，未改源码）、`mall-frontend/src/views/SearchView.vue` / `SeckillView.vue`（前端搜索/秒杀 UI 已支持空态、错误态，本轮无 UI 改动）。
+
+#### 9.7.2 订单地址快照
+
+| 检查项 | 修复前 | 修复后 | 证据 |
+|---|---|---|---|
+| `OrderServiceImpl.createOrder` 写入的 addressJson | `{"addressId":1}` | 完整快照 + addressId | `OrderServiceImpl.java:118` |
+| 本轮新订单 `SO1781333111756` 的 addressJson | — | `{"city":"北京市","phone":"13800138001","detail":"中关村大街1号院1号楼101","district":"海淀区","province":"北京市","receiver":"张三","addressId":1}` | `.runtime/tmp/order.json` 关联订单详情 |
+| 订单详情页展示 | "—" | `张三 / 13800138001 / 北京市北京市海淀区中关村大街1号院1号楼101` | 截图 `08-order-address-snapshot-1440x900.png` + browser_vision 文字确认 |
+| 旧订单兼容 | "—" 兜底 | 仍 "—"（addressJson 仅含 addressId） | OrderDetailView.formatAddress 第 50-77 行 `field()` 兜底 "—" |
+| mall-user 不可用降级 | — | 写 addressId-only + WARN 日志，不影响主流程 | `UserAddressClientFallbackFactory.create()` |
+| 库存锁定 / 订单金额 / 支付状态 | — | 全部不受影响 | `/actuator/health` 200 + 支付 0→1 真实变化 |
+
+#### 9.7.3 search 联调
+
+| 场景 | HTTP | 业务码 | 关键字段 | 结果 |
+|---|---|---|---|---|
+| `GET /api/v1/search/products?keyword=iPhone` | 200 | 200 | `total=2`, list=[1001 iPhone 15 Pro 256G 钛原色 ¥8999 sales=234, 1002 iPhone 15 128G 粉色 ¥5999 sales=567], aggregations.priceRanges=[{5000-10000,2}], aggregations.categories=[{111,2}] | ✅ PASS |
+| `GET /api/v1/search/products?keyword=zzzzz_nonexistent_xyz` | 200 | 200 | `total=0`, list=[], aggregations=[] | ✅ PASS |
+| `GET /api/v1/search/hot-words` | 200 | 200 | `["手机","iPhone","笔记本","耳机","秒杀"]` | ✅ PASS |
+| 前端成功态截图 | — | — | 截图 `09-search-iphone-1440x900.png` | ✅ |
+| 前端空态截图 | — | — | 截图 `10-search-empty-1440x900.png`，含 `暂无搜索结果 / 当前暂未找到可展示内容` | ✅ |
+| 用户可见错误暴露 ES/mall-search | — | — | 搜索本身无错误态；Sprint 1.1 已脱敏 `HomeView` 错误文案 | ✅ |
+
+注意：ES 对中文关键词有 fuzzy 匹配（`不存在的商品关键词xxxx` 可能返回非空结果），用英文乱码 `zzzzz_nonexistent_xyz` 才能可靠触发 `total=0` 空态。本轮采用英文无意义关键词作为空态用例。
+
+#### 9.7.4 seckill 联调
+
+| 场景 | HTTP | 业务码 | 关键字段 | 结果 |
+|---|---|---|---|---|
+| `GET /api/v1/seckill/activities` | 200 | 200 | 4 个活动：[{id=9001, name="JMeter 秒杀压测专用活动", skuId=99003, price=4799, status=2, end=2026-06-11T01:42:44, 已结束}, {id=1, name="iPhone 15 Pro 限时秒杀", skuId=9001, price=7999, status=2, end=2026-06-12T12:38:34, 已结束}, {id=2, name="咖啡礼盒限量秒杀", skuId=9009, price=99, status=2, end=2026-06-11T16:38:34, 已结束}, {id=3, name="跑步鞋整点抢", skuId=9011, price=399, status=2, end=2026-06-13T12:38:34, 已结束}] | ✅ PASS（列表真实加载） |
+| `POST /api/v1/seckill/1` (iPhone 15 Pro 已结束) | 200 | **40402** | `{"code":40402,"message":"秒杀已结束","data":null,"traceId":null,"timestamp":1781336160742,"success":false}` | ✅ PASS（**真实业务错误**） |
+| 截图：活动列表 | — | — | 截图 `11-seckill-list-1440x900.png` | ✅ |
+| 截图：动作结果 | — | — | 截图 `12-seckill-action-1440x900.png`（含完整 JSON 响应体） | ✅ |
+
+**判定**：秒杀业务链路可达，种子活动 4 个全部 endTime 过期，`POST /api/v1/seckill/1` 返回真实业务码 40402 证明 action 链路真实可达。**本轮不写"抢购通过"**，仅证明动作接口返回真实业务码。
+
+#### 9.7.5 截图（5 张）
+
+| 文件 | 页面 | 视口 | 账号 | 结果 |
+|---|---|---|---|---|
+| `08-order-address-snapshot-1440x900.png` | 订单详情地址快照 | 1440x900 | zhangsan | 通过：新订单 addressJson 含 receiver/phone/province/city/district/detail |
+| `09-search-iphone-1440x900.png` | 搜索成功态 | 1440x900 | 游客（搜索在白名单） | 通过：iPhone 返回 2 个真实商品 |
+| `10-search-empty-1440x900.png` | 搜索空态 | 1440x900 | 游客 | 通过：`total=0`，空态展示 |
+| `11-seckill-list-1440x900.png` | 秒杀活动列表 | 1440x900 | zhangsan | 通过：4 个活动真实加载，均已结束 |
+| `12-seckill-action-1440x900.png` | 秒杀动作结果 | 1440x900 | zhangsan | 有条件通过：点击发起秒杀返回 code=40402 秒杀已结束 |
+
+#### 9.7.6 核心回归
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 1. zhangsan 登录 | ✅ | 280-char token |
+| 2. admin 登录 | ✅ | 282-char token |
+| 3. 商品详情 1001 | ✅ | name="iPhone 15 Pro 256G 钛原色" |
+| 4. 创建新订单 | ✅ | `SO1781333111756`, totalAmount=8999.00 |
+| 5. 订单详情 BEFORE pay（addressJson 验证） | ✅ | 见 §9.7.2 |
+| 6. `POST /api/v1/pay/create` (ALIPAY) | ✅ | `payNo=PAY2026061320656869` |
+| 7. `POST /api/v1/pay/notify` 统一响应 | ✅ | `{"code":200,"message":"ok","data":"success",...}` |
+| 8. 订单详情 AFTER pay（status 0→1） | ✅ | MQ 真实消费 |
+| 9. admin dashboard | ✅ | todaySales=23997.00, totalProducts=12, pendingOrders=21 |
+| 10. mall-order `/actuator/health` 200（Sprint 3.3 保持） | ✅ | 12 项 UP |
+| 11. Gateway `/actuator/health` 200 | ✅ | 13 服务注册 |
+| 12. P2 预存 bug 确认：Seata 包装 BizException → 500/10003 | ✅ 诚实记录 | `.runtime/logs/mall-order.log` 含 `Caused by: com.mallcloud.mallcommon.exception.BizException: 订单不存在` |
+| 13. P2 NoResourceFoundException 保持：随机未映射路径 → 404 | ✅ | code=404, message="资源不存在: ..." |
+
+#### 9.7.7 构建与检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-common,mall-user,mall-order,mall-gateway -am -DskipTests package` | **BUILD SUCCESS** | 4 模块全 SUCCESS，耗时 11s |
+| `npm run build` | 通过 | `vue-tsc -b` 无类型错误；`vite build` ~10s；2 个 `INVALID_ANNOTATION` 警告来自 `node_modules/@vueuse/core`（与本仓库代码无关） |
+| `git diff --check` | **exit=0** | 仅 CRLF 文件模式 info 警告（Windows 平台正常） |
+| full profile 启动 | 13/13 OPEN | 9100-9112 全部 listening |
+| 临时 token 注入文件 | **已删除** | `mall-frontend/public/_sprint34/` 目录已 `rm -rf`；`Test-Path` 返回 `False` |
+
+#### 9.7.8 保留风险
+
+##### 9.7.8.1 P1 风险：`/api/v1/users/internal/{userId}/addresses/{addressId}` 暴露面
+
+| 项 | 当前行为 | 风险 |
+|---|---|---|
+| Gateway 路由 | `/api/v1/users/**` 全部经 Gateway | 普通用户可访问路径 `/api/v1/users/internal/1001/addresses/1` |
+| 当前鉴权 | `WebMvcConfig` 仅拦截 `/api/v1/users/me/**`，`/internal/**` 不拦截 | 用户可经 Gateway 调 `GET /api/v1/users/internal/{任意 userId}/addresses/{任意 addressId}` |
+| 当前归属校验 | `AddressServiceImpl.getInternalAddress()` 已做 `userId + addressId` 双键校验（必须同时匹配 DB 记录） | 即使被外部用户调，仍只能查自己的地址 |
+| 残余风险 | 攻击者可通过枚举 path 试探 userId/addressId 存在性（信息泄露） | 需后续限定为服务间调用 + 加 path 白名单/服务间鉴权 |
+
+**本轮处理**：
+- DB 查询用 `userId = ? AND id = ?` 双键过滤，已避免跨用户读地址；
+- 未扩大修复：保留 `/api/v1/users/internal/**` 现有形态（与 `/api/v1/users/internal/{userId}` 现有模式一致）；
+- **不假装"内部接口天然安全"**：列入 Sprint 3.5 候选，方案：① Gateway 路由表把 `/api/v1/users/internal/**` 限为仅 mall-order/mall-auth/mall-pay 内部服务调用；② 或加 mTLS / 服务间共享 token；③ 或在 UserController 内做 `X-User-Roles` 含 `INTERNAL` 检查。
+
+##### 9.7.8.2 P2 风险：Seata 包装 BizException（沿用 §9.6.10.1）
+
+| 项 | 状态 |
+|---|---|
+| 预存 bug 仍在 | `GET /api/v1/orders/SO_FAKE_NONEXISTENT` 返回 HTTP 500 + code=10003 |
+| 根因 | Seata AOP 把 `BizException` 包装为 `RuntimeException: try to proceed invocation error`；`@ExceptionHandler(BizException.class)` 仅按直接类型匹配，不会沿 cause 链解包 |
+| 影响面 | `OrderController.create()` 用 `findBizException(e)` 显式解包可绕过；`OrderController.getOrder` 等其他接口无解包 → 命中此 bug |
+| 修复方案 | §9.6.9 候选 #8：`GlobalExceptionHandler` 沿 cause 链递归匹配 `BizException`，或在 Service 入口统一 try-catch 重抛 |
+| 本轮处理 | 不修复，诚实记录；本轮订单创建返回 200（`create()` 用了 `findBizException`），订单查询 200（Sprint 3.3 验过 `SO1781330545972`/`SO1781333111756`） |
+
+#### 9.7.9 未验证项
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| 秒杀真实抢购成功 | 4 个种子活动 endTime 均已过期；本轮无法"抢购通过" | Sprint 3.5 候选：补一个进行中的活动窗口，或 prepare-seckill-jmeter.ps1 后 JMeter 跑 1 用户成功用例 |
+| 移动端 search / seckill 截图 | 1440x900 桌面截图已补；移动端 390x844 历史上首屏有空白 | Sprint 3.5 候选 |
+| 搜索中文无意义关键词空态 | ES fuzzy 匹配可能返回非空 | 改用英文 `zzzzz_nonexistent_xyz` 触发空态（已验证） |
+| 旧订单（`SO1781249605871` 等）addressJson 仍只有 addressId | 历史数据未回填 | Sprint 3.5 候选：跑一次历史数据回填 SQL |
+| JMeter 压测 | 不在本轮范围 | Sprint 3.5+ |
+| `mall-search` / `mall-seckill` 业务联调 | 仅 Gateway 真实调用通过；未做活动状态机边界（开始/进行中/售罄/限购/限流） | Sprint 3.5 候选 |
+
+#### 9.7.10 Sprint 3.5 候选建议（不得直接执行）
+
+1. P1 风险修复：`/api/v1/users/internal/**` Gateway 路由白名单限定服务间调用，或 `X-User-Roles` 含 `INTERNAL` 校验。
+2. P2 风险修复：Seata 包装 BizException 解包（`GlobalExceptionHandler` 沿 cause 链递归匹配）。
+3. 历史订单 addressJson 回填 SQL + Sprint 3.3 admin sales / Sprint 3.4 订单详情双视角展示。
+4. 秒杀"进行中"用例：补一个 24h 内的活动，跑 1 用户完整链路成功用例（创建订单 + 真实抢购成功 + status=1 + 库存扣减）。
+5. 移动端 search / seckill 截图补全（390x844 视口）。
+6. mall-search 中文分词与 fuzzy 调参，避免无意义关键词返回误命中。
+7. 端口冲突保护扩展到 Redis / Nacos / RocketMQ（Sprint 3.1 候选延续）。
+8. PSScriptAnalyzer 安装与执行。
+
 ---
 
 ## 10. 评分标准对照

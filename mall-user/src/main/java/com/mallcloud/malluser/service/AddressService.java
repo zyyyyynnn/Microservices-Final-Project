@@ -12,4 +12,5 @@ public interface AddressService extends IService<Address> {
     void addAddress(AddressDTO dto);
     void updateAddress(Long id, AddressDTO dto);
     void deleteAddress(Long id);
+    AddressVO getInternalAddress(Long userId, Long addressId);
 }
