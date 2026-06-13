@@ -48,8 +48,12 @@ public class PayController {
 
     @Operation(summary = "支付回调")
     @PostMapping("/notify")
-    public String notify(@RequestParam Map<String, String> params) {
-        return payService.handleNotify(params) ? "success" : "fail";
+    public Result<String> notify(@RequestParam Map<String, String> params) {
+        boolean handled = payService.handleNotify(params);
+        if (!handled) {
+            return Result.error(40300, "支付回调处理失败");
+        }
+        return Result.ok("success");
     }
 
     @Operation(summary = "支付记录查询")

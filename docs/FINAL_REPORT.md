@@ -567,7 +567,119 @@ Profile 切换和 `stop-all.bat` 均通过项目 JAR 命令行校验托管进程
 4. `app.css` 4 处预存在硬编码颜色替换为 token 引用。
 5. UI 调优：商品详情 mobile 留白；首页商品卡实时库存回填。
 6. mall-search / mall-seckill 业务联调：活动列表 + 抢购 + 搜索结果真实断言。
-7. `start-all.ps1` 端口冲突保护扩到 6379 (Redis) / 8848 (Nacos) / 9876 / 10911 (RocketMQ)。
+| 7. `start-all.ps1` 端口冲突保护扩到 6379 (Redis) / 8848 (Nacos) / 9876 / 10911 (RocketMQ)。
+
+### 9.6 Sprint 3.3 actuator / notify / admin sales 修复
+
+提交：本轮待提交（基于 9.5 的 `c1c18d6`）。最小修改范围 4 个源文件 + 截图 1 张 + 截图 README 1 个 + 本节追加。
+
+#### 9.6.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-order/pom.xml` | 补 `spring-boot-starter-actuator` 依赖（与 mall-pay 等 12 个服务对齐） |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/exception/GlobalExceptionHandler.java` | 新增 `@ExceptionHandler(NoResourceFoundException.class)` 返回 404 + Result；导入 `NoResourceFoundException` |
+| `mall-pay/src/main/java/com/mallcloud/mallpay/controller/PayController.java` | `notify()` 返回类型从 `String` 改为 `Result<String>`，data 为 `"success"`；失败时返回 `Result.error(40300, "支付回调处理失败")` |
+| `mall-frontend/src/views/AdminView.vue` | 第 130 行 `field()` 字段回退列表首位加入 `todaySales` |
+| `docs/test/screenshots/sprint3/07-admin-dashboard-sales-fixed-1440x900.png` | 新增 1440x900 admin 看板销售额修复截图 |
+| `docs/test/screenshots/sprint3/README.md` | 新增第 7 行；重写"已知缺陷"小节移除已修复项 |
+| `docs/FINAL_REPORT.md` | 追加本节 §9.6 |
+
+未触及：`mall-frontend/src/api/mall.ts`（http 拦截器自动 unwrap `Result<>` 的 `data` 字段，PayView 的 `notifyResult === 'success'` 兼容）；`mall-order/src/main/java/**` 业务代码；`mall-admin-biz` 业务代码；`mall-pay` 业务代码（`PayServiceImpl.handleNotify` 不变）。
+
+#### 9.6.2 mall-order actuator 修复
+
+| 检查项 | 修复前 | 修复后 | 证据 |
+|---|---|---|---|
+| 依赖 | 无 `spring-boot-starter-actuator` | 已加 `org.springframework.boot:spring-boot-starter-actuator` | `mall-order/pom.xml:73-75` |
+| `GET http://localhost:9106/actuator/health` | HTTP 500 + `{"code":10003,"message":"系统繁忙，请稍后重试"}` | HTTP 200 + `{"status":"UP","components":{...12 项 UP...}}` | curl 9106 输出 |
+| `GET http://localhost:9100/actuator/health` | HTTP 200（Gateway 聚合） | HTTP 200（保持） | curl 9100 输出 |
+| `GlobalExceptionHandler` 行为 | `NoResourceFoundException` 被 `@ExceptionHandler(Exception.class)` 捕获 → 500 + SystemError | 新增 `@ExceptionHandler(NoResourceFoundException.class)` → 404 + `{"code":404,"message":"资源不存在: ..."}`；`Exception.class` 兜底保持原行为 | `GlobalExceptionHandler.java:55-66` |
+| `mall-order` 业务接口 | 200 | 200（保持） | `/api/v1/orders` POST/GET 200 |
+
+说明：未触碰 `application.yaml` 中 `management.endpoints.web.exposure.include: health,info,prometheus` 配置（与 12 个服务保持一致）；未硬编码 `/actuator/health` Controller；未修改 `Exception.class` 兜底行为。
+
+#### 9.6.3 pay notify 响应统一
+
+| 检查项 | 修复前 | 修复后 | 证据 |
+|---|---|---|---|
+| Controller 返回类型 | `String`（`"success"` / `"fail"`） | `Result<String>`（`Result.ok("success")` / `Result.error(40300, ...)`） | `PayController.java:48-56` |
+| `handleNotify` 业务行为 | 验签 → 更新 pay_record → 发送 PAY_RESULT MQ | 完全保持不变 | `PayServiceImpl.java:104-133` |
+| `POST /api/v1/pay/notify` HTTP 状态 | 200 | 200（保持） | curl 9100 输出 |
+| 响应体顶层 code/msg | 无 | `code:200, message:"ok"` | curl 9100 输出 |
+| 响应体 data | `"success"` 字符串（裸） | `data:"success"` 字段 | curl 9100 输出 |
+| 订单状态 0→1 真实变化 | 真实 | 真实（保持） | `SO1781330545972` pay_record status=1 |
+| PayView 兼容 | `notifyResult === 'success'` 通过 | `notifyResult === 'success'` 仍通过（http 拦截器自动 unwrap `data` 字段） | 已知前端拦截器行为 |
+
+证据片段：
+
+```text
+$ curl -X POST "http://localhost:9100/api/v1/pay/notify" \
+  -d "out_trade_no=SO1781330545972&trade_no=LOCAL-1781330559&trade_status=TRADE_SUCCESS"
+HTTP=200
+{"code":200,"message":"ok","data":"success","traceId":null,"timestamp":1781330559781,"success":true}
+```
+
+#### 9.6.4 AdminView 销售额字段映射修复
+
+| 检查项 | 修复前 | 修复后 | 证据 |
+|---|---|---|---|
+| `field()` 字段回退列表 | `['salesAmount', 'totalSales']` | `['todaySales', 'salesAmount', 'totalSales', 'todaySalesAmount', 'totalSalesAmount', 'revenue']` | `AdminView.vue:130` |
+| 后端 `/api/v1/admin/dashboard` 字段 | `data.todaySales=8999.00`（本轮） | `data.todaySales=8999.00`（保持；未改后端） | curl 9100 输出 |
+| 页面渲染 | 销售额"—"（旧字段名不匹配，兜底 0 → `moneyText(0)` 返回"—"） | 销售额 **¥8999.00** | 截图 `07-admin-dashboard-sales-fixed-1440x900.png` + browser_vision 文字描述 |
+| 其他指标卡 | 订单数 160 / 商品数 12 | 订单数 160 / 商品数 12（保持） | 截图同上 |
+| 是否硬编码金额 | 否 | 否（仅调整字段回退优先级） | diff |
+
+#### 9.6.5 回归验证（本轮新建订单 + 本轮新建支付单）
+
+| 步骤 | 结果 | 证据 |
+|---|---|---|
+| 1. `POST /api/v1/auth/login` (zhangsan) | HTTP 200, code=200 | `.runtime/tmp/login.json` |
+| 2. `POST /api/v1/orders` (sku 9001, qty 1, addressId 1) | HTTP 200, orderNo=`SO1781330545972`, totalAmount=8999.00 | `.runtime/tmp/order.json` |
+| 3. `GET /api/v1/orders/SO1781330545972`（支付前） | HTTP 200, status=0 | `.runtime/tmp/order_before.json` |
+| 4. `POST /api/v1/pay/create` (ALIPAY) | HTTP 200, payNo=`PAY2026061320656761` | `.runtime/tmp/pay_create.json` |
+| 5. `POST /api/v1/pay/notify?out_trade_no=SO1781330545972&trade_status=TRADE_SUCCESS` | HTTP 200, 统一响应 `{"code":200,"message":"ok","data":"success",...}` | `.runtime/tmp/pay_notify.json` |
+| 6. `GET /api/v1/orders/SO1781330545972`（支付后 2s） | HTTP 200, **status=1**（MQ 真实消费） | `.runtime/tmp/order_after.json` |
+| 7. `GET /api/v1/pay/record/SO1781330545972` | HTTP 200, payNo=`PAY2026061320656761`, status=1, tradeNo=`LOCAL-1781330559` | `.runtime/tmp/pay_record.json` |
+| 8. `POST /api/v1/auth/login` (admin) | HTTP 200, userId=1007, roles=["ADMIN"] | `.runtime/tmp/admin_login.json` |
+| 9. `GET /api/v1/admin/dashboard` | HTTP 200, todaySales=8999.00, totalProducts=12, pendingOrders=19 | `.runtime/tmp/admin_dash2.json` |
+| 10. 浏览器 `/admin` 渲染 | 3 指标卡 + 后台订单表首行 `SO1781330545972 ¥8999.00 已支付` | 截图 `07-admin-dashboard-sales-fixed-1440x900.png` |
+
+#### 9.6.6 截图
+
+| 文件 | 页面 | 视口 | 账号 | 结果 |
+|---|---|---|---|---|
+| `07-admin-dashboard-sales-fixed-1440x900.png` | 后台看板销售额修复 | 1440x900 | admin | 通过（3 指标卡：订单数 160 / 商品数 12 / **销售额 ¥8999.00**；后台订单表首行本轮新建 SO1781330545972 已支付） |
+
+移动端 admin 销售额截图未补：AdminView.vue 改动仅影响字段回退列表，不影响移动端布局；390x844 视口下第三张卡（销售额）历史上一直在折叠线下方（`06-admin-dashboard-390x844.png` 证据），本次修复对移动端表现无变化，故不重复截图。
+
+#### 9.6.7 构建与检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-common,mall-order,mall-pay,mall-gateway,mall-admin-biz -am -DskipTests package` | BUILD SUCCESS | 6 个模块（含父 POM）全部 SUCCESS；耗时 1:18 |
+| `npm run build` | 通过 | `vue-tsc -b` 无类型错误；`vite build` 10.84s；产物在 `mall-frontend/dist/assets/`；2 个 `INVALID_ANNOTATION` 警告来自 `node_modules/@vueuse/core`（与本仓库代码无关） |
+| `git diff --check` | exit=0 | 仅 2 条 LF→CRLF 文件模式 info 警告（Windows 平台正常） |
+
+#### 9.6.8 未验证项
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| 移动端 admin 销售额截图（390x844） | 字段回退修复对移动端布局无影响，不重复截图 | 不补 |
+| PSScriptAnalyzer | 本机未安装 | 与 Sprint 3.1 一致，列入工具链候选 |
+| Gateway 不代理单服务 actuator | 本轮未改动 Gateway 路由表；9106 直接 health=200，9100 聚合 health=200 | 已满足"可接受结果" |
+| 订单详情"收货信息"—" | 与本轮无关，仍为后端 Service 层地址快照缺失 | Sprint 3.4 候选 |
+| `mall-order` `/actuator/health` 500 → 200 | 本轮已修复（9106 + 9100 双 200） | 列入已修复 |
+
+#### 9.6.9 Sprint 3.4 候选建议（不得直接执行）
+
+1. `mall-order` 写入完整 address 快照而非仅 `addressId`（订单详情收货信息"—"）。
+2. `app.css` 4 处预存在硬编码颜色替换为 token 引用。
+3. UI 调优：商品详情 mobile 留白；首页商品卡实时库存回填。
+4. `start-all.ps1` 端口冲突保护扩到 6379 (Redis) / 8848 (Nacos) / 9876 / 10911 (RocketMQ)。
+5. mall-search / mall-seckill 业务联调：活动列表 + 抢购 + 搜索结果真实断言。
+6. PSScriptAnalyzer 安装与执行。
+7. AdminView dashboard 增加 `salesTrend` 折线图与 `topProducts` Top 5 列表的视觉展示（当前仅在 `data` 字段中返回，前端未渲染）。
 
 ---
 

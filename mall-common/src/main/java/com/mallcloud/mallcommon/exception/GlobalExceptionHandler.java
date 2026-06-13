@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -50,6 +51,17 @@ public class GlobalExceptionHandler {
     public Result<Void> handleIllegal(IllegalArgumentException e) {
         log.warn("[IllegalArgument] {}", e.getMessage());
         return Result.error(ErrorCode.PARAM_ERROR.getCode(), e.getMessage());
+    }
+
+    /**
+     * 静态资源 / 未知路径交给全局处理，避免被误归类为 SystemError。
+     * 仅返回 404 业务码 + 路径信息，不再触发系统告警日志。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<Void>> handleNoResource(NoResourceFoundException e, HttpServletRequest req) {
+        log.info("[NoResource] path={} resource={}", req.getRequestURI(), e.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(404, "资源不存在: " + e.getResourcePath()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -127,7 +127,7 @@ onMounted(loadAdmin);
       </el-card>
       <el-card class="metric-card">
         <span>销售额</span>
-        <strong>{{ moneyText(field(dashboard, ['salesAmount', 'totalSales'], 0)) }}</strong>
+        <strong>{{ moneyText(field(dashboard, ['todaySales', 'salesAmount', 'totalSales', 'todaySalesAmount', 'totalSalesAmount', 'revenue'], 0)) }}</strong>
       </el-card>
     </div>
 
