@@ -104,35 +104,69 @@ function Wait-Http($url, $label, $timeoutSec = 120, $intervalSec = 3) {
 }
 
 # MySQL 连通性 + 就绪检测
-# 1) TCP 端口探测 3306，避免 4xx/5xx HTTP 误判
-# 2) 优先用 docker exec mall-mysql mysqladmin ping（容器场景）
-# 3) 退回本机 mysqladmin（无 Docker 场景）
+# 优先级（Sprint 3.7 加固）：
+#   1) TCP 端口探测 3306：作为前置快筛，避免在端口未监听时反复 docker exec 浪费
+#   2) docker exec select 1：真实业务握手（mysqladmin ping 偶尔在 GTID 模式假阳性）
+#   3) docker exec mysqladmin ping：docker fallback
+#   4) 本机 mysqladmin ping：本机 fallback
+#   5) 退化：纯 TCP 端口可达 + WARN（极端环境兜底）
 # 返回 true 表示已就绪，false 表示超时
+# 凭证来源：仅使用脚本内已声明的 root/root 占位（开发环境，与 deploy/docker/mysql/init.sql
+# 的 MySQL_ROOT_PASSWORD 对齐），不引入任何新变量；如未来需要自定义，优先走 env MYSQL_USER / MYSQL_PASSWORD
 function Wait-MySqlReady($timeoutSec = 90, $intervalSec = 2) {
     Write-Info "等待 MySQL 就绪 (127.0.0.1:3306) ..."
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $tcpOnlyWarned = $false
     while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
         if (-not (Test-Port 3306 1)) {
             Start-Sleep -Seconds $intervalSec
             continue
         }
+
         $dockerExe = Get-Command docker -ErrorAction SilentlyContinue
         if ($dockerExe) {
+            # 优先 select 1：与 mysqladmin ping 不同，它会真正执行 SQL 并往返服务器，
+            # 避免 mysqld 已接受连接但仍未完成初始化握手时被误判 ready。
+            $select = & docker exec mall-mysql mysql -uroot -proot -N -B -e "SELECT 1" 2>$null
+            if ($LASTEXITCODE -eq 0 -and "$select".Trim() -eq "1") {
+                Write-Ok "MySQL 已就绪 (docker exec select 1)"
+                return $true
+            }
             $ping = & docker exec mall-mysql mysqladmin ping -uroot -proot 2>$null
             if ($LASTEXITCODE -eq 0) {
-                Write-Ok "MySQL 已就绪 (docker exec)"
+                Write-Ok "MySQL 已就绪 (docker exec mysqladmin ping)"
                 return $true
             }
         }
+
         $mysqladmin = Get-Command mysqladmin -ErrorAction SilentlyContinue
         if ($mysqladmin) {
             & mysqladmin -h127.0.0.1 -uroot -proot ping 2>$null | Out-Null
             if ($LASTEXITCODE -eq 0) {
-                Write-Ok "MySQL 已就绪 (本机 mysqladmin)"
+                Write-Ok "MySQL 已就绪 (本机 mysqladmin ping)"
                 return $true
             }
         }
+        $mysql = Get-Command mysql -ErrorAction SilentlyContinue
+        if ($mysql) {
+            $sel = & mysql -h127.0.0.1 -uroot -proot -N -B -e "SELECT 1" 2>$null
+            if ($LASTEXITCODE -eq 0 -and "$sel".Trim() -eq "1") {
+                Write-Ok "MySQL 已就绪 (本机 mysql select 1)"
+                return $true
+            }
+        }
+
+        if (-not $tcpOnlyWarned) {
+            Write-Warn "MySQL 端口已开但 select 1 / mysqladmin 探针未就绪，继续等待（最多 $($timeoutSec)s）"
+            $tcpOnlyWarned = $true
+        }
         Start-Sleep -Seconds $intervalSec
+    }
+
+    # 超时退化为 TCP-only 兜底：明确 WARN（不悄悄返回）
+    if (Test-Port 3306 1) {
+        Write-Warn "MySQL 探针全部失败但 3306 仍可达，强制按 TCP 端口通过。请运行 docker logs mall-mysql 排查。"
+        return $true
     }
     return $false
 }

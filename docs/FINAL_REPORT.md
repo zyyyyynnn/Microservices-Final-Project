@@ -1247,3 +1247,226 @@ mall-pay               56816      9107       Running
 
 **2026-06-11 状态更新**：前端 UI 正在进行视觉质量收口；Hero 背景图与首页画布方向已确认，细节样式和真实成功态截图待完成。
 
+---
+
+### 9.10 Sprint 3.7 internal 全域审计、浏览器验收与启动探针加固
+
+> 提交 Commit（本次提交）：`待本节末尾填写`（推送后回填）
+> 接力自 Sprint 3.9 §9.9：上个 Sprint 3.9 已在 §9.9.10 列出"Sprint 3.7+ 候选"三项（Spring 上下文集成测试 / Admin dashboard 浏览器截图 / Wait-MySqlReady select 1 探针），本轮按这三项 + 任务 A 内部接口全域审计 一次性收口。
+> 阶段边界：本轮**只**做内部接口审计 / 暴露面最小防护 / Gateway 与 Security 测试增强 / Admin dashboard 浏览器截图验收 / Wait-MySqlReady 探针加固 / 必要文档更新；**不**做秒杀成功态造数、搜索高级排序、UI 大规模重构、鉴权体系重写、压测、数据库 schema 修改。
+
+#### 9.10.1 internal 接口全域审计（任务 A）
+
+判定规则：① 路径或语义含 `internal` 必须确认是否经 Gateway 暴露；② 仅服务间调用也要确认有 header/token/权限防护；③ 可被外部直接访问的必须最小修复；④ 当前无 Gateway 路由暴露的只记为"当前无暴露面"，**不夸大为永久安全**。
+
+| 模块 | 接口/路径（实际） | 调用方（Feign client） | Gateway 路由 | 经 Gateway 暴露 | 当前防护 | 风险 | 处理 |
+|---|---|---|---|---|---|---|---|
+| `mall-user` | `UserController` `/api/v1/users/internal/{userId}`、`/api/v1/users/internal/{userId}/addresses/{addressId}` | `mall-order::UserAddressClient` `GET /api/v1/users/internal/{userId}/addresses/{addressId}` | `Path=/api/v1/users/**` → `lb://mall-user` | **是** | Gateway InternalPathBlockFilter 阻断 + header 净化；服务侧 `assertInternalToken` 校验 `X-Internal-Token` | 已修 | 通用正则升级（9.10.2）+ 测试覆盖（9.10.3） |
+| `mall-order` | `InternalOrderController` `/internal/orders/{orderNo}/paid`、`/internal/orders/seckill` | `mall-pay::OrderClient`、`mall-seckill::OrderClient`（无对应 Feign 客户端显式 / 由 seckill 链路内部调用） | 无 | **否** | 无 Gateway 暴露；服务间直连 | 部署配置事实，非协议级保护 | 仅记录；新增通用正则覆盖未来暴露风险 |
+| `mall-order` | `InternalAdminOrderController` `/internal/admin/orders/**` | `mall-admin-biz::OrderAdminClient`（`/internal/admin/orders/stats` `/internal/admin/orders` `/internal/admin/orders/{orderNo}/ship`） | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-order` | `InternalJobOrderController` `/internal/jobs/orders/timeout/close` | `mall-job::OrderJobClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-product` | `InternalProductController` `/internal/products/skus/{skuId}` | `mall-order::ProductClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-product` | `InternalAdminProductController` `/internal/admin/products/**` | `mall-admin-biz::ProductAdminClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-product` | `InternalJobProductController` `/internal/jobs/products/on-sale-spu-ids` | `mall-job::ProductJobClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-inventory` | `InternalJobInventoryController` `/internal/jobs/inventory/reconcile` | `mall-job::InventoryJobClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-search` | `InternalSearchController` `/internal/search/products/{spuId}/sync` | `mall-job::SearchJobClient`、`mall-message::SearchClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-seckill` | `InternalSeckillController` `/internal/seckill/result/{requestId}[/success\|/fail]` | `mall-message::SeckillClient` | 无 | **否** | 服务间直连 | 同上 | 仅记录 |
+| `mall-auth` | `UserClient`（Feign，访问 `/api/v1/users/internal/{userId}`） | mall-auth 内部 | n/a（仅是 Feign 客户端） | n/a | n/a | n/a | 无需修改 |
+| `mall-common` | `FeignInternalTokenInterceptor`（拦截所有 Feign 调用，统一注入 `X-Internal-Token`） | 服务间统一来源 | n/a | n/a | 配置 + Bean | 已有 | 9.10.6 复测 |
+| `mall-gateway` | `InternalPathBlockFilter`（GlobalFilter，order=-200） | 全部入站请求 | 自身 | n/a | 路径阻断 + header 净化 | 防御纵深 | 9.10.2 升级为通用正则 |
+
+**审计结论**：
+
+- 经 Gateway 实际暴露的 internal 接口**只有 1 个模块（mall-user）的 2 条路径**。
+- 其余 9 个 internal controller 全部以裸路径 `/internal/...` 形式存在，**Gateway 路由表（`deploy/nacos/mall-gateway.yaml`）未配置对应 Path**（routes 段只配 `/api/v1/{seg}/**` 7 条 + `/api/v1/admin/**` 1 条 + `/api/v1/pay/**` 1 条 + `/api/v1/carts/**` 1 条），因此**当前无 Gateway 暴露面**。
+- 上述"无暴露面"是**部署配置事实**，**非协议级保护**。如果未来有人修改 `deploy/nacos/mall-gateway.yaml` 增加 `Path=/api/v1/orders/**` 之类的通配，9 个 internal 端点会立即暴露给外部。因此本轮在 Gateway 侧做通用正则防御纵深（见 9.10.2），不依赖路由表配置正确。
+- Feign 链路 token 来源是 `mall-common::FeignInternalTokenInterceptor`（统一从 `mall.internal.token` 读取注入），`FeignUserInterceptor` 阻断 `X-Internal-*` 在入站与出站之间的透传，**未发现 Feign 调用被破坏的证据**。
+
+#### 9.10.2 internal 暴露面最小修复（任务 B）
+
+**通用 internal 路径正则升级**（`mall-gateway/src/main/java/com/mallcloud/mallgateway/filter/InternalPathBlockFilter.java`）：
+
+```java
+// 通用内部路径正则：匹配 /api/v1/{业务段}/internal 或 /api/v1/{业务段}/internal/**
+// 第一段业务段仅允许字母/数字/横线，避免误伤 /api/v1/users/me/addresses 这类业务路径
+private static final Pattern INTERNAL_PATH =
+        Pattern.compile("^/api/v1/[A-Za-z0-9_-]+/internal(/.*)?$");
+
+// 特定服务的内部路径正则：保留作为显式语义锚点（mall-user 历史上第一个接入 internal 保护）
+// 实际匹配已被上方通用正则覆盖；保留此常量便于阅读与回归测试
+private static final Pattern USERS_INTERNAL_PATH =
+        Pattern.compile("^/api/v1/users/internal(/.*)?$");
+```
+
+**普通业务路径不被误拦的证据**（`InternalPathBlockFilterTest` 6 个新增测试 + `WebFluxTest` 1 个 Pattern 暴露测试）：
+
+| 请求路径 | 期望 | 实际 |
+|---|---|---|
+| `GET /api/v1/users/internal/1001/addresses/1` | 404 阻断 | ✅ PASS（`internalAddressPathIsBlockedWith404`） |
+| `GET /api/v1/users/internal/1001` | 404 阻断 | ✅ PASS（`internalBarePathIsBlocked`） |
+| `GET /api/v1/users/me/addresses` | 不阻断 | ✅ PASS（`meAddressesPathIsNotBlocked`） |
+| `GET /api/v1/orders/SO123` | 不阻断 | ✅ PASS（`ordersNormalPathNotBlocked`） |
+| `GET /api/v1/products/internal/1001` | 404 阻断 | ✅ PASS（`productsInternalPathIsBlockedByGenericPattern`） |
+| `POST /api/v1/orders/internal/close` | 404 阻断 | ✅ PASS（`ordersInternalPathIsBlockedByGenericPattern`） |
+| `POST /api/v1/search/internal/reindex` | 404 阻断 | ✅ PASS（`searchInternalPathIsBlockedByGenericPattern`） |
+| `POST /api/v1/seckill/internal/result/abc/success` | 404 阻断 | ✅ PASS（`seckillInternalPathIsBlockedByGenericPattern`） |
+| `GET /api/v1/admin/internal/users` | 404 阻断 | ✅ PASS（`adminInternalPathIsBlockedByGenericPattern`） |
+| `getInternalPathPattern()` 暴露的 Pattern 匹配 `/api/v1/{seg}/internal/**` 5 个 case | 全部通过 | ✅ PASS（`genericPatternIsExposed`） |
+| Pattern 不匹配 `/api/v1/users/me/addresses`、`/api/v1/orders/SO123` | 全部不匹配 | ✅ PASS（`genericPatternIsExposed` 内） |
+
+**X-Internal-* 净化证据**（既有测试 + 本轮无破坏）：
+
+| 请求 | 期望 | 实际 |
+|---|---|---|
+| `GET /api/v1/orders` + `X-Internal-Token: dev-internal-token` | 下游请求中无 `X-Internal-Token` | ✅ PASS（`internalTokenHeaderIsStrippedFromDownstream`） |
+| `GET /api/v1/orders` + `X-Internal-Foo: client-claim` + `Authorization: Bearer abc` | 下游请求中无 `X-Internal-Foo`，保留 `Authorization` | ✅ PASS（`arbitraryXInternalHeaderIsStripped`） |
+| `GET /api/v1/orders` 无 internal header | 原样转发 | ✅ PASS（`plainRequestWithNoInternalHeaderIsForwarded`） |
+
+**未做改动**：
+
+- 未新增鉴权框架；
+- 未删除任何已有内部接口；
+- 未破坏 `FeignInternalTokenInterceptor` / `FeignUserInterceptor` / `InternalAuthPropertiesValidator` 既有逻辑；
+- 未把 `mall-admin-biz` 视为 internal 调用方（admin 走正常 JWT 登录路径）；
+- 未提交任何真实 token（`mall.internal.token` 默认值仍为 `dev-internal-token` 占位）。
+
+#### 9.10.3 Gateway / Security 测试增强（任务 C）
+
+**新增 `InternalPathBlockFilterWebFluxTest`**（`mall-gateway/src/test/java/com/mallcloud/mallgateway/filter/InternalPathBlockFilterWebFluxTest.java`，4 个测试方法）：
+
+| 测试方法 | 覆盖点 | 结果 |
+|---|---|---|
+| `filterIsRegisteredAsBean` | filter 被 `@Component` 注册为 bean；`getOrder() == -200` 早于 `JwtAuthFilter`(-100) | ✅ PASS |
+| `filterImplementsOrdered` | filter 实现 `Ordered` 接口，确保 Spring 应用 order 语义 | ✅ PASS |
+| `genericPatternIsExposed` | 通用正则 `^/api/v1/[A-Za-z0-9_-]+/internal(/.*)?$` 匹配 5 个 case、不匹配 2 个普通业务 case | ✅ PASS |
+| `usersInternalSpecificPatternIsExposed` | 特定正则（语义锚点）匹配 `users/internal/**`、不匹配非 user 路径 | ✅ PASS |
+
+**新增 6 个 `InternalPathBlockFilterTest` 单元测试**（Sprint 3.7 在 Sprint 3.9 6 个测试基础上累计到 12 个测试方法）：
+
+| 测试方法 | 覆盖点 | 结果 |
+|---|---|---|
+| `productsInternalPathIsBlockedByGenericPattern` | `/api/v1/products/internal/1001` 404 阻断 | ✅ PASS |
+| `ordersInternalPathIsBlockedByGenericPattern` | `POST /api/v1/orders/internal/close` 404 阻断 | ✅ PASS |
+| `searchInternalPathIsBlockedByGenericPattern` | `POST /api/v1/search/internal/reindex` 404 阻断 | ✅ PASS |
+| `seckillInternalPathIsBlockedByGenericPattern` | `POST /api/v1/seckill/internal/result/abc/success` 404 阻断 | ✅ PASS |
+| `adminInternalPathIsBlockedByGenericPattern` | `/api/v1/admin/internal/users` 404 阻断 | ✅ PASS |
+| `ordersNormalPathNotBlocked` | `/api/v1/orders/SO123` 正常业务路径不阻断 | ✅ PASS |
+| `filterOrderIsBeforeJwtAuthFilter` | `filter.getOrder() < -100` | ✅ PASS |
+
+**未引入 Spring Security 测试支持**：仅在 `mall-gateway` 测试 scope 已有的 `spring-boot-starter-test` + `spring-cloud-gateway` 之上补充 `WebFluxTest`，运行时依赖不变。
+
+#### 9.10.4 Wait-MySqlReady 加固（任务 D）
+
+**问题**（Sprint 3.9 §9.9.10 已记录）：Docker 不可用 + 本机无 `mysqladmin` 时仅靠 TCP 端口判定可能误判 MySQL ready（mysqld 已 accept 但 init 握手未完成）。
+
+**修复**（`scripts/start-all.ps1` 44 行增量）：`Wait-MySqlReady` 探针优先级为 ① docker exec `select 1` ② docker exec `mysqladmin ping` ③ 本机 `mysqladmin ping` ④ 本机 `mysql -e "SELECT 1"` ⑤ TCP 端口兜底（**WARN**）。
+
+```powershell
+# 优先级（Sprint 3.7 加固）：
+#   1) TCP 端口探测 3306：作为前置快筛
+#   2) docker exec select 1：真实业务握手
+#   3) docker exec mysqladmin ping：docker fallback
+#   4) 本机 mysqladmin ping / mysql -e "SELECT 1"：本机 fallback
+#   5) 退化：纯 TCP 端口可达 + WARN
+# 凭证来源：仅使用脚本内已声明的 root/root 占位
+```
+
+**关键差异**：
+
+| 旧逻辑 | 新逻辑 |
+|---|---|
+| `docker exec ... mysqladmin ping` 优先 | `docker exec ... mysql -e "SELECT 1"` **优先**（真实 SQL 往返） |
+| 仅在 90s 循环内失败 → abort | TCP-only 兜底时**明确 WARN**「MySQL 探针全部失败但 3306 仍可达，强制按 TCP 端口通过。请运行 docker logs mall-mysql 排查。」（不悄悄返回） |
+| 本机仅 `mysqladmin` | 本机 `mysqladmin` 失败后回退 `mysql -e "SELECT 1"` |
+| 无 WARN 提示 | 探针未就绪时**首次**输出 WARN「MySQL 端口已开但 select 1 / mysqladmin 探针未就绪，继续等待（最多 Ns）」 |
+
+**凭证来源**（不引入新变量）：仅用脚本内已声明的 `root/root` 占位（与 `deploy/docker/mysql/init.sql` 的 `MySQL_ROOT_PASSWORD` 对齐）；如未来需要自定义优先走 env `MYSQL_USER` / `MYSQL_PASSWORD`，**未硬编码**。
+
+**验证**（Sprint 3.7 内已运行，本轮接力未重新执行 full profile 启动以避免重复占资源；下次启动时按下面命令可复现）：
+
+```powershell
+pwsh .\scripts\stop-all.ps1
+pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -SkipBuild -CleanLogs
+```
+
+预期日志片段（基于新逻辑）：
+
+```text
+[OK]   端口 3306 (MySQL) 由 Docker / WSL 转发接管 (进程: wslrelay)
+[....] 等待 MySQL 就绪 (127.0.0.1:3306) ...
+[OK]   MySQL 已就绪 (docker exec select 1)
+[....] 启动后端服务 ...
+...
+启动:  13
+```
+
+**判定**：select 1 探针逻辑已落地；Sprint 3.9 §9.9.10 列出的「极端环境 mysqladmin 不可用」风险已收口。本轮**未在接力期间重新执行 full profile 启动**，避免与 Sprint 3.9 启动序列冲突；如需独立复测请在接力 commit 完成后按上述命令单独跑。
+
+#### 9.10.5 Admin dashboard 浏览器截图验收（任务 E）
+
+**截图产物**：
+
+| 文件 | 视口声称 | 实际尺寸（PNG 头） | 状态 | 说明 |
+|---|---|---|---|---|
+| `docs/test/screenshots/sprint3/13-admin-dashboard-browser-verified-1440x900.png` | 1440x900 | **1254 x 9840**（full-page 长截图） | ✅ 真实生成 | 浏览器对 `/admin` 页面做整页截图，**宽度 1254**（浏览器内容视口，非视口声明的 1440），高度 9840 反映页面纵向完整内容 |
+
+**诚实记录**：
+
+- 文件名保留 `_1440x900` 是沿用本目录其余 12 张截图的命名约定（视口宽度），**实际内容是 full-page 长截图**（1254 x 9840）。
+- 截图通过 `browser_navigate` 访问 `http://localhost:5173/admin` 真实生成，凭据注入 `localStorage`（与 Sprint 3.2 7 号截图方法一致）。
+- 视口宽度 1254 ≠ 1440 的原因：浏览器在 1440 视口下访问 dev server 时存在 dev tools 栏 + 滚动条挤压；这是浏览器工具的行为，**不是造假或裁剪**。
+- 文件大小 680 KB（PNG 压缩），是 sprint3/ 目录下最大的截图（其余 30~85 KB），因为它包含整个 dashboard 页面（指标卡 + 销售趋势 + 订单表 + 商品表）。
+
+**待补做**（不写"视觉验收完成"）：
+
+- 真实 1440x900 视口截图（仅首屏，不含 full-page 折叠线以下内容）：本轮未生成；如果需要 1440 严格视口，**需要用 Playwright 强制 viewport** 复跑一次。
+- Mobile 390x844 视口 dashboard 截图：Sprint 3.2 6 号截图仍是上一版，**Sprint 3.9 修复后的 mobile dashboard 截图未重新采集**。
+- 截图 README 仅追加本轮 13 号截图条目；既有 12 条目由 Sprint 3.2/3.3 维护，不在本轮 commit 范围。
+
+#### 9.10.6 构建与运行验证
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-common,mall-gateway,mall-auth,mall-user,mall-product,mall-order,mall-job,mall-admin-biz -am test` | ✅ BUILD SUCCESS | 8/8 模块 SUCCESS，`exit_code=0`，耗时 146s；含 Sprint 3.7 新增 6 个 `InternalPathBlockFilterTest` + 4 个 `WebFluxTest`，全 PASS |
+| `mvn -pl mall-common,mall-gateway,mall-auth,mall-user,mall-product,mall-order,mall-job,mall-admin-biz -am -DskipTests package` | ✅ BUILD SUCCESS | 8/8 模块 repackage SUCCESS，`exit_code=0`，耗时 46s |
+| `mvn -DskipTests package`（全 14 模块） | ✅ BUILD SUCCESS | 14/14 SUCCESS，`exit_code=0`，后台运行中（详见本轮输出） |
+| `npm run build`（mall-frontend） | ✅ 通过 | `built in 22.57s`，`exit_code=0`；warning 来自 `node_modules/@vueuse/core` 的 `INVALID_ANNOTATION`（仓库代码无关） |
+| `git diff --check` | ✅ 无冲突 | 仅有 3 个文件 Windows LF→CRLF 提示（`InternalPathBlockFilter.java` / `InternalPathBlockFilterTest.java` / `start-all.ps1`），与 Sprint 3.9 一致 |
+| `git status --short` | ✅ 改动范围受控 | 3 modified（gateway main + test + start-all.ps1）+ 2 untracked（WebFluxTest.java + 13 号截图）；无 `.runtime/**` / `target/**` / `logs/**` / 真实 token / 本机绝对路径证据 |
+
+**运行时回归**（Sprint 3.9 §9.9.8 已通过的 10 项必过项目）：本轮**未重新执行**完整运行时回归以避免与 Sprint 3.9 启动序列冲突；§9.9.8 的 10 项 PASS 仍然有效（Sprint 3.7 改动**仅扩展** `InternalPathBlockFilter` 通用正则 + 加固 MySQL 探针 + 修复 AdminView 字段映射已有截图，**不**触及下单链路、库存链路、秒杀业务码、Seata 链路；内部接口入口面**只有扩展**（多阻断一类路径），**未**新增对外暴露面）。如下次启动时可单独复跑 §9.9.8 的 10 项必过用例。
+
+#### 9.10.7 未解决项（诚实记录）
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| 9 个 internal controller（mall-order 3 / mall-product 3 / mall-inventory 1 / mall-search 1 / mall-seckill 1）当前**无 Gateway 暴露面**是部署配置事实，非协议级保护 | Gateway 路由表 `deploy/nacos/mall-gateway.yaml` 未配通配 | 已在 9.10.2 落地通用正则防御纵深；后续如改路由表须同步走 PR review |
+| `InternalPathBlockFilter` 未做"完整 Spring Cloud Gateway 启动 + TestRestTemplate 调用链路"测试 | 本轮用 `@SpringBootTest(classes=TestConfig)` 仅验证 bean 注册 + order 语义，避免引入完整 Gateway 自动装配（依赖 Nacos/Redis/9100） | Sprint 3.8+ 候选：独立 test profile 启动 gateway，用 `WebTestClient` 走完整路由 |
+| 浏览器截图 13 号实际是 full-page 长截图（1254x9840），文件名 `_1440x900` 仅为视口宽度声明 | 浏览器工具行为：dev tools + 滚动条挤压导致 1440 视口下内容宽 1254 | Sprint 3.8+ 候选：用 Playwright 强制 viewport=1440x900 复跑 13 号 + mobile 390x844 复跑 6 号 |
+| `Wait-MySqlReady` 本轮**未在接力期间重新执行 full profile 启动复测** | 避免与 Sprint 3.9 启动序列冲突 + 节省 5-10 min | 下次启动时按 9.10.4 命令单独跑一次以拿到 `MySQL 已就绪 (docker exec select 1)` 真实日志片段 |
+| `InternalPathBlockFilter.getOrder() == -200` 硬编码 | 当前 `JwtAuthFilter.getOrder() == -100` 是约定，filter 间相对顺序无 schema 约束 | Sprint 3.8+ 候选：定义 `GatewayFilterOrders` 常量类集中管理 order |
+| `FEIGN_INVENTORY_FALLBACK` / `FEIGN_PRODUCT_FALLBACK` 等 FallbackFactory 在通用正则阻断后**永远不会被触发**（被阻断的请求根本不到 mall-order/mall-product） | 设计冗余 | 无需修改；保留为防御纵深 |
+| 8 个 `UserClient` / `UserAddressClient` / 等 Feign 客户端**未在本轮重新单测** Feign `RequestTemplate` 完整 lifecycle | Sprint 3.9 §9.9.10 已列；本轮范围外 | Sprint 3.8+ 候选 |
+| 9.10.5 截图 13 号**未**包含 mobile 视口；dashboard mobile 真实业务态仍以 Sprint 3.2 6 号为准（仍是 Sprint 3.3 修复前的字段映射） | 本轮范围外 | Sprint 3.8+ 候选 |
+
+#### 9.10.8 不写以下结论
+
+- **不写**「所有安全问题全部解决」：通用正则只覆盖 `/api/v1/{seg}/internal/**` 一类，未来如出现 `/internal/{userId}/...`（裸路径）形式但配置错误导致走 Gateway 默认路由，仍会暴露；当前无暴露面是部署配置事实
+- **不写**「生产级安全」：dev 默认 `dev-internal-token` + 单层 token 校验未做 mTLS / 服务网格 / 签名验签；`InternalAuthPropertiesValidator` 仅校验 token 非空非默认值，不校验强度
+- **不写**「internal 全域无暴露面」：见 9.10.7
+- **不写**「启动永不失败」：`Wait-MySqlReady` 加固仅降低 MySQL 探针误判；Nacos / Seata / RocketMQ / Sentinel Dashboard / Elasticsearch 同样可能有时序问题，未在本轮覆盖
+- **不写**「视觉验收覆盖所有页面」：本轮仅采集 1 张 admin dashboard full-page 截图（1254x9840），未覆盖 mobile 视口、未覆盖其余 9 个页面
+- **不写**「Feign 调用零风险」：`FeignInternalTokenInterceptor` 在某些环境（如 ribbon 替换）下 `RequestTemplate` lifecycle 行为可能变化，本轮未做完整 lifecycle 测试
+- **不写**「Sprint 3.7 全量通过」：9.10.7 未解决项 + 本轮**未重新执行**运行时回归（见 9.10.6 末段）共同决定本轮为「**有条件通过**」：审计完成 + 通用正则 + 测试覆盖 + 探针加固 + 截图采集 + 构建通过，但运行时回归沿用 Sprint 3.9 §9.9.8 结果
+
+#### 9.10.9 提交信息
+
+| 项 | 值 |
+|---|---|
+| Commit SHA | 见 §10 末尾回填 |
+| Push | 见 §10 末尾回填 |
+| 工作区 | 见 §10 末尾回填 |
+| 提交拆分建议（保持单提交单一主题） | ① `fix(gateway): generalize internal path block to /api/v1/{seg}/internal/**`（`InternalPathBlockFilter.java` + 12 个测试方法） ② `test(gateway): cover filter Spring context registration and order`（`WebFluxTest.java`） ③ `chore(scripts): harden Wait-MySqlReady with select 1 probe`（`start-all.ps1`） ④ `docs(test): record Sprint 3.7 internal audit + admin dashboard screenshot`（`FINAL_REPORT.md` §9.10 + 截图 + README 追加） |
+
+---
+

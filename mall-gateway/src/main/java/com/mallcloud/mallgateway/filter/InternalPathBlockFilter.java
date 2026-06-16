@@ -24,12 +24,21 @@ import java.util.regex.Pattern;
 /**
  * Gateway 内部路径阻断 + 内部 header 净化过滤器。
  *
- * 双重职责：
+ * 三重职责：
  *  1) 阻断 /api/v1/users/internal/** 外部访问（直接 404 + 资源不存在 body）；
- *  2) 净化所有外部请求的 X-Internal-* header，防止客户端伪造内部 token 借 Feign 链路访问内部接口。
+ *  2) 阻断任何 /api/v1/&lt;业务段&gt;/internal/** 外部访问（防御纵深，避免未来新增
+ *     /api/v1/products/internal/**、/api/v1/orders/internal/** 等接口时漏审；
+ *     2026-06-13 Sprint 3.7 全域审计后由单一路径升级为通用路径模式）；
+ *  3) 净化所有外部请求的 X-Internal-* header，防止客户端伪造内部 token 借 Feign 链路访问内部接口。
  *
  * 设计目标：internal endpoint 只能被服务间直接调用（Feign + LoadBalancer 走 mall-user 服务名），
  * 客户端从 Gateway 入口的访问一律返回 404，避免普通用户经 token 访问 internal endpoint 读取数据。
+ *
+ * 当前 Gateway 路由表实际暴露的 internal 路径仅 mall-user::UserController 的
+ * /api/v1/users/internal/{userId} 和 /api/v1/users/internal/{userId}/addresses/{addressId}；
+ * mall-order / mall-product / mall-inventory / mall-search / mall-seckill 的
+ * /internal/** 端点仅以裸路径形式存在（如 /internal/orders/...），Gateway 路由表未配置对应
+ * 入口，因此当前无 Gateway 暴露面。通用正则属于防御纵深，不是修复当前漏洞。
  *
  * 与 mall-user 内部的 X-Internal-Token 校验（CommonConstants.HEADER_INTERNAL_TOKEN）构成三层防护：
  *  - 本过滤器外层：阻断 internal 路径 + 删除外部 X-Internal-* header
@@ -44,7 +53,18 @@ import java.util.regex.Pattern;
 @Component
 public class InternalPathBlockFilter implements GlobalFilter, Ordered {
 
+    /**
+     * 通用内部路径正则：匹配 /api/v1/{业务段}/internal 或 /api/v1/{业务段}/internal/**。
+     * 第一段业务段仅允许字母/数字/横线，避免误伤 /api/v1/users/me/addresses 这类业务路径。
+     */
     private static final Pattern INTERNAL_PATH =
+            Pattern.compile("^/api/v1/[A-Za-z0-9_-]+/internal(/.*)?$");
+
+    /**
+     * 特定服务的内部路径正则：保留作为显式语义锚点（mall-user 历史上第一个接入 internal 保护）。
+     * 实际匹配已被上方通用正则覆盖；保留此常量便于阅读与回归测试。
+     */
+    private static final Pattern USERS_INTERNAL_PATH =
             Pattern.compile("^/api/v1/users/internal(/.*)?$");
 
     private static final String INTERNAL_HEADER_PREFIX = "X-Internal-";
@@ -114,5 +134,19 @@ public class InternalPathBlockFilter implements GlobalFilter, Ordered {
     public int getOrder() {
         // 早于 JwtAuthFilter (-100)，避免给未授权请求打 userId 头再放行
         return -200;
+    }
+
+    /**
+     * 暴露 INTERNAL_PATH 给集成测试用，避免硬编码正则。
+     */
+    public static Pattern getInternalPathPattern() {
+        return INTERNAL_PATH;
+    }
+
+    /**
+     * 暴露 USERS_INTERNAL_PATH 给集成测试用。
+     */
+    public static Pattern getUsersInternalPathPattern() {
+        return USERS_INTERNAL_PATH;
     }
 }

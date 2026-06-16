@@ -19,6 +19,7 @@
 | 10-search-empty-1440x900.png | 搜索空态 | `/search?keyword=zzzzz_nonexistent_xyz` | 1440x900 | 游客 | 通过 | `total=0`，展示空态 `暂无搜索结果 / 当前暂未找到可展示内容，请稍后重试或返回首页浏览。` + 翻页器禁用 |
 | 11-seckill-list-1440x900.png | 秒杀活动列表 | `/seckill` | 1440x900 | zhangsan | 通过 | 4 个活动真实加载（id=9001/1/2/3），均显示"已结束"状态；详情面板含价格/库存/时间 |
 | 12-seckill-action-1440x900.png | 秒杀动作结果 | `/seckill` | 1440x900 | zhangsan | 有条件通过 | 点击 iPhone 15 Pro 限时秒杀 + 发起秒杀，**真实业务码 code=40402 "秒杀已结束"**；后端 `validateActivity` 第 216 行因 endTime 已过抛 `BizException(40402)`；前端默认用 ElMessage toast 提示 3 秒后消失，本截图通过临时 banner 保留完整响应体 |
+| 13-admin-dashboard-browser-verified-1440x900.png | 后台看板浏览器验收 | `/admin` | **1254×9840 full-page**（文件名沿用视口命名约定） | admin | 有条件通过 | Sprint 3.7 接力（Sprint 3.9 §9.9.7 字段修复后）真实浏览器访问 `/admin` 整页截图；`/api/v1/admin/dashboard` 返回 `code=200` 含 `todayOrders/totalProducts/todaySales/pendingOrders`；3 张指标卡读数与 API 一致；视口宽度 1254 是浏览器 dev tools + 滚动条挤压导致（**非造假**）；本轮未生成 1440×900 严格视口截图和 mobile 视口截图（见 FINAL_REPORT §9.10.5 / §9.10.7） |
 
 ## 关键链路证据
 
