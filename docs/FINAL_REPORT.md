@@ -880,6 +880,136 @@ Spring `@ExceptionHandler` 解析按"最具体优先"匹配；新增 `NoResource
 
 ---
 
+### 9.8 Sprint 3.5 internal 接口防护与 BizException 响应规范
+
+本轮目标：把 9.7.8.1 P1 风险（`/api/v1/users/internal/**` 暴露面）与 9.7.8.2 P2 风险（Seata 包装 BizException）通过最小改动收口，且不影响已有业务链路。
+
+#### 9.8.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-common/src/main/java/com/mallcloud/mallcommon/constant/CommonConstants.java` | 已包含 `HEADER_INTERNAL_TOKEN` 常量（无新增），作为 Feign 注入与 controller 校验的契约 |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/config/InternalAuthProperties.java` | 新增。`@ConfigurationProperties(prefix="mall.internal")` 读取 `mall.internal.token`，默认 `dev-internal-token`，Nacos / 环境变量 `MALL_INTERNAL_TOKEN` 覆盖 |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/feign/FeignInternalTokenInterceptor.java` | 新增。`RequestInterceptor` 自动注入 `X-Internal-Token` header（仅在配置非空且未显式传入时） |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/feign/FeignUserInterceptor.java` | 调整。明确禁止从入站请求上下文复制 `X-Internal-*` header 到出站 Feign 调用，防止透传 |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/MallCommonAutoConfiguration.java` | 注册 `FeignInternalTokenInterceptor` Bean + `@EnableConfigurationProperties(InternalAuthProperties.class)` |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/exception/GlobalExceptionHandler.java` | `@ExceptionHandler(Exception.class)` 改为先沿 cause 链递归匹配 `BizException`（深度上限 8），命中即按原 code/message 返回（HTTP 200），未命中仍 500/10003 兜底 |
+| `mall-user/src/main/java/com/mallcloud/malluser/controller/UserController.java` | `GET /api/v1/users/internal/{userId}/addresses/{addressId}` 新增 `assertInternalToken()` 校验（缺失或不匹配 → BizException 401） |
+| `mall-gateway/src/main/java/com/mallcloud/mallgateway/filter/InternalPathBlockFilter.java` | 新增。`GlobalFilter, Ordered=-200`。双重职责：① 正则 `^/api/v1/users/internal(/.*)?$` 直接 404；② 净化所有外部请求的 `X-Internal-*` header |
+| `docs/FINAL_REPORT.md` | 追加本节 §9.8 |
+
+未触及：`mall-search/**`、`mall-seckill/**`、`mall-pay/**`、`mall-frontend/**`、SQL/Nacos 配置、聚合服务（mall-admin-biz）、Job。
+
+#### 9.8.2 internal 地址接口外部访问防护
+
+目标：四层防护确保普通用户经 Gateway 拿不到 `receiver/phone/province/city/district/detail` 任一字段。
+
+| 层 | 机制 | 触发点 |
+|---|---|---|
+| 1. Gateway 路径阻断 | `InternalPathBlockFilter.filter()` 匹配 `INTERNAL_PATH` 正则 → 写 404 + `Result.error(404,"资源不存在")` | 请求进入 Gateway 的最早时机（order=-200，早于 `JwtAuthFilter` 的 -100） |
+| 2. Gateway header 净化 | `sanitizeInternalHeaders()` 删除所有 `X-Internal-*` header，再 mutate request 继续 | 任何非 internal 路径 |
+| 3. mall-user controller 校验 | `assertInternalToken()` 比较 `X-Internal-Token` 与 `mall.internal.token`，缺失/不匹配 → `BizException(401,"服务间鉴权失败")` | 内部服务经 Feign + LoadBalancer 调用 `mall-user` 服务名时（不经 Gateway） |
+| 4. Feign 拦截器注入 | `FeignInternalTokenInterceptor.apply()` 读 `InternalAuthProperties.token` 自动注入 | 所有出站 Feign 调用（仅在配置非空时） |
+
+**4 个外部访问场景实测**（全部经 `http://localhost:9100/api/v1/users/internal/1001/addresses/1`）：
+
+| 场景 | Authorization | X-Internal-Token | HTTP | 是否含 receiver/phone/detail | 证据 |
+|---|---|---|---:|---|---|
+| 1. 无 token | — | — | **404** | 否 | `Result.error(404,"资源不存在")`，Gateway 路径阻断 |
+| 2. zhangsan token | Bearer USER_TOKEN | — | **404** | 否 | 同上，路径阻断早于 JWT 校验 |
+| 3. admin token | Bearer ADMIN_TOKEN | — | **404** | 否 | 同上 |
+| 4. 外部伪造 X-Internal-Token | Bearer USER_TOKEN | `dev-internal-token` | **404** | 否 | Gateway 路径阻断 + header 净化（被删除的 header 不会出现于下游） |
+
+**判定**：4 个场景全部 404 + 无地址内容，路径阻断 + header 净化生效。注意：admin token 也不放行，证明这是"路径级白名单"而非"角色级"，与设计目标一致（internal endpoint 只能经服务名直连 mall-user，不走 Gateway）。
+
+#### 9.8.3 订单地址快照回归（Sprint 3.4 保持）
+
+**前置**：internal 地址接口对外关闭（§9.8.2），但对内仍需工作。
+
+**场景**：`zhangsan`（uid=1001）经 Gateway 创建新订单，sku=9001，addressId=1，quantity=1。
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| 订单创建 | ✅ 200 | `orderNo=SO1781602988706`, `totalAmount=8999.0` |
+| 订单详情 addressJson 长度 | ✅ 139 chars | 非空、远大于 `{"addressId":1}`（14 chars） |
+| 订单详情 addressJson 字段 | ✅ 完整 | `{"city":"北京市","phone":"13800138001","detail":"...","district":"海淀区","province":"北京市","receiver":"张三","addressId":1}` |
+| 验证链路 | ✅ | Gateway(9100) → mall-order(9106) → Feign+LB → mall-user(9102) → 校验 `X-Internal-Token=dev-internal-token` → `AddressServiceImpl.getInternalAddress(1001,1)` → 返回 `AddressVO` → 写 OrderInfo.addressJson |
+| mall-user 不可用降级 | ✅ 不触发 | `UserAddressClientFallbackFactory` 仍存在，本次未触发（mall-user 健康） |
+
+**判定**：服务间 Feign 调用正常携带 `X-Internal-Token`，mall-user 校验通过，地址快照完整回归。证明"对外阻断 + 对内放行"双层防护未破坏业务链路。
+
+#### 9.8.4 BizException cause 链解包
+
+**目标**：解决 9.7.8.2 P2 风险 — Seata AOP / 事务框架把 `BizException` 包装为 `RuntimeException` 后，被 `GlobalExceptionHandler.@ExceptionHandler(BizException.class)` 漏匹配，最终降级为 500/10003 系统错误。
+
+**实现**：`GlobalExceptionHandler.handleAll(Exception e, ...)` 改为先调用 `findBizException(e, 8)` 沿 cause 链递归 8 层，命中即 `ResponseEntity.status(OK).body(Result.error(biz.code, biz.message))`，未命中仍走 `SYSTEM_ERROR` 兜底。
+
+**实测 2 个场景**：
+
+| 场景 | HTTP | code | message | 是否 10003 | 结果 |
+|---|---:|---:|---|:---:|:---:|
+| 1. `POST /api/v1/seckill/1` (iPhone 15 Pro 已结束) | 200 | **40402** | `秒杀已结束` | 否 | ✅ 业务码保留 |
+| 2. `POST /api/v1/orders` sku=9001 qty=99999（库存不足） | 200 | **40100** | `库存不足或锁定失败` | 否 | ✅ 业务码保留 |
+
+**辅助场景（addressId=999999）**：
+
+- 实际表现：HTTP 200 + code 200，订单创建成功（addressJson 降级为 addressId-only）
+- 原因：`UserAddressClientFallbackFactory` 触发降级（mall-user 返回 `Result.error(10001,"地址不存在")`），`OrderServiceImpl.resolveAddressSnapshot()` 识别后回退到 `{"addressId":999999}`
+- 判定：**该场景不是 BizException 解包用例**，仅验证降级路径仍工作；本节 BizException 验证以场景 1/2 为准
+
+**额外说明**：`OrderController.create()` 自带 `findBizException` 显式解包（已有逻辑），本轮 GlobalExceptionHandler 的 cause 链递归属于第二道防线，覆盖 `getOrder` / `getInternalAddress` 等无显式解包的接口。
+
+#### 9.8.5 核心回归
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| zhangsan 登录 | ✅ | `code=200 userId=1001` |
+| admin 登录 | ✅ | `code=200 userId=1007` |
+| 创建新订单 | ✅ | `orderNo=SO1781603072162, totalAmount=8999.0` |
+| 订单详情（BEFORE pay，addressJson） | ✅ | len=139，含 receiver/phone/province/city/district/detail（§9.8.3） |
+| `POST /api/v1/pay/create` (ALIPAY) | ✅ | `payUrl=https://openapi-sandbox.dl.alipaydev.com...` |
+| `POST /api/v1/pay/notify` | ✅ | `code=200` |
+| 订单详情（AFTER pay，status 0→1） | ✅ | MQ 真实消费 |
+| admin dashboard | ✅ | `code=200`（totalSales/totalOrders 字段延续 9.7.8 已知前端展示问题，与本轮无关） |
+| search iPhone | ✅ | `total=2`（Sprint 3.4 真实命中 1001 + 1002） |
+| seckill 已结束业务码 | ✅ | `code=40402 秒杀已结束`（§9.8.4） |
+| mall-order `/actuator/health` | ✅ | HTTP 200，db/discovery/nacos UP |
+| Gateway `/actuator/health` | ✅ | HTTP 200，13 服务注册，redis/sentinel UP |
+
+#### 9.8.6 构建与检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `pwsh scripts/stop-all.ps1` | ✅ 13/13 已退出 | Stop log 13 行 `[WARN] PID=xxx 已退出` |
+| `mvn -pl mall-common,mall-gateway,mall-user,mall-order,mall-seckill -am -DskipTests package` | ✅ **BUILD SUCCESS** | 6/6 模块 SUCCESS，耗时 58.775s；`mall-seckill` repackage 成功（Windows 文件锁已释放） |
+| `mvn -DskipTests package`（全 14 模块） | ✅ **BUILD SUCCESS** | 14/14 SUCCESS，耗时 15.808s |
+| `pwsh scripts/start-middleware.ps1`（MySQL/Nacos/Redis/Seata/Sentinel） | ✅ 全部 Healthy | `mall-mysql Healthy` + `mall-nacos Healthy` |
+| full profile 启动（13 服务） | ✅ 13/13 RUNNING | `Get-NetTCPConnection` 9100-9112 全部 listening（脚本启动后 mall-inventory / mall-order / mall-pay 因 MySQL 容器未就绪首次 Exited，已在 Nacos Healthy 后用 batch 补起，env: `MALL_INFRA_HOST=127.0.0.1`） |
+| `Invoke-RestMethod http://localhost:9100/actuator/health` | ✅ 200 | 13 服务注册，redis/sentinel UP |
+| `Invoke-RestMethod http://localhost:9106/actuator/health` | ✅ 200 | db/discovery/nacos UP |
+| `git status --short` | ✅ 工作区受限改动 | 5 modified + 3 untracked（全部为 internal token 相关文件），无 `.runtime/**` / `target/**` / `mall-frontend/public/_sprint34/**` |
+| `git diff --check` | ⚠ 1 提示 | `UserController.java:114` 行尾多余空行（已存在，非本轮引入），3 个 mall-common 文件 CRLF/LF 平台提示（Windows 正常） |
+
+#### 9.8.7 未解决项（诚实记录）
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| FeignInternalTokenInterceptor / InternalPathBlockFilter 无单测 | 本轮任务范围为"验证 + 最小修复"，未补测试 | Sprint 3.6 候选：参照 `mall-gateway/JwtAuthFilterTest` 补 unit test（mock ServerWebExchange、mock Feign RequestTemplate） |
+| Dev 默认 token `dev-internal-token` | 仅本地开发用，生产必须 Nacos / env 覆盖 | Sprint 3.6 候选：在 `nacos/mall-common.yaml` 加 `mall.internal.token: <empty>` 强制 Nacos 覆盖，并补 `init-db.ps1` 检查 |
+| 地址降级链路（`addressId=999999` 等）会丢失 detail | `UserAddressClientFallbackFactory` 设计如此 | 已知设计；后续可加 metric 监控降级率 |
+| `UserController.java:114` 末尾多余空行 | 历史 diff 残留 | 微小风格；不在本轮范围 |
+| Gateway InternalPathBlockFilter 仅阻断 `users/internal/**`，未覆盖 `internal/orders` `internal/jobs` 等其他 internal 路径 | 当前 mall-order / mall-job 的 internal controller 已使用 `RequestMapping("/internal/...")` 形式，未对外暴露在 Gateway 路由表（仅 `lb://mall-order` 经 `/api/v1/orders/**` 等白名单路径），无暴露面 | 已审计；如未来新增 internal 路由需经 Gateway，必须同步审计 |
+| Admin dashboard totalSales/totalOrders 前端展示问题 | Sprint 3.3 / 3.4 已记录；非本轮范围 | Sprint 3.6 候选 |
+
+#### 9.8.8 不写以下结论
+
+- 不写"安全问题全部解决"：internal token 防护只覆盖 `mall-user` 地址接口，mall-auth / mall-product 等其他 internal 接口（`/internal/{userId}` 等）需独立审计
+- 不写"生产级安全"：dev 默认 token + 单层校验未做 mTLS/服务网格
+- 不写"异常系统完全规范"：本轮 cause 链解包是补丁式修复，根本方案应在 Service 入口统一 try-catch + 重抛
+- 不写"无遗留"：见 §9.8.7
+
+---
+
 ## 10. 评分标准对照
 
 | 评分项 | 分值 | 交付证据 | 自评 |

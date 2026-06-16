@@ -7,8 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.Enumeration;
-
 /**
  * Feign 拦截器：透传用户上下文 + 链路 ID
  *
@@ -31,15 +29,8 @@ public class FeignUserInterceptor implements RequestInterceptor {
         // 透传 traceId
         String trace = request.getHeader(CommonConstants.HEADER_TRACE_ID);
         if (trace != null) template.header(CommonConstants.HEADER_TRACE_ID, trace);
-        // 透传所有以 X- 开头的内部头
-        Enumeration<String> names = request.getHeaderNames();
-        if (names != null) {
-            while (names.hasMoreElements()) {
-                String name = names.nextElement();
-                if (name.startsWith("X-Internal-")) {
-                    template.header(name, request.getHeader(name));
-                }
-            }
-        }
+        // 严禁透传 X-Internal-* header：内部鉴权由 FeignInternalTokenInterceptor 注入，
+        // 防止客户端伪造 X-Internal-Token 借 Feign 链路访问内部接口。
+        // （Gateway 侧 InternalPathBlockFilter 也会删除外部请求中的 X-Internal-*，双层防护。）
     }
 }
