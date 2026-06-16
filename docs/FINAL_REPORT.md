@@ -1251,7 +1251,7 @@ mall-pay               56816      9107       Running
 
 ### 9.10 Sprint 3.7 internal 全域审计、浏览器验收与启动探针加固
 
-> 提交 Commit（本次提交）：`待本节末尾填写`（推送后回填）
+> 提交 Commit（本次提交）：`3bf60a632a3331e0c910340c6ca19bd33f157546`（`test: audit internal endpoints and verify admin dashboard`）
 > 接力自 Sprint 3.9 §9.9：上个 Sprint 3.9 已在 §9.9.10 列出"Sprint 3.7+ 候选"三项（Spring 上下文集成测试 / Admin dashboard 浏览器截图 / Wait-MySqlReady select 1 探针），本轮按这三项 + 任务 A 内部接口全域审计 一次性收口。
 > 阶段边界：本轮**只**做内部接口审计 / 暴露面最小防护 / Gateway 与 Security 测试增强 / Admin dashboard 浏览器截图验收 / Wait-MySqlReady 探针加固 / 必要文档更新；**不**做秒杀成功态造数、搜索高级排序、UI 大规模重构、鉴权体系重写、压测、数据库 schema 修改。
 
@@ -1463,10 +1463,13 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 
 | 项 | 值 |
 |---|---|
-| Commit SHA | 见 §10 末尾回填 |
-| Push | 见 §10 末尾回填 |
-| 工作区 | 见 §10 末尾回填 |
-| 提交拆分建议（保持单提交单一主题） | ① `fix(gateway): generalize internal path block to /api/v1/{seg}/internal/**`（`InternalPathBlockFilter.java` + 12 个测试方法） ② `test(gateway): cover filter Spring context registration and order`（`WebFluxTest.java`） ③ `chore(scripts): harden Wait-MySqlReady with select 1 probe`（`start-all.ps1`） ④ `docs(test): record Sprint 3.7 internal audit + admin dashboard screenshot`（`FINAL_REPORT.md` §9.10 + 截图 + README 追加） |
+| Commit SHA | `3bf60a632a3331e0c910340c6ca19bd33f157546`（短 SHA `3bf60a6`） |
+| Push | ✅ 成功；`cc16e9a..3bf60a6 main -> main`（`git push origin main`，`exit_code=0`） |
+| 远端对齐 | ✅ `git ls-remote origin main` 返回 `3bf60a632a3331e0c910340c6ca19bd33f157546`，与 HEAD / `origin/main` 三向一致 |
+| 工作区 | ✅ clean（`git status --short` 输出为空） |
+| 提交范围 | 7 files changed, 477 insertions(+), 7 deletions(-) — `InternalPathBlockFilter.java` (M, +38/-7)、`InternalPathBlockFilterTest.java` (M, +83)、`InternalPathBlockFilterWebFluxTest.java` (A, +95)、`start-all.ps1` (M, +44/-7)、`FINAL_REPORT.md` (M, +223)、`docs/test/screenshots/sprint3/13-admin-dashboard-browser-verified-1440x900.png` (A, +680042 bytes)、`docs/test/screenshots/sprint3/README.md` (M, +1) |
+| 未提交项确认 | `git check-ignore` 验证 `target/` / `logs/` / `.runtime/` 均被 `.gitignore` 排除；staged 中**无**真实 token / 本机绝对路径 / `.runtime/**` / `target/**` / `logs/**` |
+| 提交拆分实际执行 | 保持单 commit 单一 Sprint（Sprint 3.7 接力），未拆分；如未来需做交互式 rebase 拆分为 ① fix(gateway) ② test(gateway) ③ chore(scripts) ④ docs(test) 4 个 commit 已在文中给出建议脚本 |
 
 ---
 
