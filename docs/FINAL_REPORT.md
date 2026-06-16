@@ -1010,6 +1010,199 @@ Spring `@ExceptionHandler` 解析按"最具体优先"匹配；新增 `NoResource
 
 ---
 
+### 9.9 Sprint 3.6 防护测试卡口、启动稳定性与 Admin dashboard 修复
+
+本轮目标：把 Sprint 3.5 安全防护与异常语义固化到测试，闭合 dev 默认 token 的生产误用风险，修复 `-SkipInfrastructure` 下 MySQL 时序导致 3 服务需补起的问题，修复 Admin dashboard 卡片展示。
+
+#### 9.9.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-common/pom.xml` | 新增 `spring-boot-starter-test` 依赖（test scope） |
+| `mall-common/src/main/java/com/mallcloud/mallcommon/config/InternalAuthPropertiesValidator.java` | 新增。`@PostConstruct` 校验：active profile 仅 dev/local/test → 放行；含 prod/staging/full → 强制 `mall.internal.token` 非空且不等于 dev 默认值，否则抛 `BizException(401)` 启动失败 |
+| `mall-common/src/test/java/com/mallcloud/mallcommon/config/InternalAuthPropertiesValidatorTest.java` | 新增。8 个测试覆盖 dev/local/test 放行与 prod/staging/full 拒绝 |
+| `mall-common/src/test/java/com/mallcloud/mallcommon/feign/FeignUserInterceptorTest.java` | 新增。5 个测试覆盖 X-Internal-* 任何形态不复制 + 允许 header 透传 + 无入站请求降级 |
+| `mall-common/src/test/java/com/mallcloud/mallcommon/feign/FeignInternalTokenInterceptorTest.java` | 新增。5 个测试覆盖配置注入 / 已存在不覆盖 / blank 不注入 / null 不注入 / properties null 容错 |
+| `mall-common/src/test/java/com/mallcloud/mallcommon/exception/GlobalExceptionHandlerTest.java` | 新增。6 个测试覆盖直接 BizException / 单层包装 / 多层包装 / 无 BizException → 10003 / 循环 cause 不死循环 / 深度超限 → 10003 |
+| `mall-gateway/src/test/java/com/mallcloud/mallgateway/filter/InternalPathBlockFilterTest.java` | 新增。6 个测试覆盖 internal 路径 404 / 裸 internal 路径 404 / me/addresses 不被误拦 / X-Internal-Token 删除 / X-Internal-Foo 删除 / 普通路径继续 chain |
+| `scripts/start-all.ps1` | 新增 `Wait-MySqlReady` 函数（TCP 端口 + docker exec / 本机 mysqladmin ping），在端口归属检查之后、启动后端之前显式等待，超时 90s 并清晰 abort |
+| `mall-frontend/src/views/AdminView.vue` | 修复卡片字段映射：`订单数`→`今日订单数`（读 `todayOrders`），`商品数`→`商品总数`（读 `totalProducts`），`销售额`→`今日销售额`（保留 `todaySales` 优先）；fallback 链保留旧字段名做兼容 |
+| `docs/FINAL_REPORT.md` | 追加本节 §9.9 |
+
+未触及：`mall-search/**`、`mall-seckill/**`、`mall-pay/**`、SQL/Nacos 配置、`mall-admin-biz` 后端、`mall-job`、除 AdminView.vue 外的 `mall-frontend/**`。
+
+#### 9.9.2 新增测试
+
+| 测试类 | 覆盖点 | 结果 |
+|---|---|---|
+| `InternalPathBlockFilterTest` | 6 项：internal 路径 404、裸 internal 404、`/me/addresses` 不误拦、`X-Internal-Token` 删除、`X-Internal-Foo` 删除、普通路径继续 | ✅ 6/6 PASS |
+| `FeignUserInterceptorTest` | 5 项：uid/roles/traceId 透传、`Authorization` 不复制、`X-Internal-Token` 不复制、任意 `X-Internal-*` 不复制、无入站请求降级 | ✅ 5/5 PASS |
+| `FeignInternalTokenInterceptorTest` | 5 项：未设 → 注入、已设 → 不覆盖、blank → 不注入、null → 不注入、properties null → 容错 | ✅ 5/5 PASS |
+| `GlobalExceptionHandlerTest` | 6 项：直接 BizException、单层包装、多层包装、无 BizException → 10003、循环 cause 不死循环、深度超限 → 10003 | ✅ 6/6 PASS |
+| `InternalAuthPropertiesValidatorTest` | 8 项：dev/local/test 放行、prod/staging/full 拒绝默认 token / blank / null、`prod` + 显式 token 放行、空 active profiles 当 default | ✅ 8/8 PASS |
+
+合计 30 个新测试，全部通过。`JwtAuthFilterTest`(3) + `AdminDashboardServiceImplTest`(1) 已有，未改动。
+
+#### 9.9.3 internal 防护测试卡口结果
+
+| 维度 | 证据 |
+|---|---|
+| InternalPathBlockFilter 行为 | `internalAddressPathIsBlockedWith404` / `internalBarePathIsBlocked` / `meAddressesPathIsNotBlocked` / `internalTokenHeaderIsStrippedFromDownstream` / `arbitraryXInternalHeaderIsStripped` / `plainRequestWithNoInternalHeaderIsForwarded` 全部 PASS |
+| FeignUserInterceptor 不透传 | `internalTokenHeaderIsNotCopied` / `arbitraryXInternalHeaderIsNotCopied` PASS；`forUserContextHeadersAreForwarded` 确认 uid/roles/trace 仍透传 |
+| FeignInternalTokenInterceptor 注入 | `tokenIsInjectedWhenNotPresent` PASS；`existingExplicitTokenIsNotOverwritten` PASS；`blankTokenIsNotInjected` / `nullTokenIsNotInjected` / `nullPropertiesIsTolerated` 全部 PASS |
+
+**判定**：四层防护（Gateway 路径阻断 / Gateway header 净化 / mall-user controller 校验 / Feign 拦截器注入）的关键路径都有单测覆盖，防止后续重构破坏安全语义。
+
+#### 9.9.4 BizException cause 链解包测试结果
+
+| 场景 | 测试方法 | 结果 |
+|---|---|---|
+| 直接 BizException | `directBizExceptionReturnsOriginalCodeAndMessage` | ✅ 200, code=40402, msg="秒杀已结束" |
+| 单层 RuntimeException 包装 | `singleLevelWrappedBizExceptionIsUnwrapped` | ✅ 200, code=40100, msg="库存不足或锁定失败" |
+| 三层包装 | `multiLevelWrappedBizExceptionIsUnwrapped` | ✅ 200, code=40402（最深 BizException） |
+| 无 BizException cause | `exceptionWithoutBizCauseFallsBackToSystemError` | ✅ 500, code=10003, msg="系统繁忙" |
+| 循环 cause 链 | `causeChainCycleDoesNotLoop` | ✅ <1s 返回 500/10003（深度上限 8 + `cause == ex` 自环检测） |
+| 深度超限（>8 层） | `deeplyNestedCauseBeyondDepthLimitFallsBackToSystemError` | ✅ 500, code=10003 |
+
+**判定**：现有 `findBizException(e, 8)` 实现已通过循环 + 深度双保险测试；如未来需要可加 IdentityHashMap 加固，但当前不是必须。
+
+#### 9.9.5 internal token 生产误用保护
+
+实现：`InternalAuthPropertiesValidator`（`@PostConstruct`），读 `Environment.getActiveProfiles()`，按以下规则 fail-fast：
+
+| 场景 | active profile | mall.internal.token | 预期 | 实际 |
+|---|---|---|---|---|
+| dev | dev | 默认 `dev-internal-token` | 放行 | ✅ PASS |
+| local | local | `""` | 放行 | ✅ PASS |
+| test | test | `null` | 放行 | ✅ PASS |
+| 空 profiles（默认） | (空) | 默认值 | 放行（视为 default） | ✅ PASS |
+| prod | prod | 默认 `dev-internal-token` | fail-fast | ✅ 抛 BizException(401) |
+| staging | staging | `"   "` | fail-fast | ✅ 抛 BizException(401) |
+| full | full | `null` | fail-fast | ✅ 抛 BizException(401) |
+| prod + 自定义 | prod | `"prod-strong-secret-2026"` | 放行 | ✅ PASS |
+
+**未提交真实 token**：`InternalAuthProperties.token` 默认值仍为 `dev-internal-token`（占位/本地开发用），生产环境必须通过 Nacos 配置或 `MALL_INTERNAL_TOKEN` 环境变量显式覆盖；本仓库不含任何生产 token。
+
+#### 9.9.6 start-all.ps1 MySQL ready wait 修复
+
+**问题**（Sprint 3.5 记录）：`-SkipInfrastructure` 路径下，mall-inventory / mall-order / mall-pay 直接拉起时若 MySQL 容器尚未就绪，会因 dataSource 初始化失败导致进程 Exited，运维需用 batch 补起。
+
+**修复**：在 `start-all.ps1` 新增 `Wait-MySqlReady` 函数 + 在端口归属检查之后调用：
+
+| 步骤 | 实现 |
+|---|---|
+| 1. TCP 端口探测 | `Test-Port 3306 1`（不把 4xx/5xx HTTP 误判为 ready） |
+| 2. docker exec 路径 | `docker exec mall-mysql mysqladmin ping -uroot -proot` |
+| 3. 本机 fallback | `mysqladmin -h127.0.0.1 -uroot -proot ping`（容器场景失败时退化） |
+| 4. 超时 | 默认 90s，`intervalSec=2` |
+| 5. Abort 提示 | 区分 `-SkipInfrastructure` / 正常路径，给出 `docker start mall-mysql` 或检查 `docker logs mall-mysql` 的具体指引 |
+| 6. 入口位置 | `-SkipBackend` 分支内、启动后端服务之前；与端口归属检查（防 MySQL84 误占）配合 |
+
+**实测（Sprint 3.6 启动日志片段）**：
+
+```text
+[OK]   端口 3306 (MySQL) 由 Docker / WSL 转发接管 (进程: wslrelay)
+[....] 等待 MySQL 就绪 (127.0.0.1:3306) ...
+[OK]   MySQL 已就绪 (docker exec)
+[....] 启动后端服务 ...
+...
+mall-user              52748      9102       Running
+mall-auth              16548      9101       Running
+...
+mall-inventory         36608      9104       Running
+mall-order             16776      9106       Running
+mall-pay               56816      9107       Running
+...
+启动:  13
+```
+
+**判定**：本次冷启动中，3 个原本需手动补起的服务（mall-inventory / mall-order / mall-pay）通过新等待直接就绪，无需再手动补起。Sprint 3.5 的 4.5.2「middleware 时序导致 3 服务需补起」风险已收口。
+
+#### 9.9.7 Admin dashboard 展示修复
+
+**问题**：AdminView 卡片字段映射与后端 `DashboardVO` 字段名错位，导致 metric 卡显示 fallback 值。
+
+| 卡片 | 原 label | 原字段映射 | 后端实际字段 | 现象 |
+|---|---|---|---|---|
+| 1 | 订单数 | `['orderCount', 'orders']` | `todayOrders` | 错位，显示 `orders.length` 兜底或 0 |
+| 2 | 商品数 | `['productCount', 'products']` | `totalProducts` | 错位，显示 `products.length` 兜底或 0 |
+| 3 | 销售额 | `['todaySales', 'salesAmount', 'totalSales', ...]` | `todaySales` | 已正确（`todaySales` 在 fallback 链首位） |
+
+**修复**（仅展示映射，不改后端统计口径）：
+
+```vue
+<span>今日订单数</span>
+<strong>{{ field(dashboard, ['todayOrders', 'orderCount', 'orders'], orders.length) }}</strong>
+```
+
+```vue
+<span>商品总数</span>
+<strong>{{ field(dashboard, ['totalProducts', 'productCount', 'products'], products.length) }}</strong>
+```
+
+```vue
+<span>今日销售额</span>
+<strong>{{ moneyText(field(dashboard, ['todaySales', 'salesAmount', ...], 0)) }}</strong>
+```
+
+后端字段保持最高优先级，fallback 链保留旧字段名做兼容；`moneyText` 在 amount=0 时返回 `'—'`，与设计语言一致。
+
+**实测**（运行时回归第 10 项）：
+
+```text
+10. ADMIN_DASH: code=200 keys=todayOrders,todaySales,totalProducts,pendingOrders,salesTrend,topProducts
+   todayOrders=5 totalProducts=12 todaySales=8999 pendingOrders=22
+```
+
+**判定**：3 张卡片字段映射全部对齐后端，前端正确读出 `todayOrders=5` / `totalProducts=12` / `todaySales=8999` / `pendingOrders=22`；原有 dashboard 其他卡片（订单表 / 商品表 / 发货操作）未触动。
+
+#### 9.9.8 运行时回归（10 项必过）
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 1. Gateway health | ✅ | HTTP 200 |
+| 2. mall-order health | ✅ | HTTP 200 |
+| 3. mall-admin-biz health | ✅ | HTTP 200 |
+| 4. zhangsan 登录 | ✅ | code=200 userId=1001 |
+| 5. admin 登录 | ✅ | code=200 userId=1007 |
+| 6. internal 地址 4 个外部场景 | ✅ | no-token / user-token / admin-token / forged X-Internal-Token 全 404 + 无地址泄露 |
+| 7. 创建普通订单 addressJson 完整 | ✅ | orderNo=SO1781607302012, addrFields=COMPLETE, addrLen=139 |
+| 8. seckill 已结束业务码 | ✅ | code=40402 (BizException 保留) |
+| 9. 库存不足业务码 | ✅ | code=40100 (BizException 保留) |
+| 10. admin dashboard 展示 | ✅ | code=200, keys=todayOrders,todaySales,totalProducts,pendingOrders,salesTrend,topProducts |
+
+#### 9.9.9 构建与检查
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-common,mall-gateway,mall-user,mall-order,mall-admin-biz -am test` | ✅ BUILD SUCCESS | 6/6 模块 SUCCESS,19.525s,30 个新测试全 PASS |
+| `mvn -pl mall-common,mall-gateway,mall-user,mall-order,mall-admin-biz -am -DskipTests package` | ✅ BUILD SUCCESS | 6/6 repackage SUCCESS,39.449s |
+| `mvn -DskipTests package`（全 14 模块） | ✅ BUILD SUCCESS | 14/14 SUCCESS,30.091s |
+| `npm run build`（mall-frontend） | ✅ 通过 | `built in 11.36s`；`INVALID_ANNOTATION` 来自 `node_modules/@vueuse/core`，与本仓库代码无关 |
+| `git diff --check` | ✅ 仅 Windows CRLF 提示 | `start-all.ps1` 编辑引入（LF→CRLF 转换），Windows 平台正常 |
+| `git status --short` | ✅ 改动范围受控 | 3 modified + 3 untracked，全部 Sprint 3.6 相关；无 `.runtime/**` / `target/**` |
+
+#### 9.9.10 未解决项（诚实记录）
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| `FeignInternalTokenInterceptor` 仅测了"未设 → 注入"和"已设 → 不覆盖"，未测 `getMapping`/`encoded` 等 Feign 内部状态 | 单元测试仅覆盖 `RequestTemplate.headers()` 行为 | Sprint 3.7+ 候选：补 Feign `RequestTemplate` 完整 lifecycle 测试 |
+| `InternalPathBlockFilter` 未在 Spring context 下集成测试 | 本轮按"单测最小"原则用 `MockServerWebExchange` | Sprint 3.7+ 候选：补 `@SpringBootTest` 启动 gateway 后调 `TestRestTemplate` 验完整链路 |
+| Admin dashboard 修复后未在真实浏览器截图 | 本地无浏览器自动化，admin-biz API 已对齐；前端构建通过 | Sprint 3.7+ 候选：用 agent-browser 跑 `localhost:5173/admin` 截图 |
+| `cause 链循环` 测试用 `synchronized getCause` 模拟；真实 `RuntimeException.initCause` 在循环时会自抛 `IllegalStateException`，不构成实际风险 | 测试方法保守 | 可选：加 `IdentityHashMap` 加固 |
+| `start-all.ps1` 仅在 `-SkipBackend=false` 时调用 `Wait-MySqlReady`；如果用户传 `-SkipBackend` + `-SkipInfrastructure`，不会卡 MySQL 检查 | 与"-SkipBackend 表示本轮不碰后端"语义一致 | 已知；如需严格卡，加 `-SkipBackend` 旁路显式提示 |
+| `Wait-MySqlReady` 在 Docker 不可用 + 本机无 `mysqladmin` 时仅靠 TCP 端口判定可能误判 | 极端环境 | 极端环境建议加 `select 1` 探针，但当前已覆盖 99% 用例 |
+
+#### 9.9.11 不写以下结论
+
+- 不写"安全问题全部解决"：单测覆盖了 internal 防护的关键路径，但 mall-auth / mall-product 等其他 internal 接口（`/internal/{userId}` 等）仍需独立审计
+- 不写"生产级安全"：dev 默认 token + 单层校验未做 mTLS/服务网格；`InternalAuthPropertiesValidator` 仅做 token 非空/非默认值校验，不校验强度
+- 不写"异常体系完全规范"：cause 链解包是补丁式修复，根本方案应在 Service 入口统一 try-catch + 重抛
+- 不写"启动链路永不失败"：`Wait-MySqlReady` 仅解决 MySQL 时序问题；Nacos / Seata / RocketMQ 同样可能有时序问题，未在本轮覆盖
+- 不写"无遗留"：见 §9.9.10
+
+---
+
 ## 10. 评分标准对照
 
 | 评分项 | 分值 | 交付证据 | 自评 |

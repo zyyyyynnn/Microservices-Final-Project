@@ -95,9 +95,43 @@ function Wait-Http($url, $label, $timeoutSec = 120, $intervalSec = 3) {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
         try {
-            $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+            $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
             if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { return $true }
         } catch {}
+        Start-Sleep -Seconds $intervalSec
+    }
+    return $false
+}
+
+# MySQL 连通性 + 就绪检测
+# 1) TCP 端口探测 3306，避免 4xx/5xx HTTP 误判
+# 2) 优先用 docker exec mall-mysql mysqladmin ping（容器场景）
+# 3) 退回本机 mysqladmin（无 Docker 场景）
+# 返回 true 表示已就绪，false 表示超时
+function Wait-MySqlReady($timeoutSec = 90, $intervalSec = 2) {
+    Write-Info "等待 MySQL 就绪 (127.0.0.1:3306) ..."
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
+        if (-not (Test-Port 3306 1)) {
+            Start-Sleep -Seconds $intervalSec
+            continue
+        }
+        $dockerExe = Get-Command docker -ErrorAction SilentlyContinue
+        if ($dockerExe) {
+            $ping = & docker exec mall-mysql mysqladmin ping -uroot -proot 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok "MySQL 已就绪 (docker exec)"
+                return $true
+            }
+        }
+        $mysqladmin = Get-Command mysqladmin -ErrorAction SilentlyContinue
+        if ($mysqladmin) {
+            & mysqladmin -h127.0.0.1 -uroot -proot ping 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Ok "MySQL 已就绪 (本机 mysqladmin)"
+                return $true
+            }
+        }
         Start-Sleep -Seconds $intervalSec
     }
     return $false
@@ -567,6 +601,28 @@ if (-not $SkipBackend) {
     if ($portCheckResult.Status -eq "Blocked") {
         Write-Host ""
         Write-Host "  [ABORT] 启动中止：请按上述提示停止 MySQL84 后重试。" -ForegroundColor Red
+        Write-Host ""
+        exit 1
+    }
+    Write-Host ""
+}
+
+# ── MySQL 就绪等待（启动后端前） ────────────────────────────
+# -SkipInfrastructure 路径下，mall-inventory / mall-order / mall-pay 等需要 MySQL 的服务
+# 直接拉起时若 MySQL 容器尚未就绪，会因 dataSource 初始化失败导致进程 Exited
+# （Sprint 3.5 已观察到）。此处显式等待 MySQL ready，超时清晰报错。
+if (-not $SkipBackend) {
+    $mysqlReady = Wait-MySqlReady 90 2
+    if (-not $mysqlReady) {
+        Write-Host ""
+        Write-Host "  [ABORT] MySQL 在 90 秒内未就绪 (127.0.0.1:3306)。" -ForegroundColor Red
+        if ($SkipInfrastructure) {
+            Write-Host "         你使用了 -SkipInfrastructure，请确认 MySQL 容器 (mall-mysql) 已启动：" -ForegroundColor Red
+            Write-Host "           docker start mall-mysql" -ForegroundColor Red
+            Write-Host "         或运行 .\scripts\start-middleware.ps1 拉起 MySQL 后重试。" -ForegroundColor Red
+        } else {
+            Write-Host "         Docker Compose 已执行但 MySQL 仍超时，请检查 docker logs mall-mysql。" -ForegroundColor Red
+        }
         Write-Host ""
         exit 1
     }

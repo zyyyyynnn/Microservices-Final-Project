@@ -118,15 +118,15 @@ onMounted(loadAdmin);
     <el-alert v-if="dashboardError" :title="dashboardError" type="warning" :closable="false" />
     <div class="stats-grid">
       <el-card class="metric-card">
-        <span>订单数</span>
-        <strong>{{ field(dashboard, ['orderCount', 'orders'], orders.length) }}</strong>
+        <span>今日订单数</span>
+        <strong>{{ field(dashboard, ['todayOrders', 'orderCount', 'orders'], orders.length) }}</strong>
       </el-card>
       <el-card class="metric-card">
-        <span>商品数</span>
-        <strong>{{ field(dashboard, ['productCount', 'products'], products.length) }}</strong>
+        <span>商品总数</span>
+        <strong>{{ field(dashboard, ['totalProducts', 'productCount', 'products'], products.length) }}</strong>
       </el-card>
       <el-card class="metric-card">
-        <span>销售额</span>
+        <span>今日销售额</span>
         <strong>{{ moneyText(field(dashboard, ['todaySales', 'salesAmount', 'totalSales', 'todaySalesAmount', 'totalSalesAmount', 'revenue'], 0)) }}</strong>
       </el-card>
     </div>
