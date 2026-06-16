@@ -47,13 +47,17 @@ class InternalPathBlockFilterWebFluxTest {
     }
 
     @Test
-    @DisplayName("Spring 上下文：filter 注册为 bean 且 order=-200 早于 JwtAuthFilter")
+    @DisplayName("Spring 上下文：filter 注册为 bean 且 order 来自 GatewayFilterOrders 常量")
     void filterIsRegisteredAsBean() {
         InternalPathBlockFilter bean = applicationContext.getBean(InternalPathBlockFilter.class);
         assertNotNull(bean, "filter must be registered as a Spring bean");
         assertSame(internalPathBlockFilter, bean, "autowired instance must equal context bean");
-        assertEquals(-200, bean.getOrder(),
-                "filter order must be -200 (before JwtAuthFilter which is -100)");
+        // Sprint 3.8：order 来自 GatewayFilterOrders 常量，不再硬编码 -200
+        assertEquals(GatewayFilterOrders.INTERNAL_PATH_BLOCK_FILTER_ORDER, bean.getOrder(),
+                "filter order must equal GatewayFilterOrders.INTERNAL_PATH_BLOCK_FILTER_ORDER (-200)");
+        // 相对顺序断言：必须早于 JWT 鉴权
+        assertTrue(bean.getOrder() < GatewayFilterOrders.JWT_AUTH_FILTER_ORDER,
+                "INTERNAL_PATH_BLOCK_FILTER_ORDER must be < JWT_AUTH_FILTER_ORDER so internal path is blocked before auth");
     }
 
     @Test

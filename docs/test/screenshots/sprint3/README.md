@@ -22,6 +22,16 @@
 | 13-admin-dashboard-browser-verified-1440x900.png | 后台看板浏览器验收（**历史 full-page**） | `/admin` | **1254×9840 full-page**（文件名沿用视口命名约定） | admin | 🟡 历史命名误导 | Sprint 3.7 第一轮接力（§9.10 初版）真实浏览器访问 `/admin` 整页截图；`/api/v1/admin/dashboard` 返回 `code=200` 含 `todayOrders/totalProducts/todaySales/pendingOrders`；3 张指标卡读数与 API 一致；**视口宽度 1254** 是 Hermes 浏览器工具（1280 outerWidth）下 dev tools + 滚动条挤压（**非造假**）；文件名命名沿用 sprint3/ 视口命名约定但**实际尺寸不符**。本轮 Sprint 3.7 证据修正新增 14/15 号严格视口截图替代其作为验收主证据，13 号**保留为历史证据不删除** |
 | **14-admin-dashboard-viewport-1440x900.png** | 后台看板严格视口（**本轮新增主证据**） | `/admin` | **1440×900 严格视口** | admin | ✅ 通过 | Sprint 3.7 第二轮接力（§9.10.5 证据修正）使用 Python 3.13 + Playwright 1.60 + Chromium headless，`viewport={"width":1440,"height":900}` + `full_page=False` 强制 viewport 截图；`page.wait_for_selector("text=今日订单数")` 等指标卡渲染后才截；`add_init_script` 注入 `mallcloud_access_token`（admin JWT）到 localStorage；`PIL.Image.open()` 验证实际尺寸 = **1440×900**（无 full-page）；3 张指标卡读数与 `/api/v1/admin/dashboard` API 一致（10 / 12 / ¥8999.00） |
 | **15-admin-dashboard-mobile-390x844.png** | 后台看板 mobile 视口（**本轮新增主证据**） | `/admin` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，Playwright `is_mobile=True, has_touch=True, device_scale_factor=1` + `viewport={"width":390,"height":844}`；`PIL.Image.open()` 验证实际尺寸 = **390×844**（无 full-page）；mobile 单列布局；指标卡读数与 API 一致 |
+| **18-orders-viewport-1440x900.png** | 订单详情 desktop 视口（**Sprint 3.8 新增**） | `/orders/SO1781616320768` | **1440×900 严格视口** | zhangsan | ✅ 通过 | Sprint 3.8 任务 A：Playwright `viewport=1440x900` + `full_page=False`；`add_init_script` 注入 zhangsan JWT（orderNo=SO1781616320768 是 Sprint 3.7 7 号回归创建的待支付订单）；PIL 核验 = 1440×900（49078 bytes） |
+| **19-orders-mobile-390x844.png** | 订单详情 mobile 视口（**Sprint 3.8 新增**） | `/orders/SO1781616320768` | **390×844 mobile 视口** | zhangsan | ✅ 通过 | 同上，mobile 视口 + has_touch=True；PIL 核验 = 390×844（28763 bytes） |
+| **20-pay-viewport-1440x900.png** | 支付页 desktop 视口（**Sprint 3.8 新增**） | `/pay/SO1781616320768` | **1440×900 严格视口** | zhangsan | ✅ 通过 | 同上，路径 /pay；PIL 核验 = 1440×900（37878 bytes） |
+| **21-pay-mobile-390x844.png** | 支付页 mobile 视口（**Sprint 3.8 新增**） | `/pay/SO1781616320768` | **390×844 mobile 视口** | zhangsan | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（23398 bytes） |
+| **22-seckill-viewport-1440x900.png** | 秒杀列表 desktop 视口（**Sprint 3.8 新增**） | `/seckill` | **1440×900 严格视口** | zhangsan | ✅ 通过 | 同上，路径 /seckill；PIL 核验 = 1440×900（62397 bytes） |
+| **23-seckill-mobile-390x844.png** | 秒杀列表 mobile 视口（**Sprint 3.8 新增**） | `/seckill` | **390×844 mobile 视口** | zhangsan | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（25941 bytes） |
+| **24-search-viewport-1440x900.png** | 搜索页 desktop 视口（**Sprint 3.8 新增**） | `/search?keyword=iPhone` | **1440×900 严格视口** | 游客（搜索在 Gateway 白名单） | ✅ 通过 | 同上，路径 /search?keyword=iPhone（公共路由无需 auth）；PIL 核验 = 1440×900（45360 bytes） |
+| **25-search-mobile-390x844.png** | 搜索页 mobile 视口（**Sprint 3.8 新增**） | `/search?keyword=iPhone` | **390×844 mobile 视口** | 游客 | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（24780 bytes） |
+| **26-cart-viewport-1440x900.png** | 购物车 desktop 视口（**Sprint 3.8 新增**） | `/cart` | **1440×900 严格视口** | zhangsan | ✅ 通过 | 同上，路径 /cart；PIL 核验 = 1440×900（47953 bytes） |
+| **27-cart-mobile-390x844.png** | 购物车 mobile 视口（**Sprint 3.8 新增**） | `/cart` | **390×844 mobile 视口** | zhangsan | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（29172 bytes） |
 
 ## 关键链路证据
 

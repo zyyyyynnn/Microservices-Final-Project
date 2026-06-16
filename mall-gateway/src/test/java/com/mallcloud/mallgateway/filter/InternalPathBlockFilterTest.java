@@ -185,11 +185,12 @@ class InternalPathBlockFilterTest {
 
     @Test
     void filterOrderIsBeforeJwtAuthFilter() {
-        // InternalPathBlockFilter.getOrder() = -200; JwtAuthFilter.getOrder() = -100
-        // 必须 -200 < -100，这样 InternalPathBlockFilter 先于 JwtAuthFilter 执行
+        // InternalPathBlockFilter getOrder() == GatewayFilterOrders.INTERNAL_PATH_BLOCK_FILTER_ORDER
+        // JwtAuthFilter getOrder() == GatewayFilterOrders.JWT_AUTH_FILTER_ORDER
+        // 必须 INTERNAL < JWT，这样 InternalPathBlockFilter 先于 JwtAuthFilter 执行
         // 否则未授权 internal 请求会被 JwtAuthFilter 写 401（虽然也阻断了，
         // 但 response 不一致，且 userId 头不会被写到下游，破坏"路径级白名单"语义）
-        assertTrue(filter.getOrder() < -100,
-                "InternalPathBlockFilter order must be < JwtAuthFilter order(-100) to execute first");
+        assertTrue(filter.getOrder() < GatewayFilterOrders.JWT_AUTH_FILTER_ORDER,
+                "InternalPathBlockFilter order must be < JwtAuthFilter order (see GatewayFilterOrders)");
     }
 }

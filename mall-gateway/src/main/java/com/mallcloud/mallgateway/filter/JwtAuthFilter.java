@@ -189,6 +189,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -100;
+        // 见 com.mallcloud.mallgateway.filter.GatewayFilterOrders 常量说明
+        // 必须晚于 InternalPathBlockFilter（order=-200）执行
+        return GatewayFilterOrders.JWT_AUTH_FILTER_ORDER;
     }
 }

@@ -132,8 +132,10 @@ public class InternalPathBlockFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        // 早于 JwtAuthFilter (-100)，避免给未授权请求打 userId 头再放行
-        return -200;
+        // 见 com.mallcloud.mallgateway.filter.GatewayFilterOrders 常量说明
+        // 必须早于 JwtAuthFilter（JwtAuthFilter.getOrder() = -100）
+        // 避免给未授权 internal 请求打 userId 头再放行
+        return GatewayFilterOrders.INTERNAL_PATH_BLOCK_FILTER_ORDER;
     }
 
     /**
