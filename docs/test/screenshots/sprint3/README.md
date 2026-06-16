@@ -19,7 +19,9 @@
 | 10-search-empty-1440x900.png | 搜索空态 | `/search?keyword=zzzzz_nonexistent_xyz` | 1440x900 | 游客 | 通过 | `total=0`，展示空态 `暂无搜索结果 / 当前暂未找到可展示内容，请稍后重试或返回首页浏览。` + 翻页器禁用 |
 | 11-seckill-list-1440x900.png | 秒杀活动列表 | `/seckill` | 1440x900 | zhangsan | 通过 | 4 个活动真实加载（id=9001/1/2/3），均显示"已结束"状态；详情面板含价格/库存/时间 |
 | 12-seckill-action-1440x900.png | 秒杀动作结果 | `/seckill` | 1440x900 | zhangsan | 有条件通过 | 点击 iPhone 15 Pro 限时秒杀 + 发起秒杀，**真实业务码 code=40402 "秒杀已结束"**；后端 `validateActivity` 第 216 行因 endTime 已过抛 `BizException(40402)`；前端默认用 ElMessage toast 提示 3 秒后消失，本截图通过临时 banner 保留完整响应体 |
-| 13-admin-dashboard-browser-verified-1440x900.png | 后台看板浏览器验收 | `/admin` | **1254×9840 full-page**（文件名沿用视口命名约定） | admin | 有条件通过 | Sprint 3.7 接力（Sprint 3.9 §9.9.7 字段修复后）真实浏览器访问 `/admin` 整页截图；`/api/v1/admin/dashboard` 返回 `code=200` 含 `todayOrders/totalProducts/todaySales/pendingOrders`；3 张指标卡读数与 API 一致；视口宽度 1254 是浏览器 dev tools + 滚动条挤压导致（**非造假**）；本轮未生成 1440×900 严格视口截图和 mobile 视口截图（见 FINAL_REPORT §9.10.5 / §9.10.7） |
+| 13-admin-dashboard-browser-verified-1440x900.png | 后台看板浏览器验收（**历史 full-page**） | `/admin` | **1254×9840 full-page**（文件名沿用视口命名约定） | admin | 🟡 历史命名误导 | Sprint 3.7 第一轮接力（§9.10 初版）真实浏览器访问 `/admin` 整页截图；`/api/v1/admin/dashboard` 返回 `code=200` 含 `todayOrders/totalProducts/todaySales/pendingOrders`；3 张指标卡读数与 API 一致；**视口宽度 1254** 是 Hermes 浏览器工具（1280 outerWidth）下 dev tools + 滚动条挤压（**非造假**）；文件名命名沿用 sprint3/ 视口命名约定但**实际尺寸不符**。本轮 Sprint 3.7 证据修正新增 14/15 号严格视口截图替代其作为验收主证据，13 号**保留为历史证据不删除** |
+| **14-admin-dashboard-viewport-1440x900.png** | 后台看板严格视口（**本轮新增主证据**） | `/admin` | **1440×900 严格视口** | admin | ✅ 通过 | Sprint 3.7 第二轮接力（§9.10.5 证据修正）使用 Python 3.13 + Playwright 1.60 + Chromium headless，`viewport={"width":1440,"height":900}` + `full_page=False` 强制 viewport 截图；`page.wait_for_selector("text=今日订单数")` 等指标卡渲染后才截；`add_init_script` 注入 `mallcloud_access_token`（admin JWT）到 localStorage；`PIL.Image.open()` 验证实际尺寸 = **1440×900**（无 full-page）；3 张指标卡读数与 `/api/v1/admin/dashboard` API 一致（10 / 12 / ¥8999.00） |
+| **15-admin-dashboard-mobile-390x844.png** | 后台看板 mobile 视口（**本轮新增主证据**） | `/admin` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，Playwright `is_mobile=True, has_touch=True, device_scale_factor=1` + `viewport={"width":390,"height":844}`；`PIL.Image.open()` 验证实际尺寸 = **390×844**（无 full-page）；mobile 单列布局；指标卡读数与 API 一致 |
 
 ## 关键链路证据
 
@@ -28,6 +30,7 @@
 - **Sprint 3.3 支付链路完整**：`payNo=PAY2026061320656761` → `POST /api/v1/pay/notify` 返回统一响应 `{"code":200,"message":"ok","data":"success",...}` → 订单状态 0→1 真实变化
 - **admin 登录**：`userId=1007, roles=["ADMIN"]`（`accessToken` 已注入 localStorage）
 - **admin 看板**：`/api/v1/admin/dashboard` 返回 `code=200`，含 `todayOrders=1, todaySales=8999.00, totalProducts=12, pendingOrders=19, salesTrend[5], topProducts[5]`
+- **Sprint 3.7 admin 看板（本轮独立复跑）**：`/api/v1/admin/dashboard` 返回 `code=200`，含 `todayOrders=10, todaySales=8999.00, totalProducts=12, pendingOrders=22, salesTrend[4], topProducts[≥5]`（实际指标随时间累加，10/12/¥8999.00 是本轮 14/15 号截图生成时的真实值）
 
 ## 截图生成方法
 

@@ -1251,8 +1251,8 @@ mall-pay               56816      9107       Running
 
 ### 9.10 Sprint 3.7 internal 全域审计、浏览器验收与启动探针加固
 
-> 提交 Commit（本次提交）：`3bf60a632a3331e0c910340c6ca19bd33f157546`（`test: audit internal endpoints and verify admin dashboard`）
-> 接力自 Sprint 3.9 §9.9：上个 Sprint 3.9 已在 §9.9.10 列出"Sprint 3.7+ 候选"三项（Spring 上下文集成测试 / Admin dashboard 浏览器截图 / Wait-MySqlReady select 1 探针），本轮按这三项 + 任务 A 内部接口全域审计 一次性收口。
+> 接力自 Sprint 3.6 §9.9：上个 Sprint 3.6 已在 §9.9.10 列出"Sprint 3.7+ 候选"三项（Spring 上下文集成测试 / Admin dashboard 浏览器截图 / Wait-MySqlReady select 1 探针），本轮按这三项 + 任务 A 内部接口全域审计 一次性收口。
+> 提交累计：接力时本节共产生 2 个 commit — 主提交 `test: audit internal endpoints and verify admin dashboard` + 回填 `docs: backfill FINAL_REPORT 9.10.9 commit SHA and push status`；具体 SHA 与远端对齐状态以推送后 `git ls-remote origin main` / `git rev-parse HEAD` 输出为准（**本节文档不绑定未来 commit 的最终 SHA**，因 commit 对象自身的哈希由内容决定，文档后续修订会改变最终对象 SHA）。
 > 阶段边界：本轮**只**做内部接口审计 / 暴露面最小防护 / Gateway 与 Security 测试增强 / Admin dashboard 浏览器截图验收 / Wait-MySqlReady 探针加固 / 必要文档更新；**不**做秒杀成功态造数、搜索高级排序、UI 大规模重构、鉴权体系重写、压测、数据库 schema 修改。
 
 #### 9.10.1 internal 接口全域审计（任务 A）
@@ -1341,7 +1341,7 @@ private static final Pattern USERS_INTERNAL_PATH =
 | `genericPatternIsExposed` | 通用正则 `^/api/v1/[A-Za-z0-9_-]+/internal(/.*)?$` 匹配 5 个 case、不匹配 2 个普通业务 case | ✅ PASS |
 | `usersInternalSpecificPatternIsExposed` | 特定正则（语义锚点）匹配 `users/internal/**`、不匹配非 user 路径 | ✅ PASS |
 
-**新增 6 个 `InternalPathBlockFilterTest` 单元测试**（Sprint 3.7 在 Sprint 3.9 6 个测试基础上累计到 12 个测试方法）：
+**新增 6 个 `InternalPathBlockFilterTest` 单元测试**（Sprint 3.7 在 Sprint 3.6 6 个测试基础上累计到 12 个测试方法）：
 
 | 测试方法 | 覆盖点 | 结果 |
 |---|---|---|
@@ -1357,7 +1357,7 @@ private static final Pattern USERS_INTERNAL_PATH =
 
 #### 9.10.4 Wait-MySqlReady 加固（任务 D）
 
-**问题**（Sprint 3.9 §9.9.10 已记录）：Docker 不可用 + 本机无 `mysqladmin` 时仅靠 TCP 端口判定可能误判 MySQL ready（mysqld 已 accept 但 init 握手未完成）。
+**问题**（Sprint 3.6 §9.9.10 已记录）：Docker 不可用 + 本机无 `mysqladmin` 时仅靠 TCP 端口判定可能误判 MySQL ready（mysqld 已 accept 但 init 握手未完成）。
 
 **修复**（`scripts/start-all.ps1` 44 行增量）：`Wait-MySqlReady` 探针优先级为 ① docker exec `select 1` ② docker exec `mysqladmin ping` ③ 本机 `mysqladmin ping` ④ 本机 `mysql -e "SELECT 1"` ⑤ TCP 端口兜底（**WARN**）。
 
@@ -1400,28 +1400,40 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 启动:  13
 ```
 
-**判定**：select 1 探针逻辑已落地；Sprint 3.9 §9.9.10 列出的「极端环境 mysqladmin 不可用」风险已收口。本轮**未在接力期间重新执行 full profile 启动**，避免与 Sprint 3.9 启动序列冲突；如需独立复测请在接力 commit 完成后按上述命令单独跑。
+**判定**：select 1 探针逻辑已落地；Sprint 3.6 §9.9.10 列出的「极端环境 mysqladmin 不可用」风险已收口。**本轮（第二轮接力）已独立执行 full profile 启动 + MySQL 探针实测**（见 §9.10.6 任务 B 与 §9.10.4 探针实测行）。
 
 #### 9.10.5 Admin dashboard 浏览器截图验收（任务 E）
 
-**截图产物**：
+**截图产物**（截图由本轮 Sprint 3.7 接力者使用 Hermes 浏览器工具 `browser_navigate` 真实访问 `http://localhost:5173/admin` 生成；不伪造、不裁剪、不补图；localStorage 凭据注入与 Sprint 3.2 7 号截图方法一致）：
 
-| 文件 | 视口声称 | 实际尺寸（PNG 头） | 状态 | 说明 |
-|---|---|---|---|---|
-| `docs/test/screenshots/sprint3/13-admin-dashboard-browser-verified-1440x900.png` | 1440x900 | **1254 x 9840**（full-page 长截图） | ✅ 真实生成 | 浏览器对 `/admin` 页面做整页截图，**宽度 1254**（浏览器内容视口，非视口声明的 1440），高度 9840 反映页面纵向完整内容 |
+| 编号 | 文件 | 视口声称 | 实际尺寸（PNG 头） | 是否 full-page | 状态 | 说明 |
+|---|---|---|---|---|---|---|
+| 13 | `13-admin-dashboard-browser-verified-1440x900.png` | 1440x900 | **1254 x 9840** | **是**（历史 full-page 长截图） | 🟡 历史命名误导，**非严格 1440x900 视口** | 文件名沿用 sprint3/ 目录视口命名约定；实际是 full-page 整页截图；接力时未能用 Playwright 强制 viewport 复跑，**保留作为历史证据**，不作为 Sprint 3.7 严格视口验收 |
+| 14（本轮新增，§9.10.5 主证据） | `14-admin-dashboard-viewport-1440x900.png` | 1440x900 | **1440 x 900**（PIL 核验） | 否（Playwright `full_page=False`） | ✅ 严格视口 PASS | Python 3.13 + Playwright 1.60 + Chromium headless，`viewport={"width":1440,"height":900}` 强制；`page.wait_for_selector("text=今日订单数")` 等指标卡渲染；`add_init_script` 注入 admin JWT 到 localStorage；3 张卡读数 = 10 / 12 / ¥8999.00，与 `/api/v1/admin/dashboard` API 一致；文件大小 91055 bytes |
+| 15（本轮新增，§9.10.5 主证据） | `15-admin-dashboard-mobile-390x844.png` | 390x844 | **390 x 844**（PIL 核验） | 否（Playwright `full_page=False`） | ✅ 严格 mobile 视口 PASS | 同上，`is_mobile=True, has_touch=True, device_scale_factor=1, viewport={"width":390,"height":844}`；mobile 单列布局；3 张卡读数与 API 一致；文件大小 21193 bytes |
 
-**诚实记录**：
+**截图核验证据**（本轮执行，2026-06-16）：
 
-- 文件名保留 `_1440x900` 是沿用本目录其余 12 张截图的命名约定（视口宽度），**实际内容是 full-page 长截图**（1254 x 9840）。
-- 截图通过 `browser_navigate` 访问 `http://localhost:5173/admin` 真实生成，凭据注入 `localStorage`（与 Sprint 3.2 7 号截图方法一致）。
-- 视口宽度 1254 ≠ 1440 的原因：浏览器在 1440 视口下访问 dev server 时存在 dev tools 栏 + 滚动条挤压；这是浏览器工具的行为，**不是造假或裁剪**。
+```text
+14-admin-dashboard-viewport-1440x900.png: 1440x900 bytes=91055 viewport_decl=1440x900
+15-admin-dashboard-mobile-390x844.png: 390x844 bytes=21193 viewport_decl=390x844
+14: declared 1440x900, actual 1440x900, ✅ PASS
+15: declared 390x844, actual 390x844, ✅ PASS
+```
+
+**13 号截图（历史）诚实记录**：
+
+- 文件名 `_1440x900` 是沿用本目录其余 12 张截图的命名约定（视口宽度），**实际内容是 full-page 长截图**（1254 x 9840）。**不是造假或裁剪**。
+- 视口宽度 1254 ≠ 1440 的原因：浏览器工具在 1440 视口下访问 dev server 时存在 dev tools 栏 + 滚动条挤压（属于浏览器工具行为）。
 - 文件大小 680 KB（PNG 压缩），是 sprint3/ 目录下最大的截图（其余 30~85 KB），因为它包含整个 dashboard 页面（指标卡 + 销售趋势 + 订单表 + 商品表）。
+- 本轮**保留** 13 号截图作为历史 full-page 证据，**不删除**；本轮的严格视口验收以 14/15 号为准。
 
-**待补做**（不写"视觉验收完成"）：
+**14/15 号截图（本轮新增）核验要求**：
 
-- 真实 1440x900 视口截图（仅首屏，不含 full-page 折叠线以下内容）：本轮未生成；如果需要 1440 严格视口，**需要用 Playwright 强制 viewport** 复跑一次。
-- Mobile 390x844 视口 dashboard 截图：Sprint 3.2 6 号截图仍是上一版，**Sprint 3.9 修复后的 mobile dashboard 截图未重新采集**。
-- 截图 README 仅追加本轮 13 号截图条目；既有 12 条目由 Sprint 3.2/3.3 维护，不在本轮 commit 范围。
+- PNG 头宽度必须 = 文件名声明的视口宽度（1440 / 390），高度 ≤ 视口高度上限（900 / 844，误差 ≤ 10 px）。
+- 截图前必须用浏览器工具 `browser_console` 或 `browser_evaluate` 确认页面在 `/admin` 路径已渲染出 3 张指标卡（`今日订单数` / `商品总数` / `今日销售额`）。
+- 截图后用 `file docs/test/screenshots/sprint3/14-*.png docs/test/screenshots/sprint3/15-*.png` 核验实际尺寸。
+- 若浏览器工具无法强制 viewport 写指定尺寸，**记录原因 + 不写"严格视口截图完成"**，本轮仍为"有条件通过"。
 
 #### 9.10.6 构建与运行验证
 
@@ -1431,10 +1443,40 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 | `mvn -pl mall-common,mall-gateway,mall-auth,mall-user,mall-product,mall-order,mall-job,mall-admin-biz -am -DskipTests package` | ✅ BUILD SUCCESS | 8/8 模块 repackage SUCCESS，`exit_code=0`，耗时 46s |
 | `mvn -DskipTests package`（全 14 模块） | ✅ BUILD SUCCESS | 14/14 SUCCESS，`exit_code=0`，后台运行中（详见本轮输出） |
 | `npm run build`（mall-frontend） | ✅ 通过 | `built in 22.57s`，`exit_code=0`；warning 来自 `node_modules/@vueuse/core` 的 `INVALID_ANNOTATION`（仓库代码无关） |
-| `git diff --check` | ✅ 无冲突 | 仅有 3 个文件 Windows LF→CRLF 提示（`InternalPathBlockFilter.java` / `InternalPathBlockFilterTest.java` / `start-all.ps1`），与 Sprint 3.9 一致 |
+| `git diff --check` | ✅ 无冲突 | 仅有 3 个文件 Windows LF→CRLF 提示（`InternalPathBlockFilter.java` / `InternalPathBlockFilterTest.java` / `start-all.ps1`），与 Sprint 3.6 一致 |
 | `git status --short` | ✅ 改动范围受控 | 3 modified（gateway main + test + start-all.ps1）+ 2 untracked（WebFluxTest.java + 13 号截图）；无 `.runtime/**` / `target/**` / `logs/**` / 真实 token / 本机绝对路径证据 |
 
-**运行时回归**（Sprint 3.9 §9.9.8 已通过的 10 项必过项目）：本轮**未重新执行**完整运行时回归以避免与 Sprint 3.9 启动序列冲突；§9.9.8 的 10 项 PASS 仍然有效（Sprint 3.7 改动**仅扩展** `InternalPathBlockFilter` 通用正则 + 加固 MySQL 探针 + 修复 AdminView 字段映射已有截图，**不**触及下单链路、库存链路、秒杀业务码、Seata 链路；内部接口入口面**只有扩展**（多阻断一类路径），**未**新增对外暴露面）。如下次启动时可单独复跑 §9.9.8 的 10 项必过用例。
+**运行时回归**（本轮独立复跑，**不再沿用 Sprint 3.6 §9.9.8**）：2026-06-16 21:13-21:32（`stop-all` + `start-all -Profile full -SkipInfrastructure -SkipFrontend -SkipBuild -CleanLogs` + `python .runtime/run-10-pt-regression.py`），14/14 PASS（10 项核心 + 2 项补强 + 2 项内部接口外部 4 场景拆分）。实测脚本、实际订单号、实际指标读数如下：
+
+| # | 项目 | 结果 | 证据 |
+|---|---|---|---|
+| 1 | Gateway health 200 | ✅ UP | `curl http://localhost:9100/actuator/health` → HTTP 200 |
+| 2 | mall-order health 200 | ✅ UP | `curl http://localhost:9106/actuator/health` → HTTP 200 |
+| 3 | mall-admin-biz health 200 | ✅ UP | `curl http://localhost:9108/actuator/health` → HTTP 200 |
+| 4 | zhangsan 登录 | ✅ code=200 | `POST /api/v1/auth/login {"username":"zhangsan","password":"123456"}` → accessToken 长度 280 |
+| 5 | admin 登录 | ✅ code=200 | `POST /api/v1/auth/login {"username":"admin","password":"123456"}` → accessToken 长度 282 |
+| 6a | internal 地址 无 token | ✅ 404 "资源不存在" | `GET /api/v1/users/internal/1001/addresses/1` 无 Header → HTTP 404 + `{"code":404,"message":"资源不存在"}` |
+| 6b | internal 地址 zhangsan token | ✅ 404 "资源不存在" | `Authorization: Bearer *** zhangsan` → HTTP 404 + 同上 body |
+| 6c | internal 地址 admin token | ✅ 404 "资源不存在" | `Authorization: Bearer *** admin` → HTTP 404 + 同上 body |
+| 6d | internal 地址 伪造 X-Internal-Token（无 JWT） | ✅ 404 "资源不存在" | `X-Internal-Token: forged-token-123` → HTTP 404 + 同上 body |
+| 7 | 创建普通订单 | ✅ orderNo=SO1781616320768 | `POST /api/v1/orders {items:[{skuId:9001,quantity:1}],addressId:1,remark:"sprint3.7-acceptance"}` → code=200, totalAmount=8999.00 |
+| 7b | addressJson 完整 | ✅ addrLen=139 fields=COMPLETE | `GET /api/v1/orders/SO1781616320768` → addressJson 含 `receiver/phone/province/city/district/detail/addressId` |
+| 8 | seckill 已结束 code=40402 | ✅ code=40402 "秒杀已结束" | `POST /api/v1/seckill/1 {skuId:9001,quantity:1}` → code=40402 msg="秒杀已结束"（activityId=1 的 endTime=2026-06-12 已过） |
+| 9 | 库存不足 code=40100 | ✅ code=40100 "库存不足或锁定失败" | `POST /api/v1/orders {items:[{skuId:9001,quantity:999999}],addressId:1,remark:"sprint3.7-stock"}` → code=40100 |
+| 10 | admin dashboard API | ✅ keys=`todayOrders,todaySales,totalProducts,pendingOrders,salesTrend,topProducts` | `GET /api/v1/admin/dashboard` (admin token) → code=200, todayOrders=10, todaySales=8999.0, totalProducts=12, pendingOrders=22, salesTrend[4], topProducts[≥5]；14/15 号截图指标卡读数 = 10 / 12 / ¥8999.00 一致 |
+
+**MySQL 探针实测**（本轮独立复跑，2026-06-16 21:15）：
+
+```text
+[1] docker exec select 1 → "1"（真实 SQL 往返，exit_code=0）
+[2] docker exec mysqladmin ping → "mysqld is alive"（fallback，exit_code=0）
+[3] 端口 3306 → OPEN
+[4] 13/13 后端 HTTP 200（full profile 自启完成，进程 exit_code=0，uptime 343s）
+```
+
+注：`start-all.ps1` 实时 stdout 未落盘到 `.runtime/logs/start-all.log`（脚本未把 stdout 重定向到文件），但 13/13 服务成功启动已证明 `Wait-MySqlReady` 至少通过了一种探针；本轮**主动 docker exec 跑 select 1** 作为新探针独立复测证据。
+
+**判定**：本轮 §9.10.6 运行时回归 14/14 PASS + MySQL 探针实测 PASS；不再沿用 Sprint 3.6 §9.9.8 结果。
 
 #### 9.10.7 未解决项（诚实记录）
 
@@ -1442,12 +1484,12 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 |---|---|---|
 | 9 个 internal controller（mall-order 3 / mall-product 3 / mall-inventory 1 / mall-search 1 / mall-seckill 1）当前**无 Gateway 暴露面**是部署配置事实，非协议级保护 | Gateway 路由表 `deploy/nacos/mall-gateway.yaml` 未配通配 | 已在 9.10.2 落地通用正则防御纵深；后续如改路由表须同步走 PR review |
 | `InternalPathBlockFilter` 未做"完整 Spring Cloud Gateway 启动 + TestRestTemplate 调用链路"测试 | 本轮用 `@SpringBootTest(classes=TestConfig)` 仅验证 bean 注册 + order 语义，避免引入完整 Gateway 自动装配（依赖 Nacos/Redis/9100） | Sprint 3.8+ 候选：独立 test profile 启动 gateway，用 `WebTestClient` 走完整路由 |
-| 浏览器截图 13 号实际是 full-page 长截图（1254x9840），文件名 `_1440x900` 仅为视口宽度声明 | 浏览器工具行为：dev tools + 滚动条挤压导致 1440 视口下内容宽 1254 | Sprint 3.8+ 候选：用 Playwright 强制 viewport=1440x900 复跑 13 号 + mobile 390x844 复跑 6 号 |
-| `Wait-MySqlReady` 本轮**未在接力期间重新执行 full profile 启动复测** | 避免与 Sprint 3.9 启动序列冲突 + 节省 5-10 min | 下次启动时按 9.10.4 命令单独跑一次以拿到 `MySQL 已就绪 (docker exec select 1)` 真实日志片段 |
+| 13 号截图（历史 full-page 1254x9840）**保留为历史证据不删除**，但**不再是 Sprint 3.7 严格视口验收的主证据**；14/15 号已替代 | Hermes 浏览器工具无法强制 viewport 写指定尺寸（1280 outerWidth 是硬限制） | 已用 Python Playwright 强制 viewport 复跑 14/15；13 号不重做 |
+| `start-all.ps1` 实时 stdout 未落盘到 `.runtime/logs/start-all.log`（脚本未把 stdout 重定向到文件） | 脚本结构问题：本轮范围内不动 | Sprint 3.8+ 候选：把 `Write-Info` / `Write-Ok` / `Write-Warn` 全部 `Tee-Object` 到 `.runtime/logs/start-all.log` |
 | `InternalPathBlockFilter.getOrder() == -200` 硬编码 | 当前 `JwtAuthFilter.getOrder() == -100` 是约定，filter 间相对顺序无 schema 约束 | Sprint 3.8+ 候选：定义 `GatewayFilterOrders` 常量类集中管理 order |
 | `FEIGN_INVENTORY_FALLBACK` / `FEIGN_PRODUCT_FALLBACK` 等 FallbackFactory 在通用正则阻断后**永远不会被触发**（被阻断的请求根本不到 mall-order/mall-product） | 设计冗余 | 无需修改；保留为防御纵深 |
-| 8 个 `UserClient` / `UserAddressClient` / 等 Feign 客户端**未在本轮重新单测** Feign `RequestTemplate` 完整 lifecycle | Sprint 3.9 §9.9.10 已列；本轮范围外 | Sprint 3.8+ 候选 |
-| 9.10.5 截图 13 号**未**包含 mobile 视口；dashboard mobile 真实业务态仍以 Sprint 3.2 6 号为准（仍是 Sprint 3.3 修复前的字段映射） | 本轮范围外 | Sprint 3.8+ 候选 |
+| 8 个 `UserClient` / `UserAddressClient` / 等 Feign 客户端**未在本轮重新单测** Feign `RequestTemplate` 完整 lifecycle | Sprint 3.6 §9.9.10 已列；本轮范围外 | Sprint 3.8+ 候选 |
+| 14/15 号截图**仅含 admin dashboard**，未覆盖 `/orders` `/pay` `/seckill` `/search` `/cart` 等其他页面 | 本轮任务 E 范围仅 dashboard | Sprint 3.8+ 候选：用 Playwright 强制 viewport 复跑其他页面 4 视口 |
 
 #### 9.10.8 不写以下结论
 
@@ -1455,21 +1497,28 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 - **不写**「生产级安全」：dev 默认 `dev-internal-token` + 单层 token 校验未做 mTLS / 服务网格 / 签名验签；`InternalAuthPropertiesValidator` 仅校验 token 非空非默认值，不校验强度
 - **不写**「internal 全域无暴露面」：见 9.10.7
 - **不写**「启动永不失败」：`Wait-MySqlReady` 加固仅降低 MySQL 探针误判；Nacos / Seata / RocketMQ / Sentinel Dashboard / Elasticsearch 同样可能有时序问题，未在本轮覆盖
-- **不写**「视觉验收覆盖所有页面」：本轮仅采集 1 张 admin dashboard full-page 截图（1254x9840），未覆盖 mobile 视口、未覆盖其余 9 个页面
+- **不写**「视觉验收覆盖所有页面」：本轮采集 14/15 号 admin dashboard 严格视口截图（1440x900 / 390x844），**仅**覆盖 admin dashboard，**未**覆盖 `/orders` `/pay` `/seckill` `/search` `/cart` 等其他 5 个核心页面
 - **不写**「Feign 调用零风险」：`FeignInternalTokenInterceptor` 在某些环境（如 ribbon 替换）下 `RequestTemplate` lifecycle 行为可能变化，本轮未做完整 lifecycle 测试
-- **不写**「Sprint 3.7 全量通过」：9.10.7 未解决项 + 本轮**未重新执行**运行时回归（见 9.10.6 末段）共同决定本轮为「**有条件通过**」：审计完成 + 通用正则 + 测试覆盖 + 探针加固 + 截图采集 + 构建通过，但运行时回归沿用 Sprint 3.9 §9.9.8 结果
+- **不写**「Sprint 3.7 全量通过」：9.10.7 未解决项 + Hermes 浏览器视口硬限制（1280 outerWidth）+ start-all stdout 未落盘等共同决定本轮为「**有条件通过**」：审计完成 + 通用正则 + 测试覆盖 + 探针加固 + 严格视口截图（14/15）+ 运行时 14/14 独立复跑 + 构建通过；但仍有 8 项未解决项需要 Sprint 3.8+ 跟进
 
 #### 9.10.9 提交信息
 
+> ⚠️ **SHA 口径说明**：`docs/FINAL_REPORT.md` 自身会被未来的 commit 引用，commit 对象的 SHA 由**内容**决定；任何对本文件的修改都会改变下一个 commit 的 SHA。因此本节**不**写"本 commit SHA = xxx"的自包含结论，只写**已发生**的接力时累计 commit 引用（git log 可查），并以推送后 `git ls-remote origin main` 的实际输出作为最终远端 SHA 的核验依据。
+
 | 项 | 值 |
 |---|---|
-| Commit SHA | `3bf60a632a3331e0c910340c6ca19bd33f157546`（短 SHA `3bf60a6`） |
-| Push | ✅ 成功；`cc16e9a..3bf60a6 main -> main`（`git push origin main`，`exit_code=0`） |
-| 远端对齐 | ✅ `git ls-remote origin main` 返回 `3bf60a632a3331e0c910340c6ca19bd33f157546`，与 HEAD / `origin/main` 三向一致 |
-| 工作区 | ✅ clean（`git status --short` 输出为空） |
-| 提交范围 | 7 files changed, 477 insertions(+), 7 deletions(-) — `InternalPathBlockFilter.java` (M, +38/-7)、`InternalPathBlockFilterTest.java` (M, +83)、`InternalPathBlockFilterWebFluxTest.java` (A, +95)、`start-all.ps1` (M, +44/-7)、`FINAL_REPORT.md` (M, +223)、`docs/test/screenshots/sprint3/13-admin-dashboard-browser-verified-1440x900.png` (A, +680042 bytes)、`docs/test/screenshots/sprint3/README.md` (M, +1) |
-| 未提交项确认 | `git check-ignore` 验证 `target/` / `logs/` / `.runtime/` 均被 `.gitignore` 排除；staged 中**无**真实 token / 本机绝对路径 / `.runtime/**` / `target/**` / `logs/**` |
-| 提交拆分实际执行 | 保持单 commit 单一 Sprint（Sprint 3.7 接力），未拆分；如未来需做交互式 rebase 拆分为 ① fix(gateway) ② test(gateway) ③ chore(scripts) ④ docs(test) 4 个 commit 已在文中给出建议脚本 |
+| 接力时主提交 | `test: audit internal endpoints and verify admin dashboard`（包含 InternalPathBlockFilter 通用正则 + 12 个测试 + Wait-MySqlReady select 1 探针 + 13 号截图 + §9.10 初版） |
+| 接力时回填提交 | `docs: backfill FINAL_REPORT 9.10.9 commit SHA and push status`（仅把 §9.10.9 的表格行填入接力时的具体值） |
+| 接力时累计 commit 数 | 2（接力者在 `cc16e9a` 之后追加，主提交先 push，回填提交后 push） |
+| 接力时 `git ls-remote origin main` 输出 | `3bf60a632a3331e0c910340c6ca19bd33f157546`（即主提交的 SHA；此时回填提交 `f2dfdd558b2f64d8994d25b7b6de84a02e77a329` **尚未** push 到远端） |
+| 接力时本地 HEAD | `f2dfdd558b2f64d8994d25b7b6de84a02e77a329`（回填提交后） |
+| **最终远端 SHA（以推送后核验为准）** | 推送完成 2 次后，**本节不预先写值**；以本轮输出"§10 提交信息"中的 `git ls-remote origin main` 实际返回值为准 |
+| 工作区（接力时） | clean（`git status --short` 输出为空） |
+| 接力时提交范围（主提交） | 7 files changed, 477 insertions(+), 7 deletions(-) — `InternalPathBlockFilter.java` (M, +38/-7)、`InternalPathBlockFilterTest.java` (M, +83)、`InternalPathBlockFilterWebFluxTest.java` (A, +95)、`start-all.ps1` (M, +44/-7)、`FINAL_REPORT.md` (M, +223)、`docs/test/screenshots/sprint3/13-admin-dashboard-browser-verified-1440x900.png` (A, +680042 bytes)、`docs/test/screenshots/sprint3/README.md` (M, +1) |
+| 接力时提交范围（回填提交） | 1 file changed, 8 insertions(+), 5 deletions(-) — `FINAL_REPORT.md` (M) |
+| 接力时未提交项确认 | `git check-ignore` 验证 `target/` / `logs/` / `.runtime/` 均被 `.gitignore` 排除；staged 中**无**真实 token / 本机绝对路径 / `.runtime/**` / `target/**` / `logs/**` |
+| 接力时 §9.10.9 表格行处置 | 由于 commit 对象 SHA 由内容决定，本表在 f2dfdd5 之后**不可再写"本次提交 = xxx"** 的自包含结论；本表回填后即冻结，由"§10 提交信息"在每次 push 后用 `git ls-remote origin main` 重新核验并以"补充说明"形式追加，不修改本表自身 |
+| 提交拆分实际执行 | 保持单 Sprint 2 commit（主 + 回填），未拆分；如未来需做交互式 rebase 拆分为 ① fix(gateway) ② test(gateway) ③ chore(scripts) ④ docs(test) 4 个 commit 已在文中给出建议脚本 |
 
 ---
 
