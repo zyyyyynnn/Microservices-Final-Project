@@ -50,33 +50,31 @@ $FrontendPort = 5173
 # ── 启动日志落盘（Sprint 3.8 任务 D）────────────────────
 # 关键 stdout 同步追加到 .runtime/logs/start-all.log（已 .gitignore 排除，不入库）；
 # 包含：启动参数 / 端口检查 / MySQL ready 探针 / 后端服务启动 / 13/13 health / 失败 abort。
-$LogFile = $null
-
-function Initialize-LogFile {
-    $logDir = Join-Path $RuntimeDir "logs"
-    if (-not (Test-Path $logDir)) {
-        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-    }
-    $script:LogFile = Join-Path $logDir "start-all.log"
-    if ($CleanLogs -and (Test-Path $script:LogFile)) {
-        Remove-Item $script:LogFile -Force
-    }
-    $params = ($PSBoundParameters.GetEnumerator() |
-        ForEach-Object { "$($_.Key)=$($_.Value)" }) -join " "
-    $hdr = @(
-        "==== MallCloud start-all.ps1 ===="
-        "Timestamp: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')"
-        "Params: $params"
-        "PWD: $ProjectRoot"
-        "PowerShell: $($PSVersionTable.PSVersion)"
-        ""
-    )
-    Add-Content -Path $script:LogFile -Value $hdr -Encoding UTF8
+# 注：Initialize-LogFile 在 script scope（不放在 function 内），
+#     因为 $PSBoundParameters 在 function scope 不可见，导致 Params 行空。
+$logDir = Join-Path $RuntimeDir "logs"
+if (-not (Test-Path $logDir)) {
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 }
+$LogFile = Join-Path $logDir "start-all.log"
+if ($CleanLogs -and (Test-Path $LogFile)) {
+    Remove-Item $LogFile -Force
+}
+$params = ($PSBoundParameters.GetEnumerator() |
+    ForEach-Object { "$($_.Key)=$($_.Value)" }) -join " "
+$hdr = @(
+    "==== MallCloud start-all.ps1 ===="
+    "Timestamp: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')"
+    "Params: $params"
+    "PWD: $ProjectRoot"
+    "PowerShell: $($PSVersionTable.PSVersion)"
+    ""
+)
+Add-Content -Path $LogFile -Value $hdr -Encoding UTF8
 
 function Write-LogLine($line) {
-    if ($script:LogFile) {
-        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8
+    if ($LogFile) {
+        Add-Content -Path $LogFile -Value $line -Encoding UTF8
     }
 }
 
@@ -88,7 +86,7 @@ function Write-Banner($msg) {
     Write-Host "  $msg" -ForegroundColor Cyan
     Write-Host $sep -ForegroundColor Cyan
     Write-Host ""
-    if ($script:LogFile) {
+    if ($LogFile) {
         Write-LogLine ""
         Write-LogLine $sep
         Write-LogLine "  $msg"
@@ -101,9 +99,6 @@ function Write-Ok($msg)   { $line="  [OK]   $msg"; Write-Host $line -ForegroundC
 function Write-Warn($msg) { $line="  [WARN] $msg"; Write-Host $line -ForegroundColor Yellow; Write-LogLine $line }
 function Write-Err($msg)  { $line="  [FAIL] $msg"; Write-Host $line -ForegroundColor Red;    Write-LogLine $line }
 function Write-Info($msg) { $line="  [....] $msg"; Write-Host $line -ForegroundColor Gray;   Write-LogLine $line }
-
-# 在脚本最早阶段就初始化日志文件，保证启动参数等被记录
-Initialize-LogFile
 
 function Test-Port($port, $timeout = 2) {
     try {
