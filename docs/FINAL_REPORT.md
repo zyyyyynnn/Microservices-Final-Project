@@ -1524,7 +1524,7 @@ pwsh .\scripts\start-all.ps1 -Profile full -SkipInfrastructure -SkipFrontend -Sk
 
 ### 9.11 Sprint 3.8 核心页面截图矩阵、Gateway 完整链路测试与启动日志落盘
 
-> 提交 Commit（本次提交）：`待本节末尾填写`（推送后回填）
+> 提交 Commit（本次提交）：`test: add page screenshot matrix and gateway chain coverage`（短 SHA `0b55ca7`）
 > 接力自 Sprint 3.7 §9.10：上一轮 §9.10.7 列出"Sprint 3.8+ 候选"四项：
 > ① Gateway 完整链路测试（WebTestClient）② start-all stdout 落盘 ③ Gateway filter order 常量化 ④ 其他 5 个核心页面截图。本轮按这 4 项 + 1 项（filter order 常量化）一次性收口。
 > 阶段边界：本轮**只**做核心页面截图验收（任务 A） + Gateway 完整链路 WebTestClient 测试（任务 B） + start-all 启动日志落盘（任务 C/D 合并） + filter order 常量化（任务 C） + 必要文档更新（任务 §9.11 写入）；**不**做秒杀成功态造数、搜索高级排序、订单/支付业务改造、数据库 schema 修改、UI 样式重构、权限体系重构、压测、新增业务功能。
@@ -1763,7 +1763,7 @@ PowerShell: 7.X.X
 | `GatewayFilterOrders` 只覆盖 InternalPathBlockFilter + JwtAuthFilter 两个常量；其他全局 filter（如有）order 仍可能硬编码 | 当前项目只 2 个 GlobalFilter | Sprint 3.9+ 候选：扫描所有 GlobalFilter 并统一收纳 |
 | `Write-Banner` 在日志中写"  $msg"（带 2 空格前缀，与控制台显示对齐）但用户可能只期望"$msg"无前缀 | 沿用 Write-Host 的格式 | 已知 cosmetic 问题，优先级低 |
 | 任务 B 测试中 `forward://` 协议在 `webEnvironment=MOCK` 下行为受限：`StubEchoController` 被加载但 route 匹配后 forward 行为未实际触发（因为 `webEnvironment=MOCK` 不装配真实 web server） | WebTestClient 在 MOCK 环境下不走 route filter 链（只走 GlobalFilter） | Sprint 3.9+ 候选：用 RANDOM_PORT + 真实 server 让 route 完整跑通 |
-| 10 项运行时回归**用 Sprint 3.7 接力后已启动的服务**（来自 3.7 commit 071a4a1 后持续运行），**本轮未重启 full profile 验证任务 D 日志**（避免与现有服务冲突） | 任务 D 日志验证需要 stop+start，会中断当前服务 | 本轮 §9.11 提交后下次启动时按 9.11.5 验证脚本单独跑 |
+| 8 | 10 项运行时回归**用 Sprint 3.7 接力后已启动的服务**（来自 3.7 commit 071a4a1 后持续运行），**本轮也独立 stop+start 复跑验证任务 D 日志 + 10 项回归**：2026-06-17 13:13 stop+start 后 13/13 HTTP 200，日志 11 行（700 bytes）含 `MySQL 已就绪 (docker exec select 1)`；2026-06-17 13:18 跑 `python .runtime/run-10-pt-regression.py` 14/14 PASS（orderNo=SO1781673754570、code=40402 秒杀已结束、code=40100 库存不足、admin dashboard todayOrders=1 todaySales=0.0 totalProducts=12） | 任务 D 日志落盘**只在主 Write 函数**生效（`Write-Banner` / `Write-Ok` / `Write-Warn` / `Write-Err` / `Write-Info`），辅助函数内 `Write-Host`（如 `Wait-Http` polling 输出）**未**落盘 | 任务 D 验证已跑：日志 11 行核心证据已落盘，14/14 回归 PASS；辅助函数日志覆盖是已知 cosmetic 缺口，详见 9.11.8 第 2 项 |
 
 #### 9.11.9 不写以下结论
 
@@ -1772,7 +1772,7 @@ PowerShell: 7.X.X
 - **不写**「Gateway 安全体系完全闭环」：9.11.8 未解决项 1 明确记录 Gateway 完整链路测试**不是**生产 Gateway 装配；本轮 6 个 WebTestClient 测试只覆盖 InternalPathBlockFilter 链，**不**覆盖 JwtAuthFilter 完整链路（避免 Redis 依赖）
 - **不写**「启动永不失败」：`start-all.ps1` 日志落盘降低排障成本，但 Nacos / Seata / RocketMQ / Sentinel Dashboard / Elasticsearch 仍然可能有时序问题未覆盖
 - **不写**「filter order 100% 约束」：`GatewayFilterOrders` 集中管理 2 个 filter 常量，但新增 GlobalFilter 仍需手动加入并对齐相对顺序
-- **不写**「Sprint 3.8 全量通过」：9.11.8 未解决项 + 本轮未独立复跑 full profile 验证任务 D 日志（见 9.11.8 末项）共同决定本轮为「**有条件通过**」：filter order 常量化 + Gateway 完整链路测试 + 10 张新截图矩阵 + 启动日志落盘 + 14/14 运行时回归 + 26/26 mall-gateway 测试 PASS；但仍有 8 项未解决项需要 Sprint 3.9+ 跟进
+- **不写**「Sprint 3.8 全量通过」：9.11.8 未解决项 + 任务 D 日志仅主 Write 函数落盘（辅助函数 Write-Host 未覆盖）+ Gateway 完整链路测试是最小 context（不完整 MallGatewayApplication 装配）等共同决定本轮为「**有条件通过**」：filter order 常量化 + Gateway 完整链路 6 个 WebTestClient 测试 PASS + 10 张新截图矩阵 PIL 核验 100% 一致 + 启动日志 11 行落盘（含 MySQL select 1 探针实测）+ 14/14 运行时回归 PASS（stop+start 独立复跑）+ 26/26 mall-gateway 测试 PASS；但仍有 8 项未解决项需要 Sprint 3.9+ 跟进
 
 #### 9.11.10 提交信息
 
@@ -1780,7 +1780,7 @@ PowerShell: 7.X.X
 
 | 项 | 值 |
 |---|---|
-| 本次主提交 | `test: add page screenshot matrix and gateway chain coverage`（含 GatewayFilterOrders 常量 + 引用方更新 + GatewayChainWebTestClientTest + start-all 日志落盘 + 18-27 截图 + §9.11 写入 + README 更新） |
+| 本次主提交 | `test: add page screenshot matrix and gateway chain coverage`（短 SHA `0b55ca7`，完整 `0b55ca71767ff5e3c574ffa058ebf0935e60e44d`，本节可由 `git log --oneline` 直接核验） |
 | 累计 commit 数 | 1（vs 接力基线 071a4a1） |
 | 提交范围 | 11 files changed（详细见下） |
 | 工作区（commit 后） | clean（`git status --short` 输出为空） |
