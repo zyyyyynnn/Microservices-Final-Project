@@ -81,11 +81,9 @@ function Write-LogLine($line) {
 # ── 工具函数 ──────────────────────────────────────────
 function Write-Banner($msg) {
     $sep = "========================================="
-    Write-Host ""
     Write-Host $sep -ForegroundColor Cyan
     Write-Host "  $msg" -ForegroundColor Cyan
     Write-Host $sep -ForegroundColor Cyan
-    Write-Host ""
     if ($LogFile) {
         Write-LogLine ""
         Write-LogLine $sep
@@ -337,13 +335,10 @@ function Test-InfrastructurePortOwnership {
 
     # 1) MALL_INFRA_HOST 指向非本机：跳过
     if ($infraHost -and $infraHost -notin @("127.0.0.1", "localhost", "::1")) {
-        $lines.Add("判定: Skipped")
-        $lines.Add("原因: MALL_INFRA_HOST=$infraHost 非本机地址；脚本不强制检查本机 $Port 归属")
-        $lines.Add("建议: 确保后端可通过 $infraHost 访问 MySQL")
-        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
-        Write-Host ""
-        Write-Host "  [WARN] 已设置 MALL_INFRA_HOST=$infraHost，跳过本机 $Port Docker 转发归属检查。" -ForegroundColor Yellow
-        Write-Host ""
+        Write-LogLine "判定: Skipped"
+        Write-LogLine "原因: MALL_INFRA_HOST=$infraHost 非本机地址；脚本不强制检查本机 $Port 归属"
+        Write-LogLine "建议: 确保后端可通过 $infraHost 访问 MySQL"
+        Write-Warn "已设置 MALL_INFRA_HOST=$infraHost，跳过本机 $Port Docker 转发归属检查。"
         return [pscustomobject]@{
             Status = "Skipped"; Allowed = $true; Port = $Port; LogPath = $LogPath
         }
@@ -352,15 +347,12 @@ function Test-InfrastructurePortOwnership {
     # 2) 收集监听
     $owners = Get-PortOwnerDetail -Port $Port
     if ($null -eq $owners -or @($owners).Count -eq 0) {
-        $lines.Add("状态: No listener on port $Port")
-        $lines.Add("判定: Warn")
-        $lines.Add("建议: 端口 $Port 当前无监听。-SkipInfrastructure 时确认 Docker $DisplayName 已手动启动；否则继续启动后端将连接失败。")
-        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
-        Write-Host ""
-        Write-Host "  [WARN] 端口 $Port ($DisplayName) 当前没有监听，后续 Docker MySQL 可能尚未启动。" -ForegroundColor Yellow
-        Write-Host ""
+        Write-LogLine "状态: No listener on port $Port"
+        Write-LogLine "判定: Warn"
+        Write-LogLine "建议: 端口 $Port 当前无监听。-SkipInfrastructure 时确认 Docker $DisplayName 已手动启动；否则继续启动后端将连接失败。"
+        Write-Warn "端口 $Port ($DisplayName) 当前没有监听，后续 Docker MySQL 可能尚未启动。"
         return [pscustomobject]@{
-            Status = "NoListener"; Allowed = $true; Port = $Port; LogPath = $LogPath
+            Status = "Warn"; Allowed = $true; Port = $Port; LogPath = $LogPath
         }
     }
 
@@ -417,22 +409,20 @@ function Test-InfrastructurePortOwnership {
             $lines.Add(("  PID={0} ProcessName={1} Path={2}" -f $b.OwningProcess, $b.ProcessName, $b.Path))
         }
         $lines.Add("")
-        $lines.Add("建议: 端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。")
-        $lines.Add("请以管理员 PowerShell 执行：")
-        $lines.Add("  Stop-Service MySQL84 -Force")
-        $lines.Add("  Set-Service MySQL84 -StartupType Manual")
-        $lines.Add("然后重新运行 start-all.ps1")
-        $lines.Add("注意: 脚本只提示，不会自动停止 MySQL84（需管理员权限）。")
-        $lines | Out-File -FilePath $LogPath -Encoding UTF8 -Append
+        Write-LogLine "建议: 端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。"
+        Write-LogLine "请以管理员 PowerShell 执行："
+        Write-LogLine "  Stop-Service MySQL84 -Force"
+        Write-LogLine "  Set-Service MySQL84 -StartupType Manual"
+        Write-LogLine "然后重新运行 start-all.ps1"
+        Write-LogLine "注意: 脚本只提示，不会自动停止 MySQL84（需管理员权限）。"
 
-        Write-Host ""
-        Write-Host "  [FAIL] 端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。" -ForegroundColor Red
+        Write-Err "端口 $Port ($DisplayName) 已被非 Docker 进程占用，后端将连接到错误的 MySQL 实例。"
         foreach ($b in $blocked) {
-            Write-Host ("         阻塞进程: PID={0} ProcessName={1} Path={2}" -f $b.OwningProcess, $b.ProcessName, $b.Path) -ForegroundColor Red
+            $blockedLine = ("         阻塞进程: PID={0} ProcessName={1} Path={2}" -f $b.OwningProcess, $b.ProcessName, $b.Path).TrimStart()
+            Write-Err $blockedLine
         }
-        Write-Host "         请以管理员 PowerShell 执行 Stop-Service MySQL84 -Force 后重试。" -ForegroundColor Red
-        Write-Host "         脚本只提示，不会自动停止 MySQL84（需管理员权限）。" -ForegroundColor Red
-        Write-Host ""
+        Write-Err "请以管理员 PowerShell 执行 Stop-Service MySQL84 -Force 后重试。"
+        Write-Err "脚本只提示，不会自动停止 MySQL84（需管理员权限）。"
         return [pscustomobject]@{
             Status = "Blocked"; Allowed = $false; Port = $Port; LogPath = $LogPath
             Blocked = $blocked
@@ -449,7 +439,7 @@ function Test-InfrastructurePortOwnership {
 
     $first = $allowed | Select-Object -First 1
     $procLabel = if ($first) { $first.ProcessName } else { "Docker/WSL" }
-    Write-Host "  [OK] 端口 $Port ($DisplayName) 由 Docker / WSL 转发接管 (进程: $procLabel)" -ForegroundColor Green
+    Write-Ok "端口 $Port ($DisplayName) 由 Docker / WSL 转发接管 (进程: $procLabel)"
     return [pscustomobject]@{
         Status = "Allowed"; Allowed = $true; Port = $Port; LogPath = $LogPath
         AllowedEntries = $allowed
@@ -554,7 +544,6 @@ if (-not $SkipInfrastructure) {
     Write-Ok "Docker 已安装"
 }
 
-Write-Host ""
 
 # ── 启动基础设施 ──────────────────────────────────────
 if (-not $SkipInfrastructure) {
@@ -639,7 +628,6 @@ if (-not $SkipInfrastructure) {
     } finally {
         Pop-Location
     }
-    Write-Host ""
 }
 
 # ── 构建后端 ──────────────────────────────────────────
@@ -658,7 +646,6 @@ if (-not $SkipBackend -and -not $SkipBuild) {
     } finally {
         Pop-Location
     }
-    Write-Host ""
 } elseif (-not $SkipBackend) {
     Write-Info "已跳过 Maven 构建"
 }
@@ -672,12 +659,9 @@ if (-not $SkipBackend) {
     if (Test-Path $portCheckLog) { Remove-Item $portCheckLog -Force }
     $portCheckResult = Test-InfrastructurePortOwnership -Port 3306 -DisplayName "MySQL" -LogPath $portCheckLog
     if ($portCheckResult.Status -eq "Blocked") {
-        Write-Host ""
-        Write-Host "  [ABORT] 启动中止：请按上述提示停止 MySQL84 后重试。" -ForegroundColor Red
-        Write-Host ""
+        Write-Err "启动中止：请按上述提示停止 MySQL84 后重试。"
         exit 1
     }
-    Write-Host ""
 }
 
 # ── MySQL 就绪等待（启动后端前） ────────────────────────────
@@ -687,19 +671,16 @@ if (-not $SkipBackend) {
 if (-not $SkipBackend) {
     $mysqlReady = Wait-MySqlReady 90 2
     if (-not $mysqlReady) {
-        Write-Host ""
-        Write-Host "  [ABORT] MySQL 在 90 秒内未就绪 (127.0.0.1:3306)。" -ForegroundColor Red
+        Write-Err "MySQL 在 90 秒内未就绪 (127.0.0.1:3306)。"
         if ($SkipInfrastructure) {
-            Write-Host "         你使用了 -SkipInfrastructure，请确认 MySQL 容器 (mall-mysql) 已启动：" -ForegroundColor Red
-            Write-Host "           docker start mall-mysql" -ForegroundColor Red
-            Write-Host "         或运行 .\scripts\start-middleware.ps1 拉起 MySQL 后重试。" -ForegroundColor Red
+            Write-LogLine "原因: 使用了 -SkipInfrastructure，请确认 MySQL 容器 (mall-mysql) 已启动"
+            Write-LogLine "  docker start mall-mysql"
+            Write-LogLine "或运行 .\scripts\start-middleware.ps1 拉起 MySQL 后重试"
         } else {
-            Write-Host "         Docker Compose 已执行但 MySQL 仍超时，请检查 docker logs mall-mysql。" -ForegroundColor Red
+            Write-LogLine "原因: Docker Compose 已执行但 MySQL 仍超时，请检查 docker logs mall-mysql"
         }
-        Write-Host ""
         exit 1
     }
-    Write-Host ""
 }
 
 # ── 启动后端服务 ──────────────────────────────────────
@@ -853,7 +834,6 @@ if (-not $SkipBackend) {
             }
         }
     }
-    Write-Host ""
 }
 
 # ── 启动前端 ──────────────────────────────────────────
@@ -957,7 +937,6 @@ if (-not $SkipFrontend) {
             }
         }
     }
-    Write-Host ""
 }
 
 # ── 保存状态 ──────────────────────────────────────────
@@ -974,41 +953,44 @@ $alreadyCount = @($already).Count
 $failedCount = @($failed).Count
 
 $fmt = "{0,-22} {1,-10} {2,-10} {3,-12}"
-Write-Host ($fmt -f "服务", "PID", "端口", "状态") -ForegroundColor White
-Write-Host ($fmt -f "----", "---", "----", "----") -ForegroundColor Gray
+Write-Info ($fmt -f "服务", "PID", "端口", "状态")
+Write-Info ($fmt -f "----", "---", "----", "----")
 
 foreach ($r in $Results) {
     $pidStr  = if ($r.PID) { [string]$r.PID } else { "-" }
     $portStr = if ($r.Port) { [string]$r.Port } else { "-" }
-    $color = switch ($r.Status) {
+    $statusColor = switch ($r.Status) {
         "Running"        { "Green" }
         "AlreadyRunning" { "Yellow" }
         default          { "Red" }
     }
-    Write-Host ($fmt -f $r.Name, $pidStr, $portStr, $r.Status) -ForegroundColor $color
+    $statusLine = $fmt -f $r.Name, $pidStr, $portStr, $r.Status
+    switch ($r.Status) {
+        "Running"        { Write-Ok   $statusLine }
+        "AlreadyRunning" { Write-Warn $statusLine }
+        default          { Write-Err  $statusLine }
+    }
 }
 
-Write-Host ""
-Write-Host "  运行中:  $($runningCount + $alreadyCount)" -ForegroundColor Green
+Write-LogLine ""
+Write-Ok "  运行中:  $($runningCount + $alreadyCount)"
 if ($failedCount -gt 0) {
-    Write-Host "  失败/超时: $failedCount" -ForegroundColor Red
+    Write-Err "  失败/超时: $failedCount"
 }
 
 # 输出访问地址
 $gatewayResult = $Results | Where-Object { $_.Name -eq "mall-gateway" }
 $frontendResult = $Results | Where-Object { $_.Name -eq "frontend" }
 
-Write-Host ""
 if ($gatewayResult -and $gatewayResult.Status -in @("Running", "AlreadyRunning")) {
-    Write-Host "  网关地址: http://localhost:9100" -ForegroundColor Cyan
+    Write-Info "  网关地址: http://localhost:9100"
 }
 if ($frontendResult -and $frontendResult.Status -in @("Running", "AlreadyRunning")) {
-    Write-Host "  前端地址: http://localhost:5173" -ForegroundColor Cyan
+    Write-Info "  前端地址: http://localhost:5173"
 }
-Write-Host "  日志目录: $LogsDir" -ForegroundColor Gray
-Write-Host "  状态文件: $StateFile" -ForegroundColor Gray
-Write-Host "  停止命令: pwsh .\scripts\stop-all.ps1" -ForegroundColor Gray
-Write-Host ""
+Write-Info "  日志目录: $LogsDir"
+Write-Info "  状态文件: $StateFile"
+Write-Info "  停止命令: pwsh .\scripts\stop-all.ps1"
 
 if ($failedCount -gt 0 -and -not $AllowPartial) {
     exit 1

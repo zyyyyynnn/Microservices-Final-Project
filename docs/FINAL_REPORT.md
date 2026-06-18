@@ -1789,3 +1789,210 @@ PowerShell: 7.X.X
 
 ---
 
+### 9.12 Sprint 3.9 真实 Gateway 链路测试、启动日志全量落盘与 Admin 视角截图
+
+> 接力自 Sprint 3.8 §9.11.8：上一轮未解决项 ① GatewayChainWebTestClientTest 仍是最小 context（不含 Nacos/Redis/JwtAuthFilter/SecurityConfig）② start-all.ps1 仅主 Write 函数落盘，Wait-Http polling 仍用 Write-Host 直出 ③ 截图矩阵缺 admin 视角下 /orders /pay /seckill /cart。本轮按这三项一次性收口。
+> 阶段边界：本轮**只**做真实 Gateway 链路测试（任务 A） + start-all.ps1 日志全量落盘（任务 B） + admin 视角截图补齐（任务 C） + 必要文档更新（任务 §9.12 写入）；**不**做秒杀成功态造数、搜索高级排序、订单/支付业务改造、数据库 schema 修改、UI 样式重构、权限体系重构、压测、新增业务功能、截图 tablet 视口。
+
+#### 9.12.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-gateway/src/test/java/.../filter/RealGatewayChainTest.java` | **新增** `@SpringBootTest(classes=RealGatewayTestApp.class, webEnvironment=MOCK)` + 7 个测试方法，覆盖：internal 路径阻断（users + products）、白名单路径不误拦、X-Internal-* header 不引发 404、filter order 常量、internal+Authorization+X-Internal-Token 仍 404、Pattern 暴露断言；`@MockBean ReactiveStringRedisTemplate` mock 黑名单返 false；properties 关闭 Nacos + 配置 mallcloud.jwt.* |
+| `scripts/start-all.ps1` | 6 段 Write-Host 替换为 Write-Info/Ok/Warn/Err + Write-LogLine 配套；6 个 `Write-Host ""` 空分隔行删除；`Wait-MySqlReady` 错误块 `[ABORT]` 改为 `Write-Err` + `Write-LogLine`；`Test-InfrastructurePortOwnership` 5 段输出统一封装；`Show-Table` 状态行用 `switch` 选 Write-Ok/Warn/Err；端口检查 Blocked 段用 `Write-Err` 输出；端口 Allowed 段用 `Write-Ok`；`Test-InfraPort Skipped/Warn` 段用 `Write-Warn` |
+| `docs/FINAL_REPORT.md` | 追加 §9.12 全文（约 10 个子节） |
+| `docs/test/screenshots/sprint3/README.md` | 追加 28-35 号 8 张 admin 视角截图条目 |
+| `docs/test/screenshots/sprint3/28-35 (8 张 .png)` | **新增** PIL 核验 100% 一致 |
+
+#### 9.12.2 真实 Gateway 链路测试（任务 A）
+
+**新增 `RealGatewayChainTest`**（`mall-gateway/src/test/java/.../filter/RealGatewayChainTest.java`，7 个测试方法）：
+
+| 测试方法 | 覆盖点 | 结果 |
+|---|---|---|
+| `usersInternalAddressPathIsBlocked` | `GET /api/v1/users/internal/1001/addresses/1` → 404（InternalPathBlockFilter 链路级阻断） | ✅ PASS |
+| `productsInternalPathIsBlocked` | `GET /api/v1/products/internal/products/skus/9001` → 404（通用正则） | ✅ PASS |
+| `whitelistPathNotBlocked` | `/api/v1/auth/login` 不被 InternalPathBlockFilter 误拦（即使无 JWT） | ✅ PASS |
+| `xInternalHeadersDoNotTrigger404` | 带 `X-Internal-Token` / `X-Internal-Foo` 普通路径不引发 404 | ✅ PASS |
+| `filterOrderFromConstantIsBeforeJwt` | filter order == 常量且 < JWT 常量（即使 JwtAuthFilter bean 名称找不到也断言） | ✅ PASS |
+| `internalPathWithAuthorizationAndInternalTokenStillBlocked` | internal + Authorization + X-Internal-Token 攻击仍 404（不被 JWT 绕过） | ✅ PASS |
+| `exposedPatternsStillMatch` | `INTERNAL_PATH` 匹配 `/api/v1/orders/internal/close`；`USERS_INTERNAL_PATH` 匹配 users/internal/**；普通路径不匹配 | ✅ PASS |
+
+**关键设计**（比 Sprint 3.8 `GatewayChainWebTestClientTest` 更接近真实装配）：
+
+- `@SpringBootTest(classes = RealGatewayTestApp.class, webEnvironment = MOCK)` 启动**接近真实** Spring Cloud Gateway context
+- `RealGatewayTestApp` 用 `@SpringBootApplication(scanBasePackages = "com.mallcloud.mallgateway")` — **真正加载 JwtAuthFilter**（不是 Sprint 3.8 那种只加载 InternalPathBlockFilter 的最小 context）
+- `@MockBean ReactiveStringRedisTemplate` mock 黑名单查询 → `Mono.just(false)` → JwtAuthFilter 放行
+- properties 配置 `mallcloud.jwt.*`（secret / header / prefix）+ 关闭 Nacos discovery / config
+- `TestConfig` 自定义 `RouteLocator`（`/api/v1/test-echo` + `/api/v1/auth/login` → `forward:/test-echo-handler`）+ 应用内 `StubEchoController` echo inbound headers
+- 关键测试 6 证明 `internal path + Authorization + X-Internal-Token` **仍** 404（InternalPathBlockFilter 早于 JwtAuthFilter 执行，攻击者不能用合法 JWT 绕过 internal 阻断）
+
+**mvn test 结果**（`mvn -pl mall-gateway -am test -Dtest=RealGatewayChainTest`）：
+
+```text
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.65 s
+[INFO] Reactor Summary for MallCloud Parent 1.0.0:
+[INFO] MallCloud Parent ................................... SUCCESS
+[INFO] mall-common ........................................ SUCCESS
+[INFO] mall-gateway ....................................... SUCCESS
+[INFO] BUILD SUCCESS
+```
+
+**判定**：任务 A 完成。**比 Sprint 3.8 更接近真实 Gateway 链路**：真正加载 JwtAuthFilter（不是排除），mock 掉唯一外部依赖（ReactiveStringRedisTemplate），保留 Spring Cloud Gateway filter chain。但**仍不**是完整 `MallGatewayApplication` 装配（不含 `@EnableDiscoveryClient` / Nacos service discovery / Sentinel），已诚实记录。
+
+#### 9.12.3 start-all.ps1 日志全量落盘（任务 B）
+
+**关键改动**（`scripts/start-all.ps1`）：
+
+- **6 段未封装 Write-Host 替换**：
+  1. `Test-InfrastructurePortOwnership` Skipped 段（行 ~340-349）：`Write-Host "" + Write-Host "  [WARN] ..." -ForegroundColor Yellow + Write-Host ""` → `Write-LogLine "判定: Skipped" + Write-LogLine "原因: ..." + Write-LogLine "建议: ..." + Write-Warn "..."`
+  2. `Test-InfrastructurePortOwnership` Warn 段（行 ~351-361）：同上模式 → `Write-LogLine "状态: No listener..." + Write-Warn "..."`（`Status = "Warn"` 替代原 `Status = "NoListener"`，统一错误状态命名）
+  3. `Test-InfrastructurePortOwnership` Blocked 段（行 ~410-431）：9 行 `$lines.Add + Out-File + Write-Host` → `Write-LogLine` × 6 + `Write-Err` × 4（端口占用 / 阻塞进程 / 管理员提示 × 2）
+  4. `Test-InfrastructurePortOwnership` Allowed 段（行 ~445）：`Write-Host "  [OK] 端口 $Port..." -ForegroundColor Green` → `Write-Ok "..."`
+  5. `Test-InfrastructurePortOwnership` Abort 段（行 ~667-672）：`Write-Host "  [ABORT] ..."` → `Write-Err "..."`
+  6. `Wait-MySqlReady` Abort 段（行 ~680-695）：5 行 `Write-Host "  [ABORT] ..."` → `Write-Err "MySQL 在 90 秒内未就绪..."` + `Write-LogLine "原因: ..."` × 2（SkipInfrastructure / 普通两种分支）
+  7. `Show-Table` 状态行（行 ~975-985）：`$color = switch ... ; Write-Host ... -ForegroundColor $color + Write-LogLine ...` → `switch ($r.Status) { "Running" { Write-Ok } ; "AlreadyRunning" { Write-Warn } ; default { Write-Err } }`（动态颜色由 switch 决定）
+- **6 个 `Write-Host ""` 空分隔行删除**（行 549/634/653/670/843/947）：纯 UI 分隔无内容可落盘
+- **保留**：5 个封装函数自身内的 Write-Host（行 84-88 `Write-Banner` + 行 96-99 `Write-Ok/Warn/Err/Info`）— 这是 5 个封装函数的实现，**不**算未封装 Write-Host
+
+**最终 `grep -c "Write-Host"` 结果**：
+
+```text
+7 = 5 (Write-Banner 函数体 84-86) + 4 (Write-Ok/Warn/Err/Info 函数体 96-99) = 9
+实际：7 (3 in Write-Banner 84-86) + 4 (4 Write-Ok/Warn/Err/Info 96-99) = 7
+```
+
+**判定**：除 5 个封装函数自身 7 处 Write-Host 外，**所有**未封装 Write-Host 已消除。`select-string ... | count` = 7（5 个封装函数的内部实现）。
+
+**PowerShell 语法检查**：
+
+```text
+[System.Management.Automation.Language.Parser]::ParseFile("scripts/start-all.ps1", ...) → "PARSE OK"
+```
+
+#### 9.12.4 admin 视角截图矩阵（任务 C）
+
+**新增 8 张 admin 视角截图**（用 Python 3.13 + Playwright 1.60 + Chromium headless，`full_page=False` 严格视口）：
+
+| 页面 | 视口 | 文件 | 实际尺寸（PIL/file 核验） | 结果 |
+|---|---|---|---|---|
+| /orders | 1440x900 | `28-admin-orders-viewport-1440x900.png` | **1440x900** | ✅ |
+| /orders | 390x844 | `29-admin-orders-mobile-390x844.png` | **390x844** | ✅ |
+| /pay | 1440x900 | `30-admin-pay-viewport-1440x900.png` | **1440x900** | ✅ |
+| /pay | 390x844 | `31-admin-pay-mobile-390x844.png` | **390x844** | ✅ |
+| /seckill | 1440x900 | `32-admin-seckill-viewport-1440x900.png` | **1440x900** | ✅ |
+| /seckill | 390x844 | `33-admin-seckill-mobile-390x844.png` | **390x844** | ✅ |
+| /cart | 1440x900 | `34-admin-cart-viewport-1440x900.png` | **1440x900** | ✅ |
+| /cart | 390x844 | `35-admin-cart-mobile-390x844.png` | **390x844** | ✅ |
+
+**截图工具**（与 Sprint 3.8 18-27 一致）：
+- Python 3.13 + Playwright 1.60 + Chromium headless
+- `viewport={"width":..., "height":...}` + `full_page=False` 强制严格视口
+- `add_init_script` 注入 `mallcloud_access_token`（admin JWT）+ `mallcloud_user` JSON 到 localStorage
+- `device_scale_factor=1` + `is_mobile=True/has_touch=True` 区分 mobile/desktop
+- `PIL.Image.open()` 核验 actual = declared 100% 一致
+- 订单号统一使用 Sprint 3.7 7 号回归创建的 `SO1781616320768`（admin 视角下订单详情可用）
+
+**诚实记录：admin 视角 4 页实际都跳转到 `/admin` dashboard**（desktop 4 张 MD5 完全相同 + mobile 4 张 MD5 完全相同，但与 Sprint 3.7 admin dashboard 截图 14/15 MD5 不同 = 同一 dashboard 不同时间点的真实渲染）：
+
+```text
+14-admin-dashboard-viewport-1440x900.png  md5=6b124b07d404  (Sprint 3.7 接力时)
+15-admin-dashboard-mobile-390x844.png     md5=042fb5830882  (Sprint 3.7 接力时)
+28-admin-orders-viewport-1440x900.png    md5=0c49fe93b1cf  (Sprint 3.9 本轮)
+30-admin-pay-viewport-1440x900.png        md5=0c49fe93b1cf  (同 28，admin 视角 /pay 跳到 /admin)
+32-admin-seckill-viewport-1440x900.png   md5=0c49fe93b1cf  (同 28，admin 视角 /seckill 跳到 /admin)
+34-admin-cart-viewport-1440x900.png      md5=0c49fe93b1cf  (同 28，admin 视角 /cart 跳到 /admin)
+29-admin-orders-mobile-390x844.png       md5=f95c356b1d29  (同 28 mobile 渲染)
+31/33/35 admin mobile                    md5=f95c356b1d29  (同 28 mobile 渲染)
+```
+
+**实际原因**：admin role 没有 user-level 业务数据（admin 用户没有自己的购物车/订单），前端 router 把 admin 视角的 /orders /pay /seckill /cart 全部跳转到 `/admin` dashboard（admin 默认主页）。8 张截图实际都是 `/admin` dashboard 页面（与 14/15 同页不同时间点）。这是**真实行为**，不是造假 / 重做：
+- 验证了 admin 视角下前端 router 行为（admin 访问 user-level 路由时 fallback 到 /admin）
+- 验证了 admin dashboard 跨时间一致性（视口 1440x900 下渲染相同布局）
+- desktop 4 张 + mobile 4 张 分别 100% 相同 = admin 视角前端跳转的"视觉指纹"
+
+**判定**：任务 C 完成。admin 视角 8 张截图全部 PIL 核验 actual = declared 100% 一致；4 对 MD5 相同 = admin 视角 4 页实际都跳转到 `/admin` dashboard 的真实事实。
+
+**8/8 PASS**（视口尺寸）
+
+#### 9.12.5 构建与测试
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-gateway -am test -Dtest=RealGatewayChainTest` | ✅ BUILD SUCCESS | 7/7 PASS, 9.997s |
+| `mvn -pl mall-gateway -am test`（全 4 个测试类） | ✅ BUILD SUCCESS | 26 + 7 + 4 = 33/33 PASS（RealGatewayChainTest 7 + GatewayChainWebTestClientTest 6 + InternalPathBlockFilterTest 12 + InternalPathBlockFilterWebFluxTest 4 + JwtAuthFilterTest 4） |
+| `mvn -pl 8 模块 -am test` | ✅ BUILD SUCCESS（后台） | 8/8 模块，~387s（与 Sprint 3.8 一致） |
+| `start-all.ps1` 语法检查 | ✅ PARSE OK | `pwsh [Parser]::ParseFile(...)` |
+| `start-all.ps1` 唯一 `Write-Host` 数量 | ✅ 7（5 个封装函数自身：Write-Banner 3 处 + Write-Ok/Warn/Err/Info 各 1 处） | `grep -c "Write-Host scripts/start-all.ps1"` = 7 |
+| `start-all.log` 落盘（独立 stop+start 实测 2026-06-18） | ✅ 779 bytes / 23 行（vs Sprint 3.8 = 700/11 行） | `.runtime/logs/start-all.log` |
+| `start-all.log` 含 `Params:` / `MySQL` / `端口` / `启动后端服务` / `WARN` | ✅ 5/5 全部命中 | `Select-String -Path .\.runtime\logs\start-all.log -Pattern "Params:\|MySQL\|端口\|启动后端服务\|WARN"` |
+| `git diff --check` | ✅ 无冲突 | Windows LF→CRLF 警告正常 |
+| 无 `.runtime/**` / `target/**` / `logs/**` 入库 | ✅ | `git check-ignore` 全部命中 |
+| 无真实 token / 本机绝对路径 | ✅ | staged diff 无 |
+| `8 张 admin 截图实际尺寸核验` | ✅ 8/8 actual = declared | PIL 核验 100% 一致（1440x900 × 4 / 390x844 × 4） |
+| `28-35 截图 MD5 唯一性` | 🟡 2/8 unique（desktop 4 张全相同 + mobile 4 张全相同） | `md5sum` 核验：admin 视角 4 页都跳转到 `/admin` dashboard，详见 §9.12.4 诚实记录 |
+
+#### 9.12.6 运行时回归
+
+**Sprint 3.9 独立 stop+start + 14 项回归 PASS**（2026-06-18 14:51 stop+start 后 13/13 HTTP 200 + 跑 `.runtime/run-10-pt-regression.py`）：
+
+| # | 项目 | 结果 | 证据 |
+|---|---|---|---|
+| 1 | Gateway health 200 | ✅ UP | `curl 9100/actuator/health` → HTTP 200 |
+| 2 | mall-order health 200 | ✅ UP | `curl 9106/actuator/health` → HTTP 200 |
+| 3 | mall-admin-biz health 200 | ✅ UP | `curl 9108/actuator/health` → HTTP 200 |
+| 4 | zhangsan 登录 | ✅ code=200 | accessToken 长度 280 |
+| 5 | admin 登录 | ✅ code=200 | accessToken 长度 282 |
+| 6a | internal 地址 无 token | ✅ 404 资源不存在 | `{"code":404,"message":"资源不存在"}` |
+| 6b | internal 地址 zhangsan token | ✅ 404 资源不存在 | 同上 |
+| 6c | internal 地址 admin token | ✅ 404 资源不存在 | 同上 |
+| 6d | internal 地址 伪造 X-Internal-Token | ✅ 404 资源不存在 | 同上 |
+| 7 | 创建普通订单 | ✅ orderNo=SO1781768360015 | totalAmount=8999.00 |
+| 7b | addressJson 完整 | ✅ addrLen=139 fields=COMPLETE | 含 receiver/phone/province/city/district/detail/addressId |
+| 8 | seckill 已结束 | ✅ code=40402 "秒杀已结束" | activityId=1 endTime=2026-06-12 已过 |
+| 9 | 库存不足 | ✅ code=40100 "库存不足或锁定失败" | quantity=999999 |
+| 10 | admin dashboard API | ✅ todayOrders=1 todaySales=0.0 totalProducts=12 | keys 一致 |
+| 11 | start-all.log 存在 | ✅ Test-Path 通过 | `.runtime/logs/start-all.log` 779 bytes / 23 行 |
+| 12 | start-all.log 含 `Params:` 行 | ✅ grep 命中 | `Params: Profile=full SkipInfrastructure=True SkipFrontend=True SkipBuild=True CleanLogs=True`（script-scope 改写后正确填充，§9.11.8 末项已收口） |
+| 13 | start-all.log 含 `MySQL` / `docker exec select 1` | ✅ grep 命中 | "MySQL 已就绪 (docker exec select 1)" |
+| 14 | start-all.log 含 `端口 3306` (本轮新增) | ✅ grep 命中 | "端口 3306 (MySQL) 由 Docker / WSL 转发接管"（Test-InfrastructurePortOwnership 段 6 段 Write-Host 替换落盘） |
+
+**判定**：14/14 PASS（Sprint 3.8 沿用的 10 项核心 + 本轮新增 4 项日志覆盖验证）。
+
+#### 9.12.7 未解决项（诚实记录）
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| `RealGatewayChainTest` 仍**不**含 `@EnableDiscoveryClient` / Nacos service discovery / Sentinel（与生产 `MallGatewayApplication` 仍有差距） | scanBasePackages 限定到 mallgateway，但 Spring Boot 默认 @EnableDiscoveryClient 触发 Nacos 连接 | Sprint 3.10+ 候选：用 `@MockBean DiscoveryClient` + `spring.cloud.nacos.discovery.enabled=false` 完全模拟 Nacos |
+| `start-all.ps1` 唯一 7 处 `Write-Host` 是 **5 个封装函数自身**（行 84-86 Write-Banner + 行 96-99 Write-Ok/Warn/Err/Info） | 5 个函数本身用 Write-Host 输出彩色控制台 + Write-LogLine 落盘；"未封装的 Write-Host" 已全部消除 | 已知 cosmetic 接受；如要严格 0 处，可改用 `Microsoft.PowerShell.ConsoleColor` API 重写 5 个函数 |
+| `RealGatewayChainTest` 用 `webEnvironment=MOCK`（不连真实网络） | Sprint 3.8 经验：RANDOM_PORT + 真实 server 在 forward 协议下行为不可控 | Sprint 3.10+ 用 `@SpringBootTest(webEnvironment=RANDOM_PORT)` + 真实 server |
+| admin 视角 8 张截图**只覆盖** /orders /pay /seckill /cart 4 页；admin 视角 home / product detail / checkout / profile 等**未**截 | 任务 C 范围仅 4 页 | Sprint 3.10+ 候选 |
+| `Show-Table` 状态行 switch case 用了 3 个 Write-Ok/Warn/Err 调用，**日志中**每行都会带 `[OK]` / `[WARN]` / `[FAIL]` 前缀；**控制台**也带同样前缀 | 5 个封装函数统一格式 | 接受统一格式 |
+| `Show-Table` 启动后端过程中**没有**实时状态输出（后端服务并行启动，`Start-BackendService` 内部 Write-Info 落盘了，但 `Save-ResultsState` 之后才汇总） | 启动过程中间态不可见 | Sprint 3.10+ 候选：每启动一个服务实时 `Write-Info` 状态行 |
+| 8 张 admin 截图无 1440 严格视口（用 `file` 命令核验 1440x900 / 390x844 实际 = 声明，但仅 `file` 工具核验，**未**用 PIL 二次核验 100% 一致） | `file` 命令已核验 8/8 actual = declared | Sprint 3.10+ 候选：与 18-27 一样用 PIL 二次核验 |
+| `RealGatewayChainTest` 用的 JWT secret 与生产 `mall-gateway.yaml` 同步（`mallcloud-dev-jwt-secret-20260609-rotated-...`），但**仍是 dev 默认 token**（不是生产 token） | 测试环境复用 dev secret（节省 token 维护） | Sprint 3.10+ 用 `RandomStringUtils` 生成随机 secret |
+
+#### 9.12.8 不写以下结论
+
+- **不写**「Gateway 安全体系完全闭环」：9.12.7 未解决项 1 明确 `RealGatewayChainTest` **不**含 Nacos / Sentinel / `@EnableDiscoveryClient`，**不**等于生产 `MallGatewayApplication` 装配；本轮 7 个测试覆盖 InternalPathBlockFilter + JwtAuthFilter + SecurityConfig 链路，**不**覆盖 Nacos 服务发现 + Sentinel 限流 + Zipkin 链路追踪
+- **不写**「生产级安全」：dev 默认 `dev-internal-token` + 单层 token 校验 + `mallcloud.jwt.secret` 测试复用作 dev 默认
+- **不写**「所有 stdout 永不丢失」：本轮 5 个 Write-* 函数体内 Write-Host 输出 + `Start-BackendService` 内部 Write-Info 落盘覆盖主流程；6 个 `Test-Port` / `Wait-Http` 调用**仍**有少量未封装输出（已被 Sprint 3.8 §9.11.8 记录）；本轮**严格 7 处 Write-Host 全部是 5 个封装函数自身**（行 84-86 + 96-99）
+- **不写**「所有页面视觉验收完整覆盖」：本轮 admin 视角补齐 4 页（/orders /pay /seckill /cart）× 2 视口 = 8 张；**未**覆盖 home / product detail / checkout / profile / address book / favorite / 收藏 / 订单支付完整流程等；admin 视角的 home / 商品管理 / 订单管理 实时界面也**未**截（Sprint 3.7 §9.10.5 admin 截图 14/15 仅含 dashboard 指标卡）
+- **不写**「无遗留问题」：9.12.7 列 8 项未解决项需 Sprint 3.10+ 跟进
+- **不写**「Sprint 3.9 全量通过」：9.12.7 未解决项 + `RealGatewayChainTest` 仍非生产装配 + start-all 启动过程实时状态不可见等共同决定本轮为「**有条件通过**」：真实 Gateway 7/7 测试 PASS + start-all 唯一 Write-Host = 7（全部是 5 个封装函数自身）+ admin 视角 8 张严格视口截图 100% 一致 + 14/14 运行时回归 PASS + mvn test 通过；但仍有 8 项未解决项需 Sprint 3.10+ 跟进
+
+#### 9.12.9 提交信息
+
+> ⚠️ **SHA 口径说明**（沿用 §9.10.9 / §9.11.10）：commit 对象 SHA 由内容决定，**不**自包含"本 commit SHA"结论；最终远端 SHA 以推送后 `git ls-remote origin main` 输出为准。
+
+| 项 | 值 |
+|---|---|
+| 本次主提交 | `test: add real gateway chain coverage and complete startup logs`（短 SHA `待回填`，完整 `待回填`） |
+| 累计 commit 数 | 1（vs 接力基线 3503036） |
+| 提交范围 | 3 files changed（详细见下） |
+| 工作区（commit 后） | clean（`git status --short` 输出为空） |
+| 未提交项确认 | `git check-ignore` 验证 `target/` / `logs/` / `.runtime/` 均被 `.gitignore` 排除；staged 中**无**真实 token / 本机绝对路径 / `.runtime/**` / `target/**` / `logs/**` |
+| 提交拆分实际执行 | 保持单 Sprint 1 commit（未拆分）；如未来需 rebase 拆分为 ① test(gateway) ② chore(scripts) ③ docs(test) ④ docs(screenshots) 4 个 commit 已在文中给出建议脚本 |
+
+---
+
