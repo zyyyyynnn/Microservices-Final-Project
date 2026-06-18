@@ -32,14 +32,14 @@
 | **25-search-mobile-390x844.png** | 搜索页 mobile 视口（**Sprint 3.8 新增**） | `/search?keyword=iPhone` | **390×844 mobile 视口** | 游客 | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（24780 bytes） |
 | **26-cart-viewport-1440x900.png** | 购物车 desktop 视口（**Sprint 3.8 新增**） | `/cart` | **1440×900 严格视口** | zhangsan | ✅ 通过 | 同上，路径 /cart；PIL 核验 = 1440×900（47953 bytes） |
 | **27-cart-mobile-390x844.png** | 购物车 mobile 视口（**Sprint 3.8 新增**） | `/cart` | **390×844 mobile 视口** | zhangsan | ✅ 通过 | 同上，mobile 视口；PIL 核验 = 390×844（29172 bytes） |
-| **28-admin-orders-viewport-1440x900.png** | 订单详情 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/orders/SO1781616320768` | **1440×900 严格视口** | admin | ✅ 通过 | Sprint 3.9 任务 C：Playwright `viewport=1440x900` + `full_page=False`；`add_init_script` 注入 admin JWT（userId=1007, roles=ADMIN）；`file` 命令核验 = 1440×900 |
-| **29-admin-orders-mobile-390x844.png** | 订单详情 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/orders/SO1781616320768` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，mobile 视口 + has_touch=True；`file` 核验 = 390×844 |
-| **30-admin-pay-viewport-1440x900.png** | 支付页 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/pay/SO1781616320768` | **1440×900 严格视口** | admin | ✅ 通过 | 同上，路径 /pay；`file` 核验 = 1440×900 |
-| **31-admin-pay-mobile-390x844.png** | 支付页 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/pay/SO1781616320768` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，mobile 视口；`file` 核验 = 390×844 |
-| **32-admin-seckill-viewport-1440x900.png** | 秒杀列表 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/seckill` | **1440×900 严格视口** | admin | ✅ 通过 | 同上，路径 /seckill；`file` 核验 = 1440×900 |
-| **33-admin-seckill-mobile-390x844.png** | 秒杀列表 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/seckill` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，mobile 视口；`file` 核验 = 390×844 |
-| **34-admin-cart-viewport-1440x900.png** | 购物车 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/cart` | **1440×900 严格视口** | admin | ✅ 通过 | 同上，路径 /cart；`file` 核验 = 1440×900 |
-| **35-admin-cart-mobile-390x844.png** | 购物车 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/cart` | **390×844 mobile 视口** | admin | ✅ 通过 | 同上，mobile 视口；`file` 核验 = 390×844 |
+| **28-admin-orders-viewport-1440x900.png** | 订单详情 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/orders/SO1781616320768` | **1440×900 严格视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（admin router fallback 到 `/admin` dashboard，4 对 MD5 相同 = 真实行为证据） | Sprint 3.9 任务 C：Playwright `viewport=1440x900` + `full_page=False`；`add_init_script` 注入 admin JWT（userId=1007, roles=ADMIN）；`file` 命令核验 = 1440×900；**只**做尺寸验收，**不**做 admin 业务页面视觉验收（admin 视角下 /orders /pay /seckill /cart 实际**没**有真实业务视图，被前端 router 跳转到 /admin dashboard） |
+| **29-admin-orders-mobile-390x844.png** | 订单详情 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/orders/SO1781616320768` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上，mobile 渲染的 /admin dashboard） | 同上，mobile 视口 + has_touch=True；`file` 核验 = 390×844 |
+| **30-admin-pay-viewport-1440x900.png** | 支付页 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/pay/SO1781616320768` | **1440×900 严格视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，路径 /pay；`file` 核验 = 1440×900 |
+| **31-admin-pay-mobile-390x844.png** | 支付页 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/pay/SO1781616320768` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，mobile 视口；`file` 核验 = 390×844 |
+| **32-admin-seckill-viewport-1440x900.png** | 秒杀列表 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/seckill` | **1440×900 严格视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，路径 /seckill；`file` 核验 = 1440×900 |
+| **33-admin-seckill-mobile-390x844.png** | 秒杀列表 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/seckill` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，mobile 视口；`file` 核验 = 390×844 |
+| **34-admin-cart-viewport-1440x900.png** | 购物车 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/cart` | **1440×900 严格视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，路径 /cart；`file` 核验 = 1440×900 |
+| **35-admin-cart-mobile-390x844.png** | 购物车 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/cart` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，mobile 视口；`file` 核验 = 390×844 |
 
 ## 关键链路证据
 
