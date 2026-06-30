@@ -140,6 +140,23 @@ function Wait-Http($url, $label, $timeoutSec = 120, $intervalSec = 3) {
     return $false
 }
 
+function Wait-ServiceHealth($url, $label, $timeoutSec = 30, $intervalSec = 2) {
+    Write-Info "等待 $label health=UP ($url) ..."
+    $script:LastHealthError = $null
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
+        try {
+            $response = Invoke-RestMethod -Uri $url -TimeoutSec 2 -ErrorAction Stop
+            if ($response.status -eq "UP") { return $true }
+            $script:LastHealthError = "health status=$($response.status)"
+        } catch {
+            $script:LastHealthError = $_.Exception.Message
+        }
+        Start-Sleep -Seconds $intervalSec
+    }
+    return $false
+}
+
 # MySQL 连通性 + 就绪检测
 # 优先级（Sprint 3.7 加固）：
 #   1) TCP 端口探测 3306：作为前置快筛，避免在端口未监听时反复 docker exec 浪费
@@ -736,7 +753,7 @@ if (-not $SkipBackend) {
             continue
         }
         $port = $svc.Port
-        $logFile = Join-Path $LogsDir "$name.log"
+        $serviceLogFile = Join-Path $LogsDir "$name.log"
         $moduleDir = Join-Path $ProjectRoot $name
         $jarPath = Join-Path $moduleDir "target\$name.jar"
         $jarPattern = Join-Path $moduleDir "target\$name-*.jar"
@@ -754,7 +771,7 @@ if (-not $SkipBackend) {
                 Write-Warn "$name 端口 $port 已由记录中的 PID $existingPid 占用，跳过"
                 Add-Result @{
                     Name = $name; PID = $existingPid; Port = $port
-                    Status = "AlreadyRunning"; Type = "backend"; Log = $logFile
+                    Status = "AlreadyRunning"; Type = "backend"; Log = $serviceLogFile
                 }
             } else {
                 $procName = if ($existingProc) { $existingProc.ProcessName } else { "unknown" }
@@ -796,40 +813,80 @@ if (-not $SkipBackend) {
             $jvmArgs = @("-Xms64m", "-Xmx320m", "-XX:MaxMetaspaceSize=192m") + $jvmArgs
         }
 
+        $commandSummary = if ($LowMemory) {
+            "$JavaCmd -Xms64m -Xmx320m -XX:MaxMetaspaceSize=192m -jar $($jar.Name)"
+        } else {
+            "$JavaCmd -jar $($jar.Name)"
+        }
+        Write-Info "$name 启动命令: $commandSummary (port=$port)"
+        $serviceStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
         $proc = Start-Process -FilePath $JavaCmd `
             -ArgumentList $jvmArgs `
             -WorkingDirectory $moduleDir `
-            -RedirectStandardOutput $logFile `
+            -RedirectStandardOutput $serviceLogFile `
             -RedirectStandardError (Join-Path $LogsDir "$name.err.log") `
             -WindowStyle Hidden `
             -PassThru
 
         if (-not $proc) {
             Write-Err "$name 进程创建失败"
+            Write-LogLine "  [ABORT] $name Start-Process 返回空，请检查 Java 路径 / jar 完整性"
             Add-Result @{
                 Name = $name; PID = $null; Port = $port
-                Status = "ProcessFailed"; Type = "backend"; Log = $logFile
+                Status = "ProcessFailed"; Type = "backend"; Log = $serviceLogFile
             }
             continue
         }
 
+        # Sprint 3.10 任务 C：Start-Process 成功后立即输出 PID + jar（实时状态增强）
+        Write-Info "  $name 进程已创建 PID=$($proc.Id) JAR=$($jar.Name) (端口=$port 等待就绪...)"
+        Write-LogLine "    [进程] $name PID=$($proc.Id) JAR=$($jar.Name) StartTime=$(Get-Date -Format 'HH:mm:ss')"
+
         # 等待端口
         $portOk = Wait-Port $port $name 90 3 $proc
         if ($portOk) {
-            Write-Ok "$name PID=$($proc.Id) 端口=$port 已就绪"
-            Add-Result @{
-                Name = $name; PID = $proc.Id; Port = $port
-                Status = "Running"; Type = "backend"
-                Log = $logFile; Jar = $jar.FullName
-                StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+            Write-Ok "$name PID=$($proc.Id) 端口=$port 已监听"
+            $healthUrl = "http://127.0.0.1:$port/actuator/health"
+            $healthOk = Wait-ServiceHealth $healthUrl $name 30 2
+            if ($healthOk) {
+                Write-Ok "$name PID=$($proc.Id) health=UP port=$port"
+                Write-LogLine "    [健康] $name health=UP port=$port elapsed=$([math]::Round($serviceStopwatch.Elapsed.TotalSeconds,1))s"
+                Add-Result @{
+                    Name = $name; PID = $proc.Id; Port = $port
+                    Status = "Running"; Type = "backend"
+                    Log = $serviceLogFile; Jar = $jar.FullName
+                    StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                }
+            } else {
+                Write-Warn "$name PID=$($proc.Id) health 检查失败，状态=HealthFailed"
+                Write-LogLine "    [FAIL-ERR] $name healthUrl=$healthUrl lastError=$script:LastHealthError"
+                Add-Result @{
+                    Name = $name; PID = $proc.Id; Port = $port
+                    Status = "HealthFailed"; Type = "backend"
+                    Log = $serviceLogFile; Jar = $jar.FullName
+                    StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                }
             }
         } else {
             $status = if ($proc.HasExited) { "Exited" } else { "Timeout" }
             Write-Warn "$name PID=$($proc.Id) 端口 $port 未就绪，状态=$status，请检查日志"
+            # Sprint 3.10 任务 C：失败时记录最后错误提示（jar 完整性 / 端口占用 / 内存不足等）
+            $errTail = ""
+            $errLog = Join-Path $LogsDir "$name.err.log"
+            if (Test-Path $errLog) {
+                $lines = Get-Content -LiteralPath $errLog -Tail 5 -ErrorAction SilentlyContinue
+                if ($lines) { $errTail = ($lines -join " | ") }
+            }
+            if ($errTail) {
+                Write-LogLine "    [FAIL-ERR] $name 错误日志最后 5 行: $errTail"
+            } else {
+                Write-LogLine "    [FAIL-ERR] $name 错误日志不存在或为空 ($errLog)"
+            }
             Add-Result @{
                 Name = $name; PID = $proc.Id; Port = $port
                 Status = $status; Type = "backend"
-                Log = $logFile; Jar = $jar.FullName
+                Log = $serviceLogFile; Jar = $jar.FullName
                 StartTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
             }
         }

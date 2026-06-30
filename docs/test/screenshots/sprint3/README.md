@@ -40,6 +40,14 @@
 | **33-admin-seckill-mobile-390x844.png** | 秒杀列表 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/seckill` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，mobile 视口；`file` 核验 = 390×844 |
 | **34-admin-cart-viewport-1440x900.png** | 购物车 admin 视角 desktop 视口（**Sprint 3.9 新增**） | `/cart` | **1440×900 严格视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，路径 /cart；`file` 核验 = 1440×900 |
 | **35-admin-cart-mobile-390x844.png** | 购物车 admin 视角 mobile 视口（**Sprint 3.9 新增**） | `/cart` | **390×844 mobile 视口** | admin | 🟡 **尺寸通过 / 页面差异未完成**（同上） | 同上，mobile 视口；`file` 核验 = 390×844 |
+| **36-admin-dashboard-viewport-1440x900.png** | Admin Dashboard（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **1440×900 严格视口** | admin | ✅ 通过 | Playwright CLI 真实登录；PIL=1440×900；MD5=`56d12474cd13b42529368ad9581b7f6c`；展示 Dashboard 指标与后台订单/商品首屏 |
+| **37-admin-dashboard-mobile-390x844.png** | Admin Dashboard mobile（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **390×844 严格视口** | admin | ✅ 通过 | Playwright CLI 真实登录；PIL=390×844；MD5=`c232c15a32e08d32ed6e7780170bb80f` |
+| **38-admin-order-management-viewport-1440x900.png** | 后台订单区块（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **1440×900 严格视口** | admin | ✅ 通过 | 滚动到“后台订单”真实表格；PIL=1440×900；MD5=`509abfe9532d8eb7290a3ec076385568` |
+| **39-admin-order-management-mobile-390x844.png** | 后台订单区块 mobile（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **390×844 严格视口** | admin | ✅ 通过 | 滚动到“后台订单”真实表格；PIL=390×844；MD5=`19a34d51a97f25276dbd6f5c8381a05c` |
+| **40-admin-product-management-viewport-1440x900.png** | 后台商品区块（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **1440×900 严格视口** | admin | ✅ 通过 | 滚动到“后台商品”真实表格的商品行；PIL=1440×900；MD5=`99521650fe111a19de9a89d70d7fe668` |
+| **41-admin-product-management-mobile-390x844.png** | 后台商品区块 mobile（**Sprint 3.10 新增**） | 请求 `/admin`，最终 `/admin`（无 redirect） | **390×844 严格视口** | admin | ✅ 通过 | 滚动到“后台商品”真实表格；PIL=390×844；MD5=`0fce0e60f8ca285b27dc93a94e857ff1` |
+
+Sprint 3.10 路由审计确认：当前前端只有 `/admin` 一个后台路由，Dashboard、订单和商品均为 `AdminView.vue` 同页区块；不存在 `/admin/orders`、`/admin/products`、`/admin/users` 独立路由，且没有用户管理区块。因此本轮 6 张截图 MD5 为 6/6 唯一，但未伪造用户管理截图，Sprint 3.10 仍按有条件通过记录。
 
 ## 关键链路证据
 
@@ -54,6 +62,7 @@
 
 - **1440x900**：使用 `browser_navigate` + `browser_vision`（与 Sprint 2 Closeout 一致）
 - **390x844**：使用 Python 3.13 + Playwright 1.x + Chromium headless，device_scale_factor=1，viewport 严格 390x844，通过 `add_init_script` 注入 admin/zhangsan 凭据到 `localStorage`
+- **Sprint 3.10 的 36-41**：使用 `npx --package @playwright/cli playwright-cli` + Chromium，先通过 `/login` 真实登录 admin，再访问 `/admin`；使用 `resize 1440 900` / `resize 390 844` 和 viewport screenshot（未使用 `--full-page`），按区块滚动后截图；PIL 核验尺寸，MD5 6/6 唯一。
 - 鉴权凭据文件位于 `.runtime/sprint3.2-tokens.txt`（gitignored，临时产物，提交时不存在）
 
 ## 已知缺陷（不修，归类 Sprint 3.4+ 候选）

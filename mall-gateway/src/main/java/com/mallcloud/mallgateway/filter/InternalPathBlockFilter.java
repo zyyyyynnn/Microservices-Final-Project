@@ -100,7 +100,9 @@ public class InternalPathBlockFilter implements GlobalFilter, Ordered {
     private ServerHttpRequest sanitizeInternalHeaders(ServerHttpRequest request) {
         List<String> toRemove = new ArrayList<>();
         request.getHeaders().forEach((name, values) -> {
-            if (name != null && name.startsWith(INTERNAL_HEADER_PREFIX)) {
+            if (name != null
+                    && name.regionMatches(true, 0, INTERNAL_HEADER_PREFIX, 0,
+                    INTERNAL_HEADER_PREFIX.length())) {
                 toRemove.add(name);
             }
         });

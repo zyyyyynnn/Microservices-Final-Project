@@ -2004,4 +2004,105 @@ Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.997 s
 | 提交拆分实际执行 | 保持单 Sprint 1 commit（未拆分）；如未来需 rebase 拆分为 ① test(gateway) ② chore(scripts) ③ docs(test) ④ docs(screenshots) 4 个 commit 已在文中给出建议脚本 |
 
 ---
+### 9.13 Sprint 3.10 RANDOM_PORT Gateway 测试、Admin 后台页面截图与启动状态增强（**有条件通过**）
 
+> 执行日期：2026-06-30。阶段边界仅包含 RANDOM_PORT Gateway 测试、现有 Admin 后台页面截图、`start-all.ps1` 实时状态增强和必要文档更新；未改业务逻辑、数据库 schema、权限体系或前端页面结构。
+
+#### 9.13.1 修改文件
+
+| 文件 | 修改 |
+|---|---|
+| `mall-gateway/src/test/java/.../filter/RealGatewayRandomPortTest.java` | 新增 `RANDOM_PORT` 真实 HTTP server 测试；使用 test `RouteLocator` + forward mock downstream，Mock Redis 黑名单查询，关闭 Nacos/Discovery |
+| `mall-gateway/src/main/java/.../filter/InternalPathBlockFilter.java` | 将 `X-Internal-*` 匹配改为大小写不敏感；真实 HTTP server 会规范化 Header 名，原大小写敏感实现未能净化小写 Header |
+| `scripts/start-all.ps1` | 每个后端实时记录命令摘要、PID、端口和 `/actuator/health`；失败记录最后 health/错误日志；修复 `$logFile` 与全局 `$LogFile` 大小写不敏感导致状态写错日志的问题 |
+| `docs/test/screenshots/sprint3/README.md` | 增加 36-41 截图索引、URL/redirect、PIL 尺寸、MD5 和缺失页面说明 |
+| `docs/test/screenshots/sprint3/36-41*.png` | 新增 Admin Dashboard、后台订单、后台商品 3 个现有区块的 desktop/mobile 严格视口截图 |
+| `docs/FINAL_REPORT.md` | 增加本节 |
+
+#### 9.13.2 RANDOM_PORT Gateway 测试
+
+测试类使用 `@SpringBootTest(webEnvironment=RANDOM_PORT)` 和真实随机监听端口；`WebTestClient.bindToServer()` 通过 HTTP 请求。生产 `InternalPathBlockFilter`、`JwtAuthFilter` 和 filter order 常量实际装配；`ReactiveStringRedisTemplate` 用 `@MockBean` 固定返回未命中黑名单；Nacos、Discovery 和自动注册关闭。普通路径通过 test `RouteLocator` 转发至应用内 echo controller，不连接真实下游。
+
+| 测试方法 | 覆盖点 | 结果 |
+|---|---|---|
+| `usersInternalAddressPathIsBlockedByRealServer` | users internal 地址路径 → 404 | PASS |
+| `productsInternalPathIsBlockedByRealServer` | products internal 通用路径 → 404 | PASS |
+| `ordersPathReachesMockDownstream` | `/api/v1/orders` 明确到达 mock downstream，HTTP 200 + route=orders | PASS |
+| `searchPathReachesMockDownstream` | `/api/v1/search/products?keyword=iPhone` 明确到达 mock downstream，HTTP 200 + route=search | PASS |
+| `xInternalHeadersAreStrippedBeforeDownstream` | 下游收不到 `X-Internal-Token`/`X-Internal-Foo`，普通 `X-Custom-Trace` 保留 | PASS |
+| `filterOrderFromConstantIsBeforeJwtInRealServer` | Internal order 等于常量且小于 JWT order | PASS |
+| `internalPathWithAuthorizationAndInternalTokenStillBlockedByRealServer` | Authorization + 伪造 internal token 仍 404 | PASS |
+| `exposedPatternsStillMatchInRealServer` | internal Pattern 语义锚点 | PASS |
+| `realRunningServerPortIsInjected` | 随机端口非 8080，真实 HTTP 请求到达 echo downstream | PASS |
+
+TDD 证据：加强普通路径/下游断言后首次运行出现 4 个 404，导入 test route 后剩余 Header 净化失败；真实 server 下 `X-Internal-Token` 到达下游。生产过滤器改为大小写不敏感匹配后，定向测试 9/9 PASS。该测试证明真实 running server + Gateway filter + test route 链路，不包含真实 Nacos、Redis、Sentinel 或业务下游，不写成生产完整闭环。
+
+#### 9.13.3 Admin 后台截图矩阵
+
+路由审计确认只有 `/admin` 一个后台路由；`AdminView.vue` 同页包含 Dashboard、后台订单和后台商品，没有 `/admin/orders`、`/admin/products`、`/admin/users`，也没有用户管理区块。使用 Playwright CLI 从 `/login` 真实登录 admin；所有截图均为 viewport screenshot，未使用 full-page。
+
+| 页面/区块 | URL（请求→最终） | 视口 | 文件 | PIL 尺寸 | MD5 | 结果 |
+|---|---|---|---|---|---|---|
+| Dashboard | `/admin`→`/admin` | 1440×900 | `36-admin-dashboard-viewport-1440x900.png` | 1440×900 | `56d12474cd13b42529368ad9581b7f6c` | PASS |
+| Dashboard | `/admin`→`/admin` | 390×844 | `37-admin-dashboard-mobile-390x844.png` | 390×844 | `c232c15a32e08d32ed6e7780170bb80f` | PASS |
+| 后台订单 | `/admin`→`/admin` | 1440×900 | `38-admin-order-management-viewport-1440x900.png` | 1440×900 | `509abfe9532d8eb7290a3ec076385568` | PASS |
+| 后台订单 | `/admin`→`/admin` | 390×844 | `39-admin-order-management-mobile-390x844.png` | 390×844 | `19a34d51a97f25276dbd6f5c8381a05c` | PASS |
+| 后台商品 | `/admin`→`/admin` | 1440×900 | `40-admin-product-management-viewport-1440x900.png` | 1440×900 | `99521650fe111a19de9a89d70d7fe668` | PASS |
+| 后台商品 | `/admin`→`/admin` | 390×844 | `41-admin-product-management-mobile-390x844.png` | 390×844 | `0fce0e60f8ca285b27dc93a94e857ff1` | PASS |
+
+尺寸 6/6 匹配，MD5 6/6 唯一；这些是同一真实 Admin 页面不同区块，不是 Sprint 3.9 的用户路由 fallback 重复图。用户管理截图未生成，因为项目不存在对应路由或区块，因此本轮不能判定“所有 Admin 页面完整覆盖”。
+
+#### 9.13.4 `start-all.ps1` 实时状态增强
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 启动命令摘要 | PASS | 13/13 服务记录 Java、JAR 名和端口 |
+| 进程创建 | PASS | `start-all.log` 中 13 条 `[进程]`，含服务名、PID、JAR、时间 |
+| Health 检查 | PASS | 逐服务请求 `/actuator/health` 并要求 `status=UP`；13 条 `[健康] ... health=UP` |
+| 失败信息 | 已实现 | Health 超时记录 `HealthFailed` + lastError；端口失败记录错误日志最后 5 行。本次无失败事件 |
+| 日志目标 | PASS | 修复 PowerShell 大小写不敏感变量覆盖后，状态写入 `.runtime/logs/start-all.log`，而不是服务 stdout 日志 |
+| 实测 | PASS | 完整 stop/start 退出码 0；`LOG_LINES=166 PROCESS_EVENTS=13 HEALTH_UP=13 FAIL_EVENTS=0` |
+
+#### 9.13.5 构建与测试
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `mvn -pl mall-gateway -am test` | PASS | Gateway 42 tests，0 failure/error；含 RANDOM_PORT 9 tests |
+| 指定 8 模块 `-am test` | PASS | Reactor 9/9 modules SUCCESS |
+| `mvn -DskipTests package` | PASS | Reactor 15/15 modules SUCCESS |
+| `npm run build` | PASS（有既有警告） | `vue-tsc -b && vite build` exit 0；Rolldown pure annotation 与 chunk >500k 警告保留 |
+| PowerShell parser/static check | PASS | `PARSE_AND_STATIC_CHECK_OK` |
+
+#### 9.13.6 运行时回归
+
+2026-06-30 完整 stop/start 后执行。旧本地回归脚本将 `mall-admin-biz` 写为 9108，本轮按实际端口 9111 在内存中替换后执行，未修改或提交 `.runtime` 文件。
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| Gateway / mall-order / mall-admin-biz health | PASS | 9100 / 9106 / 9111 均 HTTP 200 UP |
+| zhangsan / admin 登录 | PASS | 两者业务码 200 |
+| internal 外部 4 场景 | PASS | 无 Token、zhangsan、admin、伪造 internal token 均 HTTP 404 `资源不存在` |
+| 创建普通订单 | PASS | 第二次可核验订单 `SO1782785884769`；`addressJson` 139 字符且 receiver/phone/detail 完整 |
+| 秒杀已结束 | PASS | 业务码 40402 |
+| 库存不足 | PASS | 业务码 40100 |
+| Admin dashboard API | PASS | 业务码 200；`todayOrders=2`、`todaySales=0.0`、`totalProducts=12` |
+| 启动日志 | PASS | 13/13 `[进程]` + 13/13 `health=UP`，0 failure event |
+
+回归第一次已完成业务请求，但 Windows GBK 控制台打印 Unicode 标记时发生 `UnicodeEncodeError`，不能作为通过证据；设置 `PYTHONIOENCODING=utf-8` 后第二次完整执行 14/14 PASS。两次执行各创建一笔 Sprint 3.10 测试订单，因此 dashboard 当日订单数为 2。
+
+#### 9.13.7 未解决项与结论边界
+
+| 项目 | 原因 | 后续 |
+|---|---|---|
+| 用户管理页面/截图缺失 | 前端没有 `/admin/users` 或用户管理区块 | 如产品需求确认，再单独设计和实现；本 Sprint 不扩展 UI |
+| Admin 订单/商品无独立路由 | 当前均为 `/admin` 同页区块 | 本轮按真实页面滚动采集，不伪造独立 URL |
+| RANDOM_PORT 未连接真实基础设施/下游 | 为稳定测试而关闭 Nacos/Discovery，Mock Redis，使用 test route | 需要时另建端到端环境测试，不替代本测试 |
+| 根目录 `docker-compose.yml` 不存在 | 实际 compose 位于 `deploy/docker/docker-compose.middleware.yml` 和 `docker-compose.all.yml` | 本轮未改部署结构 |
+
+本轮结论为**有条件通过**：RANDOM_PORT 9/9、Gateway 全量 42/42、后端构建/测试、13 服务 health 日志、运行时 14/14、截图尺寸与唯一性均通过；但用户管理页面客观缺失。不得写“生产级安全”“Gateway 安全体系完全闭环”“所有 Admin 页面完整覆盖”“启动永不失败”或“无遗留问题”。
+
+#### 9.13.8 提交信息
+
+提交主题：`test: add random port gateway coverage and admin page screenshots`。Commit SHA、远端 SHA、push 和最终工作区状态以本节提交后的 Git 命令输出为准；commit 内容不能可靠自包含自身 SHA。
+
+---
