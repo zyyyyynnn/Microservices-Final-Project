@@ -2,7 +2,7 @@
 
 MallCloud 是面向 Spring Cloud Alibaba 微服务课程设计的本地可运行微商城项目。项目围绕“登录、商品浏览、购物车、下单、库存锁定、模拟支付、支付消息、订单查询、搜索、秒杀、后台看板”的主链路组织交付，重点展示微服务拆分、Gateway 鉴权、服务调用、分布式事务、消息队列、限流熔断和前端验收证据。
 
-本项目是课程项目，不宣称生产级商业系统能力。所有报告结论以当前仓库内可复跑测试、截图、脚本和 `docs/FINAL_REPORT.md` 的真实证据为准。
+本项目是课程项目，不宣称生产级商业系统能力。所有报告结论以当前仓库内可复跑测试、截图、脚本和 `docs/documents/FINAL_REPORT.md` 的真实证据为准。
 
 ## 1. 项目概述
 
@@ -116,7 +116,7 @@ npm install
 npm run dev
 ```
 
-更多启动细节见 [docs/QUICK_START.md](docs/QUICK_START.md) 与 [docs/DEPLOY.md](docs/DEPLOY.md)。
+更多启动细节见 [docs/process/09-本地部署与联调手册.md](docs/process/09-本地部署与联调手册.md)。
 
 ## 10. 演示账号
 
@@ -134,14 +134,14 @@ npm run dev
 4. 打开订单详情并进入模拟支付页，触发支付结果，解释 RocketMQ 消费链路。
 5. 访问秒杀页，演示活动已结束或库存不足的真实响应口径。
 6. 使用 `admin / 123456` 登录 `/admin`，展示 Dashboard、后台订单和后台商品区块。
-7. 打开 `docs/FINAL_REPORT.md`、图表和截图矩阵，说明测试结果与边界。
+7. 打开 `docs/documents/FINAL_REPORT.md`、图表和截图矩阵，说明测试结果与边界。
 
 ## 12. 项目文档与材料
 
 | 材料 | 入口 | 内容 |
 | --- | --- | --- |
 | 文档总索引 | [docs/README.md](docs/README.md) | 交付文档、图表、截图、答辩材料、综合报告入口 |
-| 最终报告 | [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md) | 最终验收结论、测试证据、边界与后续计划 |
+| 最终报告 | [docs/documents/FINAL_REPORT.md](docs/documents/FINAL_REPORT.md) | 最终验收结论、测试证据、边界与后续计划 |
 | 图表交付区 | [docs/diagrams/README.md](docs/diagrams/README.md) | Mermaid 源文件、SVG/PNG 导出图 |
 | 页面截图交付区 | [docs/page-screenshots/README.md](docs/page-screenshots/README.md) | 最终页面截图矩阵、尺寸和 MD5 |
 | 答辩材料 | [docs/presentation/README.md](docs/presentation/README.md) | 视频脚本、PPT 大纲、答辩稿、关键代码导读 |
@@ -162,7 +162,7 @@ npm run dev
 | 前端构建 | `npm run build` PASS |
 | 页面截图 | 最终图库按 desktop/mobile 维度归档并经 PIL/MD5 校验 |
 
-详细证据见 [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md)。
+详细证据见 [docs/documents/FINAL_REPORT.md](docs/documents/FINAL_REPORT.md)。
 
 ## 14. 安全与边界说明
 

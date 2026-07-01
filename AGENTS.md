@@ -1,6 +1,6 @@
 # MallCloud Agent 工作协议
 
-> 最高标准：`docs/PROJECT_STANDARD.md`
+> 最高标准：`docs/standards/PROJECT_STANDARD.md`
 > 设计与重构基准：`DESIGN.md`
 > 默认环境：Windows 11、PowerShell 7+、UTF-8、JDK 21、Maven 3.9+
 
@@ -12,21 +12,21 @@
 
 基础文档：
 
-1. `docs/PROJECT_STANDARD.md`
-2. `docs/PRD.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/API.md`
-5. `docs/DATABASE.md`
-6. `docs/CODING_STYLE.md`
-7. `docs/DEPLOY.md`
-8. `docs/QUICK_START.md`
+1. `docs/standards/PROJECT_STANDARD.md`
+2. `docs/process/01-需求规格说明书.md`
+3. `docs/process/04-系统架构设计文档.md`
+4. `docs/process/06-API接口文档.md`
+5. `docs/process/05-数据库设计文档.md`
+6. `docs/standards/CODING_STYLE.md`
+7. `docs/process/09-本地部署与联调手册.md`
 
 专项文档：
 
 - 产品、前端、页面、路由、交互或文案设计基线：`DESIGN.md`
 - 测试方法：`docs/test/README.md`
-- 当前测试结果和答辩材料：`docs/FINAL_REPORT.md`
+- 当前测试结果和答辩材料：`docs/documents/FINAL_REPORT.md`
 - 脚本入口和参数：`scripts/README.md`
+- 文档目录总入口：`docs/README.md`
 
 若代码、脚本、配置和文档冲突，先核对实际文件与可运行行为，再修改最小必要范围；不确定时明确标记为未验证。
 
@@ -92,7 +92,7 @@
 
 - 同时断言 HTTP 状态和业务码。
 - 登录、Gateway 鉴权、商品、购物车、订单、库存、支付消息、秒杀、Nacos、Sentinel、JMeter 等测试按 `docs/test/README.md` 执行。
-- 当前真实结果只写入 `docs/FINAL_REPORT.md`。
+- 当前真实结果只写入 `docs/documents/FINAL_REPORT.md`。
 - 失败项不得隐藏，不得写成通过。
 - 未运行 Newman/JMeter 时，不得填写精确结果。
 

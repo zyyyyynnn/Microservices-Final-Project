@@ -162,7 +162,7 @@ pwsh .\scripts\init-search-index.ps1 -AllowFailures
 - 内部同步接口默认直连 `http://localhost:9108`，不是 Gateway 业务入口；
 - `-AllowFailures` 只用于记录当前环境状态，不能作为搜索专项通过证据。
 
-测试脚本的结果统一记录到 `docs/FINAL_REPORT.md`。脚本存在不等于测试通过。
+测试脚本的结果统一记录到 `docs/documents/FINAL_REPORT.md`。脚本存在不等于测试通过。
 
 ---
 

@@ -27,8 +27,8 @@
 | 主要入口 | Gateway `http://localhost:9100`；前端开发地址 `http://localhost:5173` |
 | 部署方式 | Docker 中间件 + 本地 JAR + PowerShell/BAT 脚本 |
 | 演示账号 | `zhangsan / 123456`、`merchant01 / 123456`、`admin / 123456` |
-| 最终首页 | 根 [README.md](../README.md) |
-| 文档总入口 | [docs/README.md](README.md) |
+| 最终首页 | 根 [README.md](../../README.md) |
+| 文档总入口 | [docs/README.md](../README.md) |
 
 ## 3. 核心业务完成情况
 
@@ -94,7 +94,7 @@
 
 ## 7. 页面截图与最终资产
 
-最终图库入口：[docs/page-screenshots/README.md](page-screenshots/README.md)
+最终图库入口：[docs/page-screenshots/README.md](../page-screenshots/README.md)
 
 | 页面类别 | 状态 |
 | --- | --- |
@@ -106,26 +106,26 @@
 
 最终图库共 20 张：desktop 10 张均为 1440×900，mobile 10 张均为 390×844；PIL 核验 20/20 尺寸匹配，MD5 20/20 唯一。首页 mobile 于 2026-07-01 使用 Playwright CLI 真实访问补采，未使用 full-page。
 
-过程截图索引仍保留在 [docs/test/screenshots/sprint3/README.md](test/screenshots/sprint3/README.md)。
+过程截图索引仍保留在 [docs/test/screenshots/sprint3/README.md](../test/screenshots/sprint3/README.md)。
 
 ## 8. 图表与答辩材料
 
 | 材料 | 入口 | 状态 |
 | --- | --- | --- |
-| 系统与流程图 | [docs/diagrams/README.md](diagrams/README.md) | 图表交付通过：7/7 SVG、7/7 PNG，PNG 宽度均 ≥ 2400px |
-| 视频录制脚本 | [docs/presentation/01-视频录制脚本.md](presentation/01-视频录制脚本.md) | 已建立 |
-| PPT 大纲 | [docs/presentation/02-PPT大纲.md](presentation/02-PPT大纲.md) | 已建立 |
-| PPT 答辩稿 | [docs/presentation/03-PPT答辩稿.md](presentation/03-PPT答辩稿.md) | 已建立 |
-| 关键代码导读 | [docs/presentation/04-关键代码导读与答辩准备.md](presentation/04-关键代码导读与答辩准备.md) | 已建立 |
-| 综合报告材料 | [docs/documents/README.md](documents/README.md) | 已建立 |
+| 系统与流程图 | [docs/diagrams/README.md](../diagrams/README.md) | 图表交付通过：7/7 SVG、7/7 PNG，PNG 宽度均 ≥ 2400px |
+| 视频录制脚本 | [docs/presentation/01-视频录制脚本.md](../presentation/01-视频录制脚本.md) | 已建立 |
+| PPT 大纲 | [docs/presentation/02-PPT大纲.md](../presentation/02-PPT大纲.md) | 已建立 |
+| PPT 答辩稿 | [docs/presentation/03-PPT答辩稿.md](../presentation/03-PPT答辩稿.md) | 已建立 |
+| 关键代码导读 | [docs/presentation/04-关键代码导读与答辩准备.md](../presentation/04-关键代码导读与答辩准备.md) | 已建立 |
+| 综合报告材料 | [docs/documents/README.md](README.md) | 已建立 |
 
 图表验收表：
 
 | 验收项 | 结果 | 证据 |
 | --- | --- | --- |
-| Mermaid 源文件 | 7/7 | [docs/diagrams/mmd/](diagrams/mmd/) |
-| SVG 导出 | 7/7 | [docs/diagrams/svg/](diagrams/svg/) |
-| PNG 导出 | 7/7 | [docs/diagrams/png/](diagrams/png/) |
+| Mermaid 源文件 | 7/7 | [docs/diagrams/mmd/](../diagrams/mmd/) |
+| SVG 导出 | 7/7 | [docs/diagrams/svg/](../diagrams/svg/) |
+| PNG 导出 | 7/7 | [docs/diagrams/png/](../diagrams/png/) |
 | PNG 宽度 | 2702px–4011px，全部 ≥ 2400px | `pwsh .\docs\diagrams\verify-diagrams.ps1` |
 | 统一视觉主题 | PASS | `theme.css` + `mermaid-config.json` |
 | 标题裁切复核 | PASS | 01 层级标题、02 下单阶段、05 消息发布、06 请求准入、07 Windows 主机均已人工复核 |
@@ -145,14 +145,14 @@
 
 | 证据 | 路径 |
 | --- | --- |
-| 测试方法 | [docs/test/README.md](test/README.md) |
-| Sprint 3 截图过程证据 | [docs/test/screenshots/sprint3/README.md](test/screenshots/sprint3/README.md) |
-| Newman 摘要 | [docs/test/postman/summary/](test/postman/summary/) |
-| JMeter 摘要 | [docs/test/jmeter/summary/](test/jmeter/summary/) |
-| Nacos 配置热更新 | [docs/test/nacos/summary/](test/nacos/summary/) |
-| Sentinel 专项 | [docs/test/sentinel/summary/](test/sentinel/summary/) |
-| 前端验收记录 | [docs/test/frontend/](test/frontend/) |
-| 业务联调记录 | [docs/test/business/](test/business/) |
+| 测试方法 | [docs/test/README.md](../test/README.md) |
+| Sprint 3 截图过程证据 | [docs/test/screenshots/sprint3/README.md](../test/screenshots/sprint3/README.md) |
+| Newman 摘要 | [docs/test/postman/summary/](../test/postman/summary/) |
+| JMeter 摘要 | [docs/test/jmeter/summary/](../test/jmeter/summary/) |
+| Nacos 配置热更新 | [docs/test/nacos/summary/](../test/nacos/summary/) |
+| Sentinel 专项 | [docs/test/sentinel/summary/](../test/sentinel/summary/) |
+| 前端验收记录 | [docs/test/frontend/](../test/frontend/) |
+| 业务联调记录 | [docs/test/business/](../test/business/) |
 
 ## 11. 提交信息
 

@@ -2,7 +2,7 @@
 
 > 文档版本：v2.0
 > 文档状态：生效
-> 上位标准：`docs/PROJECT_STANDARD.md`
+> 上位标准：`docs/standards/PROJECT_STANDARD.md`
 
 本规范只保留当前项目能够执行的要求。推荐项和后续目标不会写成强制现状。
 

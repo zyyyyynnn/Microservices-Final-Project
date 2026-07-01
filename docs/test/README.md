@@ -1,7 +1,7 @@
 # MallCloud 测试资产说明
 
 > 职责：测试资产目录、Postman/Newman 使用方法、JMeter 使用方法、断言规范、结果文件目录、专项检查说明和前端验收要求。
-> 当前测试结果统一记录到 `docs/FINAL_REPORT.md`。
+> 当前测试结果统一记录到 `docs/documents/FINAL_REPORT.md`。
 
 ---
 
@@ -28,7 +28,7 @@ docs/test/
 └── screenshots/
 ```
 
-不存在的文件不得写成已生成。测试结果、截图索引、通过率、失败项和性能指标统一写入 `docs/FINAL_REPORT.md`。
+不存在的文件不得写成已生成。测试结果、截图索引、通过率、失败项和性能指标统一写入 `docs/documents/FINAL_REPORT.md`。
 Newman HTML 报告包含请求头和响应体，可能包含动态 Token，不提交到仓库；提交证据时使用 `postman/summary/` 下的脱敏摘要。
 
 ---
@@ -115,7 +115,7 @@ docker exec mall-mysql mysql -uroot -proot -e "DELETE FROM mall_seckill.seckill_
 
 不得通过放宽秒杀限购断言来规避重复执行问题。
 
-记录到 `docs/FINAL_REPORT.md`：
+记录到 `docs/documents/FINAL_REPORT.md`：
 
 - 请求总数；
 - 断言总数；

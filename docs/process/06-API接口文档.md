@@ -3,7 +3,7 @@
 > 文档版本：v2.1
 > BaseURL：`http://localhost:9100`
 > 演示账号统一密码：`123456`
-> 上位标准：`docs/PROJECT_STANDARD.md`
+> 上位标准：`docs/standards/PROJECT_STANDARD.md`
 > 说明：路径以当前 Controller 为基础；请求与响应仍需在代码整改后通过 Postman 最终确认。
 
 ---
