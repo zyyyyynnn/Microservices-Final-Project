@@ -1,39 +1,44 @@
-flowchart LR
-  Browser["Vue 3 前端<br/>mall-frontend"] --> Gateway["mall-gateway<br/>9100"]
+block-beta
+  columns 4
 
-  Gateway --> Auth["mall-auth"]
-  Gateway --> User["mall-user"]
-  Gateway --> Product["mall-product"]
-  Gateway --> Cart["mall-cart"]
-  Gateway --> Order["mall-order"]
-  Gateway --> Pay["mall-pay"]
-  Gateway --> Search["mall-search"]
-  Gateway --> Seckill["mall-seckill"]
-  Gateway --> Admin["mall-admin-biz"]
+  accessTitle["访问层"]:4
+  user["浏览器用户"]:2
+  web["Vue 3 前端<br/>mall-frontend"]:2
 
-  Order --> Product
-  Order --> Inventory["mall-inventory"]
-  Pay --> MQ["RocketMQ"]
-  MQ --> Order
-  MQ --> Inventory
-  Search --> ES["Elasticsearch"]
-  Seckill --> Redis["Redis"]
-  Admin --> Order
-  Admin --> Product
+  space:4
+  gatewayTitle["网关层"]:4
+  gateway["mall-gateway · 9100<br/>统一路由 · JWT 鉴权 · internal 路径防护"]:4
 
-  Auth --> MySQL["MySQL"]
-  User --> MySQL
-  Product --> MySQL
-  Cart --> Redis
-  Order --> MySQL
-  Inventory --> MySQL
-  Pay --> MySQL
-  Seckill --> MySQL
+  space:4
+  coreTitle["核心交易服务"]:4
+  account["账户域<br/>mall-auth · mall-user"]
+  catalog["商品与购物车<br/>mall-product · mall-cart"]
+  trade["订单与库存<br/>mall-order · mall-inventory"]
+  payment["支付与消息<br/>mall-pay · mall-message"]
 
-  Nacos["Nacos"] -.注册/配置.-> Gateway
-  Nacos -.注册/配置.-> Auth
-  Nacos -.注册/配置.-> Order
-  Nacos -.注册/配置.-> Product
-  Sentinel["Sentinel"] -.限流/熔断.-> Gateway
-  Seata["Seata"] -.分布式事务.-> Order
-  Seata -.分布式事务.-> Inventory
+  space:4
+  extensionTitle["扩展能力服务"]:4
+  search["商品搜索<br/>mall-search"]
+  seckill["秒杀活动<br/>mall-seckill"]
+  ops["后台与任务<br/>mall-admin-biz · mall-job"]:2
+
+  space:4
+  platformTitle["中间件与数据层"]:4
+  govern["服务治理<br/>Nacos · Sentinel · Seata"]
+  data["业务数据<br/>MySQL · Redis"]
+  event["异步消息<br/>RocketMQ"]
+  index["搜索索引<br/>Elasticsearch"]
+
+  classDef title fill:#e8eef5,stroke:#94a3b8,color:#334155,stroke-width:1.6px,font-weight:700;
+  classDef accessNode fill:#ffffff,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef gatewayNode fill:#4b7099,stroke:#3b5a7d,color:#ffffff,stroke-width:2.5px;
+  classDef coreNode fill:#f0f4f8,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef extensionNode fill:#edf6f5,stroke:#4f7a74,color:#1e293b,stroke-width:2px;
+  classDef platformNode fill:#ffffff,stroke:#64748b,color:#334155,stroke-width:1.8px;
+
+  class accessTitle,gatewayTitle,coreTitle,extensionTitle,platformTitle title
+  class user,web accessNode
+  class gateway gatewayNode
+  class account,catalog,trade,payment coreNode
+  class search,seckill,ops extensionNode
+  class govern,data,event,index platformNode

@@ -1,14 +1,15 @@
-flowchart TD
-  Request["外部请求 /api/v1/**"] --> HeaderClean["净化 X-Internal-* 请求头"]
-  HeaderClean --> InternalCheck{"路径包含 /internal/ ?"}
-  InternalCheck -- 是 --> NotFound["返回 404<br/>不转发下游"]
-  InternalCheck -- 否 --> WhiteList{"白名单接口 ?"}
-  WhiteList -- 是 --> Route["路由到下游服务"]
-  WhiteList -- 否 --> Jwt["JwtAuthFilter 校验 Authorization"]
-  Jwt -- 无效/缺失 --> Unauthorized["返回 401"]
-  Jwt -- 有效 --> Context["写入用户上下文请求头"]
-  Context --> Route
+flowchart LR
+  REQUEST["外部请求<br/>/api/v1/**"]:::access --> CLEAN["净化<br/>X-Internal-*"]:::guard
+  CLEAN --> INTERNAL{"命中<br/>/internal/ ?"}:::decision
+  INTERNAL -- "是" --> BLOCK["404<br/>不转发下游"]:::danger
+  INTERNAL -- "否" --> PUBLIC{"白名单接口 ?"}:::decision
+  PUBLIC -- "是" --> ROUTE["Gateway 路由<br/>转发下游"]:::success
+  PUBLIC -- "否" --> JWT{"JWT 有效 ?"}:::decision
+  JWT -- "否" --> DENY["401<br/>拒绝访问"]:::danger
+  JWT -- "是" --> CONTEXT["写入用户上下文<br/>再转发下游"]:::success
 
-  Test["RANDOM_PORT Gateway 测试"] -.验证.-> HeaderClean
-  Test -.验证.-> InternalCheck
-  Test -.验证.-> Jwt
+  classDef access fill:#ffffff,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef guard fill:#f0f4f8,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef decision fill:#fff7ed,stroke:#b45309,color:#7c2d12,stroke-width:2px;
+  classDef danger fill:#fef2f2,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px;
+  classDef success fill:#f0fdf4,stroke:#15803d,color:#14532d,stroke-width:2px;

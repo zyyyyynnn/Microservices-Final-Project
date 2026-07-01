@@ -112,12 +112,24 @@
 
 | 材料 | 入口 | 状态 |
 | --- | --- | --- |
-| 系统与流程图 | [docs/diagrams/README.md](diagrams/README.md) | 7 张 Mermaid 图，SVG/PNG 导出状态见该目录 |
+| 系统与流程图 | [docs/diagrams/README.md](diagrams/README.md) | 图表交付通过：7/7 SVG、7/7 PNG，PNG 宽度均 ≥ 2400px |
 | 视频录制脚本 | [docs/presentation/01-视频录制脚本.md](presentation/01-视频录制脚本.md) | 已建立 |
 | PPT 大纲 | [docs/presentation/02-PPT大纲.md](presentation/02-PPT大纲.md) | 已建立 |
 | PPT 答辩稿 | [docs/presentation/03-PPT答辩稿.md](presentation/03-PPT答辩稿.md) | 已建立 |
 | 关键代码导读 | [docs/presentation/04-关键代码导读与答辩准备.md](presentation/04-关键代码导读与答辩准备.md) | 已建立 |
 | 综合报告材料 | [docs/documents/README.md](documents/README.md) | 已建立 |
+
+图表验收表：
+
+| 验收项 | 结果 | 证据 |
+| --- | --- | --- |
+| Mermaid 源文件 | 7/7 | [docs/diagrams/mmd/](diagrams/mmd/) |
+| SVG 导出 | 7/7 | [docs/diagrams/svg/](diagrams/svg/) |
+| PNG 导出 | 7/7 | [docs/diagrams/png/](diagrams/png/) |
+| PNG 宽度 | 2702px–4011px，全部 ≥ 2400px | `pwsh .\docs\diagrams\verify-diagrams.ps1` |
+| 统一视觉主题 | PASS | `theme.css` + `mermaid-config.json` |
+| 标题裁切复核 | PASS | 01 层级标题、02 下单阶段、05 消息发布、06 请求准入、07 Windows 主机均已人工复核 |
+| 人工可读性 | PASS | 2026-07-01 生成 contact sheet 并逐图复核，无默认紫色样式、无明显交叉、无模糊低清图 |
 
 ## 9. 边界与未解决项
 

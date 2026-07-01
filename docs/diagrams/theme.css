@@ -1,0 +1,116 @@
+svg {
+  background: #f8fafc !important;
+  font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", system-ui, sans-serif !important;
+}
+
+.node rect,
+.node polygon,
+.node path {
+  stroke-linejoin: round !important;
+}
+
+.nodeLabel,
+.label text,
+.actor,
+.messageText,
+.loopText,
+.noteText {
+  font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", system-ui, sans-serif !important;
+}
+
+.nodeLabel {
+  font-size: 18px !important;
+  line-height: 1.45 !important;
+}
+
+.gatewayNode .nodeLabel,
+.gatewayNode .nodeLabel p,
+.gatewayNode .nodeLabel span,
+.gateway .nodeLabel,
+.gateway .nodeLabel p,
+.gateway .nodeLabel span {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.cluster rect {
+  fill: #f1f5f9 !important;
+  stroke: #94a3b8 !important;
+  stroke-width: 1.6px !important;
+  rx: 14px !important;
+  ry: 14px !important;
+}
+
+.cluster-label .nodeLabel,
+.cluster-label text {
+  color: #334155 !important;
+  fill: #334155 !important;
+  font-size: 17px !important;
+  line-height: 1.22 !important;
+  font-weight: 700 !important;
+}
+
+.cluster-label div,
+.cluster-label p,
+.cluster-label span {
+  line-height: 1.22 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.edgePath .path,
+.flowchart-link {
+  stroke: #64748b !important;
+  stroke-width: 2.2px !important;
+}
+
+.marker,
+marker path {
+  fill: #64748b !important;
+  stroke: #64748b !important;
+}
+
+.edgeLabel,
+.edgeLabel p {
+  color: #334155 !important;
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+}
+
+.labelBkg {
+  fill: #f8fafc !important;
+  opacity: 0.96 !important;
+}
+
+.actor {
+  fill: #f0f4f8 !important;
+  stroke: #4b7099 !important;
+  stroke-width: 2px !important;
+}
+
+.actor-line {
+  stroke: #94a3b8 !important;
+  stroke-width: 1.5px !important;
+}
+
+.messageLine0,
+.messageLine1 {
+  stroke: #4b7099 !important;
+  stroke-width: 2px !important;
+}
+
+.messageText,
+.loopText {
+  fill: #1e293b !important;
+  font-size: 16px !important;
+}
+
+.loopLine {
+  stroke: #94a3b8 !important;
+  stroke-width: 1.5px !important;
+}
+
+.note {
+  fill: #f1f5f9 !important;
+  stroke: #94a3b8 !important;
+}

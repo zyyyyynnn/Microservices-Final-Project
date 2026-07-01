@@ -1,23 +1,22 @@
 sequenceDiagram
-  autonumber
+  participant TC as Seata TC
   participant O as mall-order
-  participant P as mall-product
+  participant ODB as mall_order DB
   participant I as mall-inventory
-  participant DB1 as mall_order DB
-  participant DB2 as mall_inventory DB
-  participant S as Seata TC
+  participant IDB as mall_inventory DB
 
-  O->>S: 开启 GlobalTransactional create-order
-  O->>P: 查询 SKU 信息
+  O->>TC: 开启 create-order 全局事务
   O->>I: lock(orderNo, skuId, quantity)
-  I->>DB2: 条件更新 available/locked
-  I-->>O: 锁定成功
-  O->>DB1: 写入 order_info/order_item
-  alt 全部成功
-    O->>S: 提交全局事务
-    S-->>O: 成功
-  else 任一步异常
-    O->>S: 回滚全局事务
-    S->>DB1: 回滚订单写入
-    S->>DB2: 回滚库存锁定
+  I->>IDB: 更新 available / locked
+  I-->>O: 库存锁定成功
+  O->>ODB: 写入 order_info / order_item
+
+  alt 订单与库存操作全部成功
+    O->>TC: 提交全局事务
+    TC-->>O: 提交完成
+  else 任一步发生异常
+    O->>TC: 请求回滚
+    TC->>ODB: 回滚订单写入
+    TC->>IDB: 回滚库存锁定
+    TC-->>O: 返回业务失败
   end

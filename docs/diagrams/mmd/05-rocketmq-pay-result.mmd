@@ -1,19 +1,20 @@
-sequenceDiagram
-  autonumber
-  participant F as Vue 前端
-  participant G as Gateway
-  participant Pay as mall-pay
-  participant MQ as RocketMQ
-  participant O as mall-order
-  participant I as mall-inventory
+flowchart TB
+  subgraph PUBLISH_STAGE["消息发布"]
+    direction LR
+    PAY["mall-pay<br/>确认支付结果"]:::service --> PUBLISH["发布 PAY_RESULT<br/>orderNo · tradeNo · SUCCESS"]:::message
+    PUBLISH --> MQ[("RocketMQ<br/>支付结果主题")]:::broker
+    MQ --> DISPATCH["mall-message<br/>消费并分发"]:::message
+  end
 
-  F->>G: POST /api/v1/pay/create
-  G->>Pay: 创建支付单
-  Pay-->>F: 返回支付流水
-  F->>G: 模拟支付成功
-  G->>Pay: 支付成功通知
-  Pay->>MQ: PAY_RESULT(orderNo, paid)
-  MQ->>O: 消费并 markPaid
-  MQ->>I: 消费并 confirmDeduct
-  O-->>MQ: 幂等处理完成
-  I-->>MQ: 幂等处理完成
+  subgraph CONSUME_STAGE["状态更新"]
+    direction LR
+    ORDER["mall-order<br/>幂等标记已支付"]:::service --> DONE["订单与库存状态<br/>最终一致"]:::success
+    STOCK["mall-inventory<br/>幂等确认扣减"]:::service --> DONE
+  end
+
+  PUBLISH_STAGE -- "异步分发" --> CONSUME_STAGE
+
+  classDef service fill:#f0f4f8,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef message fill:#edf6f5,stroke:#4f7a74,color:#1e293b,stroke-width:2px;
+  classDef broker fill:#ffffff,stroke:#4b7099,color:#1e293b,stroke-width:2.5px;
+  classDef success fill:#f0fdf4,stroke:#15803d,color:#14532d,stroke-width:2px;

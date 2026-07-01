@@ -1,10 +1,29 @@
-flowchart LR
-  Dev["Windows 11<br/>PowerShell 7+"] --> Start["scripts/start-all.ps1"]
-  Start --> Docker["Docker 中间件<br/>MySQL / Redis / Nacos / Seata / RocketMQ / Sentinel / Elasticsearch"]
-  Start --> Jars["本地 Java 服务<br/>mall-* JAR"]
-  Start --> Logs[".runtime/logs/start-all.log<br/>PID / health=UP"]
+flowchart TB
+  BROWSER["浏览器访问<br/>localhost:5173"]:::access
 
-  Browser["浏览器"] --> Frontend["Vite 前端<br/>localhost:5173"]
-  Frontend --> Gateway["Gateway<br/>localhost:9100"]
-  Gateway --> Services["后端服务<br/>9101-9112"]
-  Services --> Docker
+  subgraph HOST["Windows 主机"]
+    direction TB
+    ENTRY["BAT / PowerShell<br/>start-all · stop-all"]:::script
+
+    subgraph RUNTIME["应用服务"]
+      direction LR
+      FRONTEND["Vue / Vite 前端"]:::app --> GATEWAY["mall-gateway<br/>9100"]:::gateway
+      GATEWAY --> SERVICES["13 个后端服务<br/>9101–9112"]:::app
+    end
+
+    DOCKER["Docker 中间件<br/>Nacos · Sentinel · Seata<br/>MySQL · Redis · Elasticsearch · RocketMQ"]:::infra
+    LOGS[".runtime/logs<br/>PID · health=UP · 错误尾部"]:::log
+  end
+
+  BROWSER --> FRONTEND
+  ENTRY --> FRONTEND
+  ENTRY --> DOCKER
+  ENTRY --> LOGS
+  SERVICES --> DOCKER
+
+  classDef access fill:#ffffff,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef script fill:#edf6f5,stroke:#4f7a74,color:#1e293b,stroke-width:2px;
+  classDef app fill:#f0f4f8,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef gateway fill:#4b7099,stroke:#3b5a7d,color:#ffffff,stroke-width:2.5px;
+  classDef infra fill:#ffffff,stroke:#64748b,color:#334155,stroke-width:1.8px;
+  classDef log fill:#f8fafc,stroke:#94a3b8,color:#475569,stroke-width:1.6px;

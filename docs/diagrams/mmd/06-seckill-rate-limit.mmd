@@ -1,13 +1,27 @@
-flowchart TD
-  User["用户点击秒杀"] --> Gateway["Gateway /api/v1/seckill"]
-  Gateway --> Sentinel{"Sentinel 限流"}
-  Sentinel -- 被限流 --> Limited["返回限流响应"]
-  Sentinel -- 放行 --> Service["mall-seckill"]
-  Service --> Check{"活动状态与库存"}
-  Check -- 已结束 --> Ended["返回 code=40402"]
-  Check -- 库存不足 --> SoldOut["返回 code=40100"]
-  Check -- 可受理 --> Redis["Redis 扣减/记录 requestId"]
-  Redis --> MQ["异步请求处理"]
-  MQ --> Order["mall-order 创建秒杀订单"]
-  Order --> Inventory["mall-inventory 锁定库存"]
-  Service --> Result["前端轮询秒杀结果"]
+flowchart TB
+  subgraph ADMISSION["请求准入"]
+    direction LR
+    USER["用户发起秒杀"]:::access --> GW["Gateway"]:::service
+    GW --> LIMIT{"Sentinel<br/>是否放行 ?"}:::decision
+    LIMIT -- "否" --> REJECT["限流响应"]:::danger
+    LIMIT -- "是" --> CHECK{"活动有效<br/>且有库存 ?"}:::decision
+    CHECK -- "否" --> BUSINESS_FAIL["已结束 40402<br/>或库存不足 40100"]:::danger
+    CHECK -- "是" --> ACCEPT["Redis 预扣库存<br/>生成 requestId"]:::success
+  end
+
+  subgraph ASYNC["异步结果"]
+    direction LR
+    QUEUE["异步请求消息"]:::message --> CREATE["mall-order<br/>创建秒杀订单"]:::service
+    CREATE --> LOCK["mall-inventory<br/>锁定库存"]:::service
+    LOCK --> RESULT["写回成功或失败结果"]:::message
+    RESULT --> POLL["前端按 requestId<br/>轮询最终状态"]:::success
+  end
+
+  ADMISSION --> ASYNC
+
+  classDef access fill:#ffffff,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef service fill:#f0f4f8,stroke:#4b7099,color:#1e293b,stroke-width:2px;
+  classDef decision fill:#fff7ed,stroke:#b45309,color:#7c2d12,stroke-width:2px;
+  classDef danger fill:#fef2f2,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px;
+  classDef message fill:#edf6f5,stroke:#4f7a74,color:#1e293b,stroke-width:2px;
+  classDef success fill:#f0fdf4,stroke:#15803d,color:#14532d,stroke-width:2px;
