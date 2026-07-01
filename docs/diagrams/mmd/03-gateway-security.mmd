@@ -1,0 +1,14 @@
+flowchart TD
+  Request["外部请求 /api/v1/**"] --> HeaderClean["净化 X-Internal-* 请求头"]
+  HeaderClean --> InternalCheck{"路径包含 /internal/ ?"}
+  InternalCheck -- 是 --> NotFound["返回 404<br/>不转发下游"]
+  InternalCheck -- 否 --> WhiteList{"白名单接口 ?"}
+  WhiteList -- 是 --> Route["路由到下游服务"]
+  WhiteList -- 否 --> Jwt["JwtAuthFilter 校验 Authorization"]
+  Jwt -- 无效/缺失 --> Unauthorized["返回 401"]
+  Jwt -- 有效 --> Context["写入用户上下文请求头"]
+  Context --> Route
+
+  Test["RANDOM_PORT Gateway 测试"] -.验证.-> HeaderClean
+  Test -.验证.-> InternalCheck
+  Test -.验证.-> Jwt

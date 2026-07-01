@@ -1,0 +1,10 @@
+flowchart LR
+  Dev["Windows 11<br/>PowerShell 7+"] --> Start["scripts/start-all.ps1"]
+  Start --> Docker["Docker 中间件<br/>MySQL / Redis / Nacos / Seata / RocketMQ / Sentinel / Elasticsearch"]
+  Start --> Jars["本地 Java 服务<br/>mall-* JAR"]
+  Start --> Logs[".runtime/logs/start-all.log<br/>PID / health=UP"]
+
+  Browser["浏览器"] --> Frontend["Vite 前端<br/>localhost:5173"]
+  Frontend --> Gateway["Gateway<br/>localhost:9100"]
+  Gateway --> Services["后端服务<br/>9101-9112"]
+  Services --> Docker

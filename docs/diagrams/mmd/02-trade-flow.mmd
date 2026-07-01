@@ -1,0 +1,29 @@
+sequenceDiagram
+  autonumber
+  participant U as USER
+  participant F as Vue 前端
+  participant G as Gateway
+  participant C as mall-cart
+  participant O as mall-order
+  participant P as mall-product
+  participant I as mall-inventory
+  participant Pay as mall-pay
+  participant MQ as RocketMQ
+
+  U->>F: 浏览商品并加入购物车
+  F->>G: POST /api/v1/carts
+  G->>C: 透传用户上下文
+  U->>F: 提交订单
+  F->>G: POST /api/v1/orders
+  G->>O: 创建订单
+  O->>P: 查询 SKU 与价格
+  O->>I: 锁定库存
+  O-->>F: 返回 orderNo
+  U->>F: 模拟支付
+  F->>G: POST /api/v1/pay/create
+  G->>Pay: 创建支付流水
+  Pay->>MQ: 发布 PAY_RESULT
+  MQ->>O: 标记订单已支付
+  MQ->>I: 确认扣减库存
+  F->>G: GET /api/v1/orders/{orderNo}
+  G->>O: 查询订单详情

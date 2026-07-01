@@ -1,0 +1,39 @@
+flowchart LR
+  Browser["Vue 3 前端<br/>mall-frontend"] --> Gateway["mall-gateway<br/>9100"]
+
+  Gateway --> Auth["mall-auth"]
+  Gateway --> User["mall-user"]
+  Gateway --> Product["mall-product"]
+  Gateway --> Cart["mall-cart"]
+  Gateway --> Order["mall-order"]
+  Gateway --> Pay["mall-pay"]
+  Gateway --> Search["mall-search"]
+  Gateway --> Seckill["mall-seckill"]
+  Gateway --> Admin["mall-admin-biz"]
+
+  Order --> Product
+  Order --> Inventory["mall-inventory"]
+  Pay --> MQ["RocketMQ"]
+  MQ --> Order
+  MQ --> Inventory
+  Search --> ES["Elasticsearch"]
+  Seckill --> Redis["Redis"]
+  Admin --> Order
+  Admin --> Product
+
+  Auth --> MySQL["MySQL"]
+  User --> MySQL
+  Product --> MySQL
+  Cart --> Redis
+  Order --> MySQL
+  Inventory --> MySQL
+  Pay --> MySQL
+  Seckill --> MySQL
+
+  Nacos["Nacos"] -.注册/配置.-> Gateway
+  Nacos -.注册/配置.-> Auth
+  Nacos -.注册/配置.-> Order
+  Nacos -.注册/配置.-> Product
+  Sentinel["Sentinel"] -.限流/熔断.-> Gateway
+  Seata["Seata"] -.分布式事务.-> Order
+  Seata -.分布式事务.-> Inventory

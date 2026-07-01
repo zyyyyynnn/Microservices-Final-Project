@@ -1,0 +1,13 @@
+flowchart TD
+  User["用户点击秒杀"] --> Gateway["Gateway /api/v1/seckill"]
+  Gateway --> Sentinel{"Sentinel 限流"}
+  Sentinel -- 被限流 --> Limited["返回限流响应"]
+  Sentinel -- 放行 --> Service["mall-seckill"]
+  Service --> Check{"活动状态与库存"}
+  Check -- 已结束 --> Ended["返回 code=40402"]
+  Check -- 库存不足 --> SoldOut["返回 code=40100"]
+  Check -- 可受理 --> Redis["Redis 扣减/记录 requestId"]
+  Redis --> MQ["异步请求处理"]
+  MQ --> Order["mall-order 创建秒杀订单"]
+  Order --> Inventory["mall-inventory 锁定库存"]
+  Service --> Result["前端轮询秒杀结果"]

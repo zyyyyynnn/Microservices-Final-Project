@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  participant F as Vue 前端
+  participant G as Gateway
+  participant Pay as mall-pay
+  participant MQ as RocketMQ
+  participant O as mall-order
+  participant I as mall-inventory
+
+  F->>G: POST /api/v1/pay/create
+  G->>Pay: 创建支付单
+  Pay-->>F: 返回支付流水
+  F->>G: 模拟支付成功
+  G->>Pay: 支付成功通知
+  Pay->>MQ: PAY_RESULT(orderNo, paid)
+  MQ->>O: 消费并 markPaid
+  MQ->>I: 消费并 confirmDeduct
+  O-->>MQ: 幂等处理完成
+  I-->>MQ: 幂等处理完成
