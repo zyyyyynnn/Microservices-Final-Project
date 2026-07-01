@@ -53,7 +53,7 @@ for (const file of sourceFiles) {
     });
   }
 
-  if (relative !== 'src/components/DebugDetails.vue' && !relative.endsWith('/stores/auth.ts')) {
+  if (!relative.endsWith('/stores/auth.ts')) {
     lines.forEach((line, index) => {
       if (rawJsonPattern.test(line)) {
         errors.push(`${relative}:${index + 1} 禁止 raw JSON / JSON.stringify 作为主要业务页面展示：${line.trim()}`);
