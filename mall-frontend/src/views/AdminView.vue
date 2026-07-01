@@ -4,6 +4,9 @@ import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
+import AdminTable from '../components/AdminTable.vue';
+import ShipForm from '../components/ShipForm.vue';
+import type { TableColumn } from '../components/AdminTable.vue';
 import type { UnknownRecord } from '../api/types';
 import { asList, field, money, orderStatusMap, productStatusMap, statusText } from '../utils/format';
 import ProductImage from '../components/ProductImage.vue';
@@ -19,12 +22,26 @@ const productsError = ref('');
 const dashboard = ref<UnknownRecord | null>(null);
 const ordersRaw = ref<UnknownRecord | null>(null);
 const productsRaw = ref<UnknownRecord | null>(null);
-const shipOrderNo = ref('');
 const shipping = ref(false);
 
 const orders = computed(() => asList(ordersRaw.value));
 const products = computed(() => asList(productsRaw.value));
 const loading = computed(() => dashboardLoading.value || ordersLoading.value || productsLoading.value);
+
+const orderColumns: TableColumn[] = [
+  { label: '订单号', minWidth: 180, slot: 'orderNo' },
+  { label: '用户', width: 100, slot: 'user' },
+  { label: '金额', width: 120, slot: 'amount' },
+  { label: '状态', width: 120, slot: 'status' },
+  { label: '创建时间', minWidth: 170, slot: 'createTime' },
+];
+
+const productColumns: TableColumn[] = [
+  { label: '商品', minWidth: 220, slot: 'product' },
+  { label: '品牌', width: 100, prop: 'brand' },
+  { label: '状态', width: 100, slot: 'status' },
+  { label: '销量', width: 90, prop: 'sales' },
+];
 
 function moneyText(value: unknown) {
   const amount = Number(value || 0);
@@ -95,11 +112,10 @@ async function loadAdmin() {
   }
 }
 
-async function ship() {
-  if (!shipOrderNo.value) return;
+async function ship(orderId: string) {
   shipping.value = true;
   try {
-    await mallApi.shipOrder(shipOrderNo.value);
+    await mallApi.shipOrder(orderId);
     ElMessage.success('发货请求已提交');
     await loadAdmin();
   } catch (err) {
@@ -134,7 +150,12 @@ onMounted(loadAdmin);
     <div class="page-grid two">
       <el-card class="panel wide-panel">
         <template #header>
-          <div class="panel-title">后台订单</div>
+          <div class="panel-title-row">
+            <div class="panel-title-group">
+              <span class="panel-title-main">后台订单</span>
+              <span class="panel-title-sub">查看与发货</span>
+            </div>
+          </div>
         </template>
         <PageState
           :loading="ordersLoading"
@@ -145,41 +166,28 @@ onMounted(loadAdmin);
           @retry="loadAdmin"
         />
         <div v-if="!ordersError && orders.length" class="table-scroll">
-        <el-table :data="orders" class="stable-table">
-          <el-table-column label="订单号" min-width="180">
-            <template #default="{ row }">{{ field(row, ['orderNo'], '—') }}</template>
-          </el-table-column>
-          <el-table-column label="用户" width="100">
-            <template #default="{ row }">{{ field(row, ['userId', 'username'], '—') }}</template>
-          </el-table-column>
-          <el-table-column label="金额" width="120">
-            <template #default="{ row }">{{ moneyText(field(row, ['payAmount', 'totalAmount'], 0)) }}</template>
-          </el-table-column>
-          <el-table-column label="状态" width="120">
-            <template #default="{ row }">{{ statusText(field(row, ['status'], null), orderStatusMap, '—') }}</template>
-          </el-table-column>
-          <el-table-column label="创建时间" min-width="170">
-            <template #default="{ row }">{{ field(row, ['gmtCreate', 'createTime'], '—') }}</template>
-          </el-table-column>
-        </el-table>
+        <AdminTable :columns="orderColumns" :data="orders" :loading="false" empty-text="当前暂无订单记录。">
+          <template #orderNo="{ row }">{{ field(row, ['orderNo'], '—') }}</template>
+          <template #user="{ row }">{{ field(row, ['userId', 'username'], '—') }}</template>
+          <template #amount="{ row }">{{ moneyText(field(row, ['payAmount', 'totalAmount'], 0)) }}</template>
+          <template #status="{ row }">{{ statusText(field(row, ['status'], null), orderStatusMap, '—') }}</template>
+          <template #createTime="{ row }">{{ field(row, ['gmtCreate', 'createTime'], '—') }}</template>
+        </AdminTable>
         </div>
         <div class="shipping-block">
           <div class="shipping-title">订单发货操作</div>
-          <div class="ship-query">
-            <label class="ship-query-label">发货订单号</label>
-            <div class="ship-query-row">
-              <el-input v-model="shipOrderNo" />
-              <el-button type="primary" :loading="shipping" :disabled="!shipOrderNo || shipping" @click="ship">
-                确认发货
-              </el-button>
-            </div>
-          </div>
+          <ShipForm order-id="" :loading="shipping" @submit="ship" />
         </div>
       </el-card>
 
       <el-card class="panel">
         <template #header>
-          <div class="panel-title">后台商品</div>
+          <div class="panel-title-row">
+            <div class="panel-title-group">
+              <span class="panel-title-main">后台商品</span>
+              <span class="panel-title-sub">浏览与维护</span>
+            </div>
+          </div>
         </template>
         <PageState
           :loading="productsLoading"
@@ -190,26 +198,20 @@ onMounted(loadAdmin);
           @retry="loadAdmin"
         />
         <div v-if="!productsError && products.length" class="table-scroll">
-        <el-table :data="products" class="stable-table">
-          <el-table-column label="商品" min-width="220">
-            <template #default="{ row }">
-              <div class="line-item">
-                <div class="thumb">
-                  <ProductImage :src="adminProductImage(row)" :alt="adminProductName(row)" />
-                </div>
-                <div class="item-info">
-                  <strong>{{ adminProductName(row) }}</strong>
-                  <span>SPU {{ field(row, ['spuId'], '—') }}</span>
-                </div>
+        <AdminTable :columns="productColumns" :data="products" :loading="false" empty-text="当前暂无商品记录。">
+          <template #product="{ row }">
+            <div class="line-item">
+              <div class="thumb">
+                <ProductImage :src="adminProductImage(row)" :alt="adminProductName(row)" />
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="brand" label="品牌" width="100" />
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">{{ statusText(row.status, productStatusMap) }}</template>
-          </el-table-column>
-          <el-table-column prop="sales" label="销量" width="90" />
-        </el-table>
+              <div class="item-info">
+                <strong>{{ adminProductName(row) }}</strong>
+                <span>SPU {{ field(row, ['spuId'], '—') }}</span>
+              </div>
+            </div>
+          </template>
+          <template #status="{ row }">{{ statusText(field(row, ['status'], 1), productStatusMap) }}</template>
+        </AdminTable>
         </div>
       </el-card>
     </div>
@@ -228,7 +230,7 @@ onMounted(loadAdmin);
   margin-bottom: var(--spacing-sm);
 }
 .metric-card strong {
-  font-size: 36px;
+  font-size: var(--font-3xl);
   color: var(--color-text-primary);
   line-height: 1;
 }

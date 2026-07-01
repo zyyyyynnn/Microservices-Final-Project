@@ -14,7 +14,7 @@
 | 运行时回归 | 通过 | 14/14 PASS |
 | 启动状态日志 | 通过 | 13/13 后端服务记录 PID 和 health=UP |
 | 前端构建 | 通过 | `npm run build` PASS |
-| 页面截图 | 通过/受限 | 最终图库 20/20 尺寸匹配、MD5 唯一；Admin 只覆盖真实 `/admin` Dashboard、订单、商品区块 |
+| 页面截图 | 通过/受限 | 最终图库 10/10 桌面端尺寸匹配、MD5 唯一；Admin 只覆盖真实 `/admin` Dashboard、订单、商品区块 |
 
 本报告不扩大当前验证范围，不对生产安全成熟度、完整 Admin 覆盖、启动绝对可靠性或零遗留作结论。
 
@@ -98,13 +98,13 @@
 
 | 页面类别 | 状态 |
 | --- | --- |
-| 首页、搜索、商品详情、购物车、订单详情、支付、秒杀 | desktop/mobile 共 14 张，PIL 尺寸与 MD5 已归档 |
+| 首页、搜索、商品详情、购物车、订单详情、支付、秒杀 | desktop 共 7 张 1440×900，PIL 尺寸与 MD5 已归档 |
 | Admin Dashboard | 已纳入最终图库 |
 | Admin 后台订单 | 已纳入最终图库，实际为 `/admin` 同页区块 |
 | Admin 后台商品 | 已纳入最终图库，实际为 `/admin` 同页区块 |
 | Admin 用户管理 | 未实现，不纳入最终图库 |
 
-最终图库共 20 张：desktop 10 张均为 1440×900，mobile 10 张均为 390×844；PIL 核验 20/20 尺寸匹配，MD5 20/20 唯一。首页 mobile 于 2026-07-01 使用 Playwright CLI 真实访问补采，未使用 full-page。
+最终图库共 10 张，均为 desktop 1440×900；PIL 核验 10/10 尺寸匹配，MD5 10/10 唯一。移动端 390×844 截图已于 2026-07-01 UI 精致感升级中移除，桌面端截图足以体现核心交易链路完成度。
 
 过程截图索引仍保留在 [docs/test/screenshots/sprint3/README.md](../test/screenshots/sprint3/README.md)。
 

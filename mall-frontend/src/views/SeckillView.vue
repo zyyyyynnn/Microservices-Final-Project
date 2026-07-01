@@ -211,7 +211,12 @@ onBeforeUnmount(() => stopPolling());
   <section class="page-grid two">
     <el-card class="panel">
       <template #header>
-        <div class="panel-title">秒杀活动</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">秒杀活动</span>
+            <span class="panel-title-sub">选择进行中的活动</span>
+          </div>
+        </div>
       </template>
       <PageState
         :loading="loading"
@@ -246,7 +251,12 @@ onBeforeUnmount(() => stopPolling());
 
     <el-card class="panel">
       <template #header>
-        <div class="panel-title">活动详情与结果</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">活动详情与结果</span>
+            <span class="panel-title-sub">发起秒杀并查询结果</span>
+          </div>
+        </div>
       </template>
       <el-descriptions v-if="selected" border :column="1">
         <el-descriptions-item label="商品名称">{{ seckillProductName(selected) }}</el-descriptions-item>

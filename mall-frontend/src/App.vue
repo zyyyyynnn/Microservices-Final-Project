@@ -158,13 +158,13 @@ function isActive(path: string) {
   flex-direction: column;
 }
 .brand-text {
-  font-size: 22px;
+  font-size: var(--font-2xl);
   font-weight: 800;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
 }
 .brand-copy span {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--color-text-secondary);
 }
 .app-nav {
@@ -173,12 +173,12 @@ function isActive(path: string) {
   flex-shrink: 0;
 }
 .nav-link {
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--color-text-primary);
   text-decoration: none;
   font-weight: 500;
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xl);
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 .nav-link:hover {
@@ -198,7 +198,7 @@ function isActive(path: string) {
 
 .search-input :deep(.el-input-group__append) {
   background-color: var(--color-brand);
-  color: white;
+  color: var(--color-text-inverse);
   border: 1px solid var(--color-brand);
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
@@ -207,7 +207,7 @@ function isActive(path: string) {
   border-color: var(--color-brand-hover);
 }
 .search-input :deep(.el-input-group__append button.el-button) {
-  color: white;
+  color: var(--color-text-inverse);
   border: none;
 }
 
@@ -223,7 +223,7 @@ function isActive(path: string) {
   gap: var(--spacing-xs);
   color: var(--color-text-primary);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--font-sm);
   transition: color var(--transition-fast);
 }
 .action-icon:hover {
@@ -251,14 +251,14 @@ function isActive(path: string) {
   color: var(--color-brand);
 }
 .greeting {
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: var(--color-text-primary);
 }
 
 @media (max-width: 1024px) {
   .app-header {
     height: auto;
-    padding: 14px 0;
+    padding: var(--spacing-sm) 0;
   }
 
   .header-main {
@@ -275,7 +275,7 @@ function isActive(path: string) {
     width: 100%;
     overflow-x: auto;
     white-space: nowrap;
-    padding: 4px 0;
+    padding: var(--spacing-xs) 0;
     scrollbar-width: none;
   }
   .app-nav::-webkit-scrollbar {
@@ -303,7 +303,7 @@ function isActive(path: string) {
   }
   .header-search {
     width: 100%;
-    margin: 4px 0;
+    margin: var(--spacing-xs) 0;
   }
   .header-actions {
     justify-content: space-between;

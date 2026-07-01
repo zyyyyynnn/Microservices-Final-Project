@@ -5,6 +5,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { mallApi } from '../api/mall';
 import PageState from '../components/PageState.vue';
+import SKUSelector from '../components/SKUSelector.vue';
+import type { SkuOption } from '../components/SKUSelector.vue';
 import type { UnknownRecord } from '../api/types';
 import { field, productName, productStatusMap, skuList, statusText, formatSkuSpec } from '../utils/format';
 import { resolveProductImage } from '../catalog/productAssets';
@@ -27,6 +29,16 @@ const skus = computed(() => skuList(product.value));
 const selectedSku = computed(() => skus.value.find((sku) => Number(field(sku, ['skuId'])) === selectedSkuId.value) || skus.value[0]);
 const stock = computed(() => remoteStock.value !== null ? remoteStock.value : Number(field(selectedSku.value, ['stock'], 0)));
 const disabled = computed(() => !selectedSku.value || stock.value <= 0 || adding.value || fetchingStock.value);
+
+const skuOptions = computed<SkuOption[]>(() => skus.value.map((sku) => ({
+  value: String(field(sku, ['skuId'])),
+  label: formatSkuSpec(sku),
+})));
+
+const selectedSkuValue = computed<string | null>({
+  get: () => selectedSkuId.value !== null ? String(selectedSkuId.value) : null,
+  set: (val) => { selectedSkuId.value = val !== null ? Number(val) : null; },
+});
 
 watch(selectedSkuId, async (newId) => {
   if (!newId) {
@@ -119,17 +131,11 @@ onMounted(loadProduct);
 
         <div class="sku-section">
           <div class="sku-label">选择规格</div>
-          <div class="sku-options">
-            <button
-              v-for="sku in skus"
-              :key="String(field(sku, ['skuId']))"
-              class="sku-chip"
-              :class="{ active: Number(field(sku, ['skuId'])) === selectedSkuId }"
-              @click="selectedSkuId = Number(field(sku, ['skuId']))"
-            >
-              {{ formatSkuSpec(sku) }}
-            </button>
-          </div>
+          <SKUSelector
+            v-model="selectedSkuValue"
+            :options="skuOptions"
+            :disabled="skus.length === 0"
+          />
           <div class="stock-line">
             <span v-if="fetchingStock">正在获取实时库存...</span>
             <span v-else-if="remoteStock !== null">实时库存：{{ remoteStock }}</span>
@@ -202,31 +208,6 @@ onMounted(loadProduct);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-sm);
   font-size: var(--font-sm);
-}
-.sku-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-.sku-chip {
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-size: var(--font-sm);
-  transition: all var(--transition-fast);
-}
-.sku-chip:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-}
-.sku-chip.active {
-  border-color: var(--color-brand);
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
-  font-weight: var(--weight-bold);
 }
 .stock-line {
   margin-top: var(--spacing-sm);

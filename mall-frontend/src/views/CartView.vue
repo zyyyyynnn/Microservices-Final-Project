@@ -96,7 +96,12 @@ onMounted(load);
   <section class="cart-layout">
     <el-card class="panel wide-panel">
       <template #header>
-        <div class="panel-title">购物车</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">购物车</span>
+            <span class="panel-title-sub">管理已加入的商品</span>
+          </div>
+        </div>
       </template>
       <PageState
         :loading="loading"
@@ -166,7 +171,12 @@ onMounted(load);
 
     <el-card class="panel summary-panel">
       <template #header>
-        <div class="panel-title">结算摘要</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">结算摘要</span>
+            <span class="panel-title-sub">以勾选商品为准</span>
+          </div>
+        </div>
       </template>
       <OrderSummary :items="selectedItems" />
       <el-button

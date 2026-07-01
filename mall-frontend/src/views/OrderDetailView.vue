@@ -96,7 +96,12 @@ onMounted(load);
   <section class="cart-layout">
     <el-card class="panel wide-panel">
       <template #header>
-        <div class="panel-title">订单详情</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">订单详情</span>
+            <span class="panel-title-sub">查看订单状态与商品明细</span>
+          </div>
+        </div>
       </template>
       <PageState :loading="loading" :error="''" @retry="load" />
       <div v-if="order && !loading" class="order-header">
@@ -149,7 +154,12 @@ onMounted(load);
 
     <el-card class="panel summary-panel">
       <template #header>
-        <div class="panel-title">后续操作</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">后续操作</span>
+            <span class="panel-title-sub">继续支付或返回</span>
+          </div>
+        </div>
       </template>
       <RouterLink :to="`/pay/${orderNo}`">
         <el-button type="primary" class="full-button" :disabled="!order">去支付</el-button>

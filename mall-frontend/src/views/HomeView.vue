@@ -11,7 +11,10 @@ import { resolveProductImage } from '../catalog/productAssets';
 import { demoSpuIdBySkuId } from '../catalog/catalogLookup';
 import ProductImage from '../components/ProductImage.vue';
 import PriceText from '../components/PriceText.vue';
-import { Lock, Van, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check, ArrowRight } from '@element-plus/icons-vue';
+import {
+  Lock, CircleCheckFilled, User, ShoppingCart, Document, Wallet, Check,
+  ArrowRight, Search, Monitor, MagicStick, Basketball, Apple,
+} from '@element-plus/icons-vue';
 
 const router = useRouter();
 const loading = ref(false);
@@ -20,6 +23,7 @@ const categories = ref<UnknownRecord[]>([]);
 const products = ref<UnknownRecord[]>([]);
 const seckillProducts = ref<UnknownRecord[]>([]);
 const seckillError = ref(false);
+const searchKeyword = ref('');
 
 const homeProductIds = [
   1001, 1007, 1009, 1011,
@@ -29,21 +33,22 @@ const homeProductIds = [
 
 const displayProducts = computed(() => products.value.slice(0, 12));
 
-const categoryTabs = [
-  { label: '精选推荐', keyword: '' },
-  { label: '数码家电', keyword: 'iPhone' },
-  { label: '美妆护肤', keyword: '美妆' },
-  { label: '台灯', keyword: '台灯' },
-  { label: '运动户外', keyword: '运动' },
-  { label: '食品生鲜', keyword: '食品' },
+const categoryCards = [
+  { label: '精选推荐', keyword: '', icon: CircleCheckFilled },
+  { label: '数码家电', keyword: 'iPhone', icon: Monitor },
+  { label: '美妆护肤', keyword: '美妆', icon: MagicStick },
+  { label: '台灯照明', keyword: '台灯', icon: Search },
+  { label: '运动户外', keyword: '运动', icon: Basketball },
+  { label: '食品生鲜', keyword: '食品', icon: Apple },
 ];
 
 const flowSteps = [
-  { label: '登录', sub: '账户登录', icon: User },
-  { label: '购物车', sub: '加入商品', icon: ShoppingCart },
-  { label: '下单', sub: '提交订单', icon: Document },
-  { label: '支付', sub: '支付完成', icon: Wallet },
-  { label: '订单状态', sub: '查看跟踪', icon: Check },
+  { label: '登录', sub: '账户登录', icon: User, to: '/login' },
+  { label: '浏览', sub: '逛好物', icon: Search, to: '/search' },
+  { label: '加购', sub: '加入购物车', icon: ShoppingCart, to: '/cart' },
+  { label: '下单', sub: '提交订单', icon: Document, to: '/checkout' },
+  { label: '支付', sub: '模拟支付', icon: Wallet, to: '/account' },
+  { label: '完成', sub: '查看订单', icon: Check, to: '/account' },
 ];
 
 const bottomPromises = [
@@ -69,18 +74,15 @@ async function loadHome() {
       .filter((result): result is PromiseFulfilledResult<UnknownRecord> => result.status === 'fulfilled')
       .map((result) => result.value);
 
-    // 加载秒杀活动
     try {
       const seckillResult = await mallApi.seckillActivities();
       const activities = Array.isArray(seckillResult) ? seckillResult : [];
-      // 过滤掉明显的测试/乱码活动
       seckillProducts.value = activities.filter((activity: UnknownRecord) => {
         const name = String(field(activity, ['title', 'name'], ''));
         return !/JMeter|压测|测试|乱码|test/i.test(name);
       });
       seckillError.value = false;
     } catch {
-      // 秒杀接口失败
       seckillProducts.value = [];
       seckillError.value = true;
     }
@@ -96,14 +98,22 @@ async function loadHome() {
   }
 }
 
-function selectCategory(tab: { label: string; keyword: string }) {
-  if (tab.keyword) {
-    router.push({ path: '/search', query: { keyword: tab.keyword } });
+function selectCategory(card: { label: string; keyword: string }) {
+  if (card.keyword) {
+    router.push({ path: '/search', query: { keyword: card.keyword } });
   } else {
     router.push('/search');
   }
 }
 
+function goSearch() {
+  const keyword = searchKeyword.value.trim();
+  if (keyword) {
+    router.push({ path: '/search', query: { keyword } });
+  } else {
+    router.push('/search');
+  }
+}
 
 function getSeckillImage(activity: UnknownRecord) {
   const directImage = field<string>(activity, ['mainImage', 'image'], '');
@@ -130,92 +140,77 @@ onMounted(loadHome);
     />
 
     <div v-if="!loading" class="home-grid">
-      <!-- Top Section: Hero & Flow -->
-      <div class="hero-section">
-        <div class="hero-banner">
-          <div class="hero-content">
-            <h1 class="hero-title">MallCloud<br/>让购物更简单</h1>
-            <p class="hero-subtitle">精选好物 · 品质保障 · 极速送达</p>
-
-            <div class="hero-guarantees">
-              <div class="guarantee-item">
-                <el-icon color="var(--color-brand)" :size="20"><Lock /></el-icon>
-                <div class="g-text">
-                  <strong>正品保障</strong>
-                  <span>品牌直供</span>
-                </div>
-              </div>
-              <div class="guarantee-item">
-                <el-icon color="var(--color-brand)" :size="20"><Van /></el-icon>
-                <div class="g-text">
-                  <strong>极速配送</strong>
-                  <span>211限时达</span>
-                </div>
-              </div>
-              <div class="guarantee-item">
-                <el-icon color="var(--color-brand)" :size="20"><CircleCheckFilled /></el-icon>
-                <div class="g-text">
-                  <strong>无忧售后</strong>
-                  <span>7天无理由</span>
-                </div>
-              </div>
-            </div>
-
-            <RouterLink to="/search" class="hero-action">
-              <el-button type="primary" size="large" class="hero-btn">立即选购 <el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
-            </RouterLink>
-          </div>
+      <!-- 品牌头：紧凑品牌名 + 搜索入口 -->
+      <section class="brand-head">
+        <div class="brand-head-text">
+          <h1 class="brand-head-title">MallCloud 微商城</h1>
+          <p class="brand-head-sub">精选好物 · 品质保障 · 极速送达</p>
         </div>
+        <div class="brand-head-search">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索商品，如 iPhone、美妆、台灯"
+            size="large"
+            @keyup.enter="goSearch"
+          >
+            <template #append>
+              <el-button :icon="Search" @click="goSearch">搜索</el-button>
+            </template>
+          </el-input>
+        </div>
+      </section>
 
-        <el-card class="panel flow-panel" shadow="never">
-          <template #header>
-            <div class="panel-title-row">
-              <div class="panel-title-group">
-                <span class="panel-title-main">交易链路</span>
-                <span class="panel-title-tag">(演示流程)</span>
+      <!-- 交易链路线条：横向步骤条 -->
+      <section class="flow-line-section">
+        <div class="flow-line-track">
+          <template v-for="(step, index) in flowSteps" :key="index">
+            <RouterLink :to="step.to" class="flow-node">
+              <div class="flow-node-icon">
+                <el-icon><component :is="step.icon" /></el-icon>
               </div>
-              <span class="panel-title-sub">完整电商交易闭环体验</span>
-            </div>
-          </template>
-
-          <div class="flow-track">
-            <template v-for="(step, index) in flowSteps" :key="index">
-              <div class="flow-node">
-                <div class="node-icon">
-                  <el-icon><component :is="step.icon" /></el-icon>
-                </div>
+              <div class="flow-node-text">
                 <strong>{{ step.label }}</strong>
                 <span>{{ step.sub }}</span>
               </div>
-              <div v-if="index < flowSteps.length - 1" class="flow-line">
-                <el-icon><ArrowRight /></el-icon>
-              </div>
-            </template>
-          </div>
-        </el-card>
-      </div>
+            </RouterLink>
+            <div v-if="index < flowSteps.length - 1" class="flow-connector" aria-hidden="true">
+              <el-icon><ArrowRight /></el-icon>
+            </div>
+          </template>
+        </div>
+      </section>
 
-      <!-- Recommendation Section -->
+      <!-- 品类卡片网格 -->
+      <section class="category-section">
+        <div class="section-heading">
+          <strong>热门频道</strong>
+          <span>点击直达分类检索</span>
+        </div>
+        <div class="category-card-grid">
+          <button
+            v-for="card in categoryCards"
+            :key="card.label"
+            type="button"
+            class="category-card"
+            @click="selectCategory(card)"
+          >
+            <el-icon class="category-card-icon" :size="24"><component :is="card.icon" /></el-icon>
+            <strong>{{ card.label }}</strong>
+          </button>
+        </div>
+      </section>
+
+      <!-- 推荐商品 -->
       <el-card class="panel recommend-section" shadow="never">
         <template #header>
           <div class="panel-title-row">
             <div class="panel-title-group">
-              <span class="panel-title-main">热门频道</span>
-              <span class="panel-title-sub">点击跳转搜索页</span>
+              <span class="panel-title-main">为你推荐</span>
+              <span class="panel-title-sub">精选好物</span>
             </div>
+            <RouterLink to="/search" class="more-link">更多 <el-icon><ArrowRight /></el-icon></RouterLink>
           </div>
         </template>
-        <div class="category-tabs">
-          <button
-            v-for="tab in categoryTabs"
-            :key="tab.label"
-            :class="['tab-btn']"
-            @click="selectCategory(tab)"
-          >
-            {{ tab.label }}
-          </button>
-          <RouterLink to="/search" class="more-link ml-auto">更多 <el-icon><ArrowRight /></el-icon></RouterLink>
-        </div>
 
         <div class="product-grid">
           <ProductCard
@@ -226,7 +221,7 @@ onMounted(loadHome);
         </div>
       </el-card>
 
-      <!-- Flash Sale Section -->
+      <!-- 限时秒杀 -->
       <el-card class="panel seckill-section" shadow="never">
         <template #header>
           <div class="panel-title-row">
@@ -234,7 +229,7 @@ onMounted(loadHome);
               <span class="panel-title-main">限时秒杀</span>
               <span class="panel-title-sub">每日优选好货</span>
             </div>
-            <RouterLink to="/seckill" class="more-link panel-title-link">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
+            <RouterLink to="/seckill" class="more-link">更多秒杀 <el-icon><ArrowRight /></el-icon></RouterLink>
           </div>
         </template>
 
@@ -250,7 +245,7 @@ onMounted(loadHome);
               <ProductImage :src="getSeckillImage(product)" :alt="String(field(product, ['title', 'name']))" />
             </div>
             <div class="sk-info">
-              <h3 class="sk-name">{{ field(product, ['title', 'name']) }}</h3>
+              <h3 class="sk-name">{{ field(product, ['title', 'name'], '—') }}</h3>
               <div class="sk-prices">
                 <PriceText :value="field(product, ['seckillPrice', 'price'])" size="lg" class="sk-price" />
                 <PriceText :value="field(product, ['price', 'oldPrice', 'originalPrice'])" size="sm" original class="sk-old" />
@@ -261,10 +256,10 @@ onMounted(loadHome);
         </div>
       </el-card>
 
-      <!-- Bottom Promises -->
+      <!-- 服务承诺 -->
       <div class="bottom-promises">
         <div v-for="promise in bottomPromises" :key="promise.title" class="bp-item">
-          <el-icon class="bp-icon" color="var(--color-brand)" :size="32"><component :is="promise.icon" /></el-icon>
+          <el-icon class="bp-icon" color="var(--color-brand)" :size="28"><component :is="promise.icon" /></el-icon>
           <div class="bp-text">
             <strong>{{ promise.title }}</strong>
             <span>{{ promise.sub }}</span>
@@ -276,363 +271,224 @@ onMounted(loadHome);
 </template>
 
 <style scoped>
-.home-wrapper {
-}
-
 .home-grid {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: var(--spacing-xl);
   padding-top: var(--spacing-xl);
 }
 
-/* Hero Section */
-.hero-section {
+/* 品牌头 */
+.brand-head {
   display: grid;
-  grid-template-columns: minmax(540px, 1.8fr) minmax(460px, 1.2fr);
-  gap: var(--spacing-lg);
-}
-
-.hero-banner {
-  display: flex;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 540px);
+  gap: var(--spacing-xl);
   align-items: center;
+  padding: var(--spacing-xl) var(--spacing-xl);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  background: var(--bg-gradient-hero);
-  overflow: hidden;
-  min-height: 310px;
-  padding: 48px 44px;
-  width: 100%;
-}
-.hero-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  max-width: 600px;
-  min-width: 0;
-}
-@media (max-width: 768px) {
-  .hero-banner {
-    min-height: auto;
-    padding: var(--spacing-lg);
-  }
 }
 
-.hero-title {
-  max-width: 100%;
-  font-size: clamp(24px, 4vw, 36px);
-  font-weight: 800;
+.brand-head-title {
+  margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-  letter-spacing: -0.02em;
-  line-height: 1.14;
-  white-space: normal;
+  letter-spacing: -0.01em;
 }
 
-.hero-subtitle {
-  max-width: 100%;
-  font-size: clamp(14px, 2.5vw, 18px);
+.brand-head-sub {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-sm);
   color: var(--color-text-secondary);
-  margin-bottom: 22px;
 }
 
-.hero-guarantees {
-  display: flex;
-  gap: var(--spacing-lg);
-  margin-bottom: 22px;
-  white-space: nowrap;
+.brand-head-search :deep(.el-input-group__append) {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
 }
 
-.guarantee-item {
+.brand-head-search :deep(.el-input-group__append .el-button) {
+  color: var(--color-text-inverse);
+}
+
+/* 交易链路线条 */
+.flow-line-section {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.flow-line-track {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-sm);
-  font-size: 14px;
-}
-
-.g-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.g-text strong {
-  color: var(--color-text-secondary);
-}
-
-.g-text span {
-  color: var(--color-text-light);
-  font-size: 12px;
-}
-
-.hero-btn {
-  font-size: 16px;
-  padding: 12px 32px;
-  border-radius: 30px;
-  height: auto;
-  text-decoration: none;
-}
-
-/* Flow Panel */
-.flow-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.flow-track {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
   flex-wrap: wrap;
-  gap: 10px;
 }
 
 .flow-node {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+  min-width: 80px;
 }
 
-.node-icon {
+.flow-node:hover {
+  background: var(--color-bg-subtle);
+}
+
+.flow-node-icon {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--color-brand-light);
+  background: var(--color-brand-soft);
   color: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: var(--font-xl);
 }
 
-.flow-node strong {
-  font-size: 13px;
-  color: var(--color-text-secondary);
+.flow-node-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
 }
 
-.flow-node span {
-  font-size: 11px;
-  color: var(--color-text-light);
+.flow-node-text strong {
+  font-size: var(--font-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
 }
 
-.flow-line {
+.flow-node-text span {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
+
+.flow-connector {
   color: var(--color-border);
-  margin-bottom: 16px;
-}
-
-.flow-footer {
   display: flex;
   align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 品类卡片网格 */
+.category-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.category-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--spacing-sm);
-  background: var(--color-surface-hover);
-  padding: 12px;
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-base);
 }
 
-.flow-footer .arrow {
-  margin-left: auto;
-  color: var(--color-text-light);
+.category-card:hover {
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
 }
 
-/* Sections Common */
-.section-header {
-  margin-bottom: 16px;
+.category-card-icon {
+  color: var(--color-brand);
 }
 
-.section-title {
-  font-size: 24px;
-  font-weight: 700;
+.category-card strong {
+  font-size: var(--font-base);
   color: var(--color-text-primary);
-  margin: 0;
+  font-weight: var(--weight-medium);
 }
 
 .more-link {
-  font-size: 14px;
-  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
+  transition: color var(--transition-fast);
 }
+
 .more-link:hover {
   color: var(--color-brand);
 }
 
-/* Recommend Section */
-.category-tabs {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: 24px;
-}
-
-.tab-btn {
-  background: none;
-  border: none;
-  font-size: 15px;
-  color: var(--color-text-muted);
-  padding: 6px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.tab-btn:hover {
-  color: var(--color-brand);
-}
-
+/* 推荐商品网格 */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 240px));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   justify-content: start;
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
-.product-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid transparent;
-}
-
-.product-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-brand-light);
-}
-
-.p-image {
-  width: 100%;
-  aspect-ratio: 1;
-  overflow: hidden;
-  padding: 16px;
-}
-
-.p-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.p-info {
-  padding: 0 16px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.p-name {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin: 0 0 4px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-weight: 500;
-  height: 40px;
-}
-
-.p-desc {
-  font-size: 12px;
-  color: var(--color-text-light);
-  margin: 0 0 auto 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.p-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-}
-
-.p-price {
-  color: var(--color-price);
-  font-weight: 700;
-}
-
-.currency {
-  font-size: 12px;
-}
-
-.amount {
-  font-size: 20px;
-}
-
-.cart-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-brand-light);
-  color: var(--color-brand);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.cart-btn:hover {
-  background: var(--color-brand);
-  color: white;
-}
-
-/* Seckill Section */
-
+/* 秒杀区 */
 .sk-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
 .sk-card {
-  background: var(--color-surface);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   display: flex;
-  padding: 16px;
-  gap: 16px;
+  padding: var(--spacing-md);
+  gap: var(--spacing-md);
+  transition: border-color var(--transition-fast);
 }
 
 .sk-card:hover {
-  border-color: var(--color-error-border);
+  border-color: var(--color-brand);
 }
 
 .sk-image {
   width: 120px;
   height: 120px;
   flex-shrink: 0;
-  background: var(--color-surface);
+  background: var(--color-bg-subtle);
   border-radius: var(--radius-md);
-}
-
-.sk-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  overflow: hidden;
 }
 
 .sk-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 
 .sk-name {
-  font-size: 15px;
-  margin: 0 0 8px 0;
-  color: var(--color-text-secondary);
+  font-size: var(--font-base);
+  margin: 0 0 var(--spacing-sm);
+  color: var(--color-text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -640,125 +496,109 @@ onMounted(loadHome);
 }
 
 .sk-prices {
-  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .sk-price {
   color: var(--color-price);
-  font-size: 20px;
-  font-weight: bold;
-  margin-right: 8px;
 }
 
 .sk-old {
-  color: var(--color-text-light);
-  text-decoration: line-through;
-  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 
 .sk-btn {
-  background: var(--color-error-bg);
+  background: var(--color-danger-soft);
   color: var(--color-price);
   border: 1px solid var(--color-error-border);
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-weight: bold;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
   cursor: pointer;
   align-self: flex-start;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sk-btn:hover {
   background: var(--color-price);
-  color: white;
+  color: var(--color-text-inverse);
 }
 
+.sk-empty {
+  grid-column: 1 / -1;
+  padding: var(--spacing-xl);
+  text-align: center;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-sm);
+}
 
-/* Bottom Promises */
+/* 服务承诺 */
 .bottom-promises {
   display: flex;
   justify-content: space-between;
-  padding: 40px;
-  background: var(--color-surface);
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  margin-top: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .bp-item {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .bp-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .bp-text strong {
-  font-size: 18px;
-  color: var(--color-text-secondary);
+  font-size: var(--font-base);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
 }
 
 .bp-text span {
-  font-size: 14px;
-  color: var(--color-text-light);
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
+/* 响应式 */
+@media (max-width: 1024px) {
+  .brand-head {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
   .sk-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 900px) {
-  .hero-section {
-    grid-template-columns: 1fr;
+
+@media (max-width: 768px) {
+  .flow-line-track {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  .flow-connector {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .category-card-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
-
-.panel-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.panel-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.panel-title-main {
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--color-text-primary);
-}
-.panel-title-tag {
-  font-size: 12px;
-  color: var(--color-brand);
-  background: var(--color-brand-light);
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-.panel-title-sub {
-  font-size: 13px;
-  color: var(--color-text-light);
-  font-weight: normal;
-}
-.panel-title-link {
-  font-size: 14px;
-  font-weight: normal;
-  margin-left: auto;
-}
-
-.ml-auto {
-  margin-left: auto;
-}
-.sk-empty {
-  grid-column: 1 / -1;
-  padding: 40px;
-  text-align: center;
-  background: var(--color-surface-hover);
-  border-radius: 8px;
-}
-
-
 </style>

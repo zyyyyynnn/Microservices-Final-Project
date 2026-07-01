@@ -7,12 +7,14 @@ import PageState from '../components/PageState.vue';
 import ProductCard from '../components/ProductCard.vue';
 import type { UnknownRecord } from '../api/types';
 import { asList, field } from '../utils/format';
+import { Search } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
 const error = ref('');
 const keyword = ref(String(route.query.keyword || ''));
+const searchInput = ref(String(route.query.keyword || ''));
 const brand = ref(String(route.query.brand || ''));
 const pageNum = ref(1);
 const pageSize = ref(8);
@@ -64,6 +66,15 @@ async function search() {
 
 function useHotWord(word: string) {
   keyword.value = word;
+  searchInput.value = word;
+  brand.value = '';
+  pageNum.value = 1;
+  search();
+}
+
+function submitSearch() {
+  const value = searchInput.value.trim();
+  keyword.value = value;
   brand.value = '';
   pageNum.value = 1;
   search();
@@ -72,6 +83,7 @@ function useHotWord(word: string) {
 watch(() => route.query.keyword, (newVal) => {
   if (newVal !== undefined) {
     keyword.value = String(newVal);
+    searchInput.value = String(newVal);
     pageNum.value = 1;
     search();
   }
@@ -94,15 +106,32 @@ onMounted(() => {
 <template>
   <section class="commerce-layout">
     <div class="search-header">
-      <h1 class="search-title">
-        <span v-if="brand">「{{ brand }}」专区</span>
-        <span v-else-if="keyword">「{{ keyword }}」的搜索结果</span>
-        <span v-else>全部商品</span>
-      </h1>
+      <div class="search-head-text">
+        <h1 class="search-title">
+          <span v-if="brand">「{{ brand }}」专区</span>
+          <span v-else-if="keyword">「{{ keyword }}」的搜索结果</span>
+          <span v-else>全部商品</span>
+        </h1>
+        <p class="search-sub">输入关键字或选择热门搜索词，快速定位商品</p>
+      </div>
+      <div class="search-head-input">
+        <el-input
+          v-model="searchInput"
+          placeholder="搜索商品，如 iPhone、美妆、台灯"
+          size="large"
+          @keyup.enter="submitSearch"
+        >
+          <template #append>
+            <el-button :icon="Search" @click="submitSearch">搜索</el-button>
+          </template>
+        </el-input>
+      </div>
+    </div>
 
-      <div class="tag-row mt">
+    <div class="search-hot-row" v-if="hotWords.length">
+      <span class="hot-label">热门搜索</span>
+      <div class="tag-row">
         <button v-for="word in hotWords" :key="word" class="hot-chip" @click="useHotWord(word)">{{ word }}</button>
-        <span v-if="!hotWords.length" class="empty-hint">暂无热词推荐</span>
       </div>
     </div>
 
@@ -133,33 +162,76 @@ onMounted(() => {
 
 <style scoped>
 .search-header {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 540px);
+  gap: var(--spacing-xl);
   align-items: center;
-  padding: var(--spacing-xl) 0;
-  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
-.large-search {
-  width: 100%;
-  max-width: 600px;
+
+.search-title {
+  margin: 0;
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
+
+.search-sub {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}
+
+.search-head-input :deep(.el-input-group__append) {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+}
+
+.search-head-input :deep(.el-input-group__append .el-button) {
+  color: var(--color-text-inverse);
+}
+
+.search-hot-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding: 0 var(--spacing-xs);
+}
+
+.hot-label {
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
 .hot-chip {
   cursor: pointer;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);
-  background: transparent;
-  padding: 4px 12px;
+  background: var(--color-bg-surface);
+  padding: var(--spacing-xs) var(--spacing-md);
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
   outline: none;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 .hot-chip:hover, .hot-chip:focus {
   border-color: var(--color-brand);
   color: var(--color-brand);
   background: var(--color-surface-hover);
 }
-.empty-hint {
-  font-size: var(--font-xs);
-  color: var(--color-text-tertiary);
+
+@media (max-width: 1024px) {
+  .search-header {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
 }
 </style>

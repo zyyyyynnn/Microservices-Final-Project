@@ -77,7 +77,12 @@ onMounted(load);
   <section class="page-grid two">
     <el-card class="panel">
       <template #header>
-        <div class="panel-title">账户资料</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">账户资料</span>
+            <span class="panel-title-sub">维护昵称、邮箱与头像</span>
+          </div>
+        </div>
       </template>
       <PageState :loading="loading" :error="''" @retry="load" />
       <el-form v-if="!loading" label-position="top" :disabled="loading">
@@ -101,7 +106,12 @@ onMounted(load);
 
     <el-card class="panel">
       <template #header>
-        <div class="panel-title">收货地址</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">收货地址</span>
+            <span class="panel-title-sub">下单时使用的配送地址</span>
+          </div>
+        </div>
       </template>
       <div v-if="addresses.length" class="table-scroll">
       <el-table :data="addresses" class="stable-table">

@@ -83,7 +83,12 @@ onMounted(loadRecord);
 <template>
   <section class="commerce-layout">
     <div class="panel wide-panel">
-      <div class="panel-title">支付收银台</div>
+      <div class="panel-title-row">
+        <div class="panel-title-group">
+          <span class="panel-title-main">支付收银台</span>
+          <span class="panel-title-sub">模拟支付订单</span>
+        </div>
+      </div>
       
       <PageState :loading="loading" :error="''" @retry="loadRecord" />
       
@@ -158,9 +163,10 @@ onMounted(loadRecord);
   margin-bottom: var(--spacing-xs);
 }
 .pay-amount {
-  font-size: 32px;
+  font-size: var(--font-2xl);
   font-weight: var(--weight-bold);
   color: var(--color-brand);
+  letter-spacing: -0.01em;
 }
 .pay-actions {
   display: flex;

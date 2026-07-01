@@ -5,9 +5,11 @@ import placeholderSrc from '../assets/placeholder.svg';
 const props = withDefaults(defineProps<{
   src?: string;
   alt?: string;
+  priority?: boolean;
 }>(), {
   src: '',
   alt: '商品图片',
+  priority: false,
 });
 
 const isError = ref(false);
@@ -38,7 +40,8 @@ function handleError() {
       :src="src"
       :alt="alt"
       @error="handleError"
-      loading="lazy"
+      :loading="priority ? 'eager' : 'lazy'"
+      :fetchpriority="priority ? 'high' : 'auto'"
       decoding="async"
       class="product-image-el"
     />
@@ -87,7 +90,7 @@ function handleError() {
 .product-image-el {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   transition: transform var(--transition-base);
 }
 </style>

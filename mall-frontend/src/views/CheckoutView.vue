@@ -106,7 +106,12 @@ onMounted(load);
   <section class="cart-layout">
     <el-card class="panel wide-panel">
       <template #header>
-        <div class="panel-title">订单确认</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">订单确认</span>
+            <span class="panel-title-sub">核对地址与商品明细</span>
+          </div>
+        </div>
       </template>
       <PageState
         :loading="loading"
@@ -177,7 +182,12 @@ onMounted(load);
 
     <el-card class="panel summary-panel">
       <template #header>
-        <div class="panel-title">金额汇总</div>
+        <div class="panel-title-row">
+          <div class="panel-title-group">
+            <span class="panel-title-main">金额汇总</span>
+            <span class="panel-title-sub">以提交订单结果为准</span>
+          </div>
+        </div>
       </template>
       <OrderSummary :items="items" />
       <el-button
